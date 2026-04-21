@@ -7,12 +7,12 @@ const worldCards = [getWorldPresentation("agriculture"), getWorldPresentation("e
 
 export function WorldsEntry() {
   return (
-    <section className="py-8 sm:py-12">
+    <section id="worlds" className="py-8 sm:py-12">
       <Container>
         <div className="mb-5">
-          <h2 className="text-2xl font-semibold tracking-tight text-slate-900">Тематические миры</h2>
+          <h2 className="text-2xl font-semibold tracking-tight text-slate-900">Миры как режимы платформы</h2>
           <p className="mt-1 text-sm text-slate-600">
-            Один сервис объявлений: переключайтесь между мирами внутри единого каталога.
+            Каждый мир — отдельный сценарий поиска и продаж с собственным контекстом, но единым аккаунтом.
           </p>
         </div>
 
@@ -54,13 +54,13 @@ export function WorldsEntry() {
                   href={`/listings?world=${world.world}`}
                   className="rounded-xl bg-slate-900 px-3.5 py-2 text-sm font-semibold text-white transition hover:bg-slate-700"
                 >
-                  {world.homeCardCta}
+                  Перейти в режим {world.title.toLowerCase()}
                 </Link>
                 <Link
                   href={`/create-listing?world=${world.world}`}
                   className="rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
                 >
-                  Разместить в этом мире
+                  Разместить объявление в мире
                 </Link>
               </div>
             </article>

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { AccountMenu } from "@/components/layout/account-menu";
 import { HeaderActions } from "@/components/layout/header-actions";
@@ -14,6 +14,9 @@ import { getMockUnreadMessagesCount } from "@/lib/messages";
 const primaryNavLinks = [
   { label: "Главная", href: "/" },
   { label: "Каталог", href: "/listings" },
+  { label: "Миры", href: "/#worlds" },
+  { label: "Магазины", href: "/sellers/marina-tech" },
+  { label: "Герой доски", href: "/sponsor-board" },
 ];
 
 function BurgerIcon() {
@@ -28,27 +31,10 @@ function BurgerIcon() {
 
 export function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [createListingHref, setCreateListingHref] = useState("/create-listing");
   const unreadCount = getMockUnreadMessagesCount();
   const { favoritesCount, isHydrated } = useFavorites();
   const { unreadCount: notificationsUnreadCount, isHydrated: notificationsHydrated } =
     useNotifications();
-
-  useEffect(() => {
-    const updateCreateHref = () => {
-      const pathname = window.location.pathname;
-      const worldFromUrl = new URLSearchParams(window.location.search).get("world");
-      const nextHref =
-        pathname === "/listings" && (worldFromUrl === "agriculture" || worldFromUrl === "electronics")
-          ? `/create-listing?world=${worldFromUrl}`
-          : "/create-listing";
-      setCreateListingHref(nextHref);
-    };
-
-    updateCreateHref();
-    window.addEventListener("popstate", updateCreateHref);
-    return () => window.removeEventListener("popstate", updateCreateHref);
-  }, []);
 
   return (
     <>
@@ -86,11 +72,11 @@ export function Navbar() {
             <AccountMenu favoritesCount={favoritesCount} favoritesHydrated={isHydrated} />
 
             <Link
-              href={createListingHref}
+              href="/dashboard/store?sellerId=marina-tech"
               className="inline-flex h-10 items-center justify-center rounded-xl bg-slate-900 px-3 text-sm font-semibold text-white transition hover:bg-slate-700 sm:px-4"
             >
-              <span className="sm:hidden">Разместить</span>
-              <span className="hidden sm:inline">Разместить объявление</span>
+              <span className="sm:hidden">Я продавец</span>
+              <span className="hidden sm:inline">Я продавец / бизнес</span>
             </Link>
 
             <button

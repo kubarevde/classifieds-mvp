@@ -126,6 +126,9 @@ export function MobileMenu({
             <ul className="mt-2 space-y-0.5">
               <MenuListItem href="/" label="Главная" onClose={onClose} />
               <MenuListItem href="/listings" label="Каталог" onClose={onClose} />
+              <MenuListItem href="/#worlds" label="Миры" onClose={onClose} />
+              <MenuListItem href="/sellers/marina-tech" label="Магазины" onClose={onClose} />
+              <MenuListItem href="/sponsor-board" label="Герой доски" onClose={onClose} />
               <MenuListItem href={createListingHref} label="Разместить объявление" onClose={onClose} />
             </ul>
           </section>
@@ -156,10 +159,19 @@ export function MobileMenu({
           </section>
 
           <section>
+            <p className="px-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Я продавец / бизнес</p>
+            <ul className="mt-2 space-y-0.5">
+              <MenuListItem href="/dashboard/store?sellerId=marina-tech" label="Управлять магазином" onClose={onClose} />
+              <MenuListItem href={createListingHref} label="Разместить объявление" onClose={onClose} />
+              <MenuListItem href="/sellers/marina-tech" label="Пример storefront" onClose={onClose} />
+            </ul>
+          </section>
+
+          <section>
             <p className="px-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Аккаунт</p>
             <ul className="mt-2 space-y-0.5">
               <MenuListItem href="/profile" label="Профиль" onClose={onClose} />
-              <MenuListItem href="/dashboard" label="Кабинет" onClose={onClose} />
+              <MenuListItem href="/dashboard" label="Мои покупки и продажи" onClose={onClose} />
             </ul>
           </section>
         </div>

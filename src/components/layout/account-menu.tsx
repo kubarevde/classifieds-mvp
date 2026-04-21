@@ -42,7 +42,15 @@ export function AccountMenu({ favoritesCount, favoritesHydrated }: AccountMenuPr
           </li>
           <li>
             <Link href="/dashboard" className="flex items-center rounded-lg px-3 py-2 hover:bg-slate-50">
-              Кабинет
+              Мои покупки и продажи
+            </Link>
+          </li>
+          <li>
+            <Link
+              href="/dashboard/store?sellerId=marina-tech"
+              className="flex items-center rounded-lg px-3 py-2 hover:bg-slate-50"
+            >
+              Управлять магазином
             </Link>
           </li>
           <li>

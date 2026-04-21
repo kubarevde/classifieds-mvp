@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
+import { HeroBoardPlacementCard } from "@/components/hero-board/hero-board-placement-card";
 import { DiscoveryFlowModal } from "@/components/agriculture/discovery-flow-modal";
 import { ElectronicsDiscoveryFlowModal } from "@/components/electronics/electronics-discovery-flow-modal";
 import { FiltersBar } from "@/components/listings/filters-bar";
@@ -31,6 +32,7 @@ import {
   resolveElectronicsDiscoveryListings,
 } from "@/lib/discovery";
 import type { SavedSearchFilters } from "@/lib/saved-searches";
+import { getHeroBoardPlacementForWorld } from "@/lib/sellers";
 import { getWorldPresentation } from "@/lib/worlds";
 
 type ListingsPageClientProps = {
@@ -165,6 +167,10 @@ export function ListingsPageClient({ initialFilters }: ListingsPageClientProps) 
   }, [activeDiscoveryListings, discoveryModeIsActive, visibleListings, world]);
 
   const discoveryPreviewText = activeDiscoveryListings.slice(0, 3).map((item) => item.title).join(" · ");
+  const worldHeroPlacement = useMemo(
+    () => (world === "all" ? null : getHeroBoardPlacementForWorld(world)),
+    [world],
+  );
 
   const railsWithListings = useMemo(() => {
     if (world === "all") {
@@ -310,6 +316,18 @@ export function ListingsPageClient({ initialFilters }: ListingsPageClientProps) 
             : worldPresentation.discovery.resultLabel}
         </p>
       </section>
+
+      {worldHeroPlacement ? (
+        <section className={`space-y-2 rounded-2xl border p-3 ${worldPresentation.sectionToneClass}`}>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-sm font-semibold text-slate-900">Герой мира</p>
+            <Link href="/sponsor-board" className="text-xs font-semibold text-slate-600 transition hover:text-slate-900">
+              Как попасть в этот слот?
+            </Link>
+          </div>
+          <HeroBoardPlacementCard placement={worldHeroPlacement} compact />
+        </section>
+      ) : null}
 
       {world !== "all" ? (
         <section className="space-y-3">

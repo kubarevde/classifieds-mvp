@@ -7,16 +7,15 @@ export function Features() {
       <Container>
         <div className="mx-auto max-w-3xl text-center">
           <h2 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
-            Продукт, в котором сразу понятно что делать
+            Путь покупателя и продавца внутри одной платформы
           </h2>
           <p className="mt-3 text-sm leading-6 text-slate-600 sm:text-base">
-            Фокус на ключевых сценариях: быстро разместить, быстро найти, безопасно
-            договориться.
+            Покупатель получает понятный выбор и storefront магазинов, продавец — инструменты роста без перехода в отдельные сервисы.
           </p>
         </div>
 
         <div className="mt-7 grid gap-3 md:grid-cols-3">
-          {features.map((feature) => (
+          {features.slice(0, 3).map((feature) => (
             <article
               key={feature.title}
               className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-slate-300"

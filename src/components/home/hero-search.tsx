@@ -15,15 +15,30 @@ export function HeroSearch() {
         <div className="grid items-center gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:gap-10">
           <div className="text-left">
             <p className="mb-4 inline-flex rounded-full border border-sky-200 bg-white/90 px-4 py-1 text-xs font-semibold uppercase tracking-wide text-sky-700">
-              Маркетплейс объявлений
+              Платформа объявлений + магазины
             </p>
             <h1 className="text-balance text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl lg:text-5xl">
-              Покупайте и продавайте без лишних шагов
+              Вертикальные миры, storefront магазинов и умный каталог в одном продукте
             </h1>
             <p className="mt-4 max-w-2xl text-pretty text-base leading-7 text-slate-600 sm:text-lg">
-              Удобный поиск, реальные предложения и ясная подача. Все важные категории в
-              одном продукте, который приятно использовать каждый день.
+              Для покупателей: быстрый поиск, подписка на магазины и акции. Для продавцов:
+              mini‑витрина, кабинет управления и маркетинговые инструменты роста.
             </p>
+
+            <div className="mt-5 flex flex-wrap gap-2">
+              <Link
+                href="/listings"
+                className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-700"
+              >
+                Смотреть объявления
+              </Link>
+              <Link
+                href="/#worlds"
+                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              >
+                Исследовать миры
+              </Link>
+            </div>
 
             <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-3 shadow-[0_24px_64px_-40px_rgba(15,23,42,0.55)] sm:p-4">
               <form className="grid gap-3 md:grid-cols-[1fr_auto_auto]">
@@ -75,7 +90,7 @@ export function HeroSearch() {
           </div>
 
           <aside className="rounded-3xl border border-slate-200/90 bg-white p-5 shadow-[0_24px_64px_-42px_rgba(15,23,42,0.65)] sm:p-6">
-            <p className="text-sm font-semibold text-slate-900">Сейчас на платформе</p>
+            <p className="text-sm font-semibold text-slate-900">Что можно делать уже сейчас</p>
             <div className="mt-4 grid grid-cols-2 gap-3">
               <div className="rounded-2xl bg-slate-50 p-4">
                 <p className="text-2xl font-semibold tracking-tight text-slate-900">36K+</p>
@@ -89,14 +104,16 @@ export function HeroSearch() {
 
             <div className="mt-5 space-y-3">
               <div className="rounded-2xl border border-slate-200 p-3">
-                <p className="text-xs text-slate-500">Популярный запрос</p>
+                <p className="text-xs text-slate-500">Для покупателей</p>
                 <p className="mt-1 text-sm font-semibold text-slate-900">
-                  Аренда 1-к квартиры в центре
+                  Подписывайтесь на магазины и ловите новые акции в витрине продавца.
                 </p>
               </div>
               <div className="rounded-2xl border border-slate-200 p-3">
-                <p className="text-xs text-slate-500">Самая активная категория</p>
-                <p className="mt-1 text-sm font-semibold text-slate-900">Электроника</p>
+                <p className="text-xs text-slate-500">Для продавцов</p>
+                <p className="mt-1 text-sm font-semibold text-slate-900">
+                  Управляйте магазином в Pro‑кабинете: купоны, кампании и продвижение.
+                </p>
               </div>
             </div>
           </aside>

@@ -7,6 +7,7 @@ import { SellerCard } from "@/components/listings/seller-card";
 import { Navbar } from "@/components/layout/navbar";
 import { Container } from "@/components/ui/container";
 import { allListings, getRelatedUnifiedListings } from "@/lib/listings";
+import { getStorefrontSellerByListingId } from "@/lib/sellers";
 
 type ListingDetailsPageProps = {
   params: Promise<{ id: string }>;
@@ -21,6 +22,7 @@ export default async function ListingDetailsPage({ params }: ListingDetailsPageP
   }
 
   const relatedListings = getRelatedUnifiedListings(listing, 4);
+  const storefrontSeller = getStorefrontSellerByListingId(listing.id);
 
   return (
     <div className="min-h-screen bg-slate-50/60">
@@ -31,19 +33,20 @@ export default async function ListingDetailsPage({ params }: ListingDetailsPageP
             ← Вернуться в каталог
           </Link>
 
-          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
             <ListingDetails listing={listing} />
             <SellerCard
               sellerName={listing.sellerName}
               sellerPhone={listing.sellerPhone}
               listingId={listing.id}
               listingTitle={listing.title}
+              storefront={storefrontSeller}
             />
           </div>
 
           <section className="space-y-3">
             <h2 className="text-xl font-semibold tracking-tight text-slate-900">Похожие объявления</h2>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               {relatedListings.map((relatedListing) => (
                 <ListingPreviewCard key={relatedListing.id} listing={relatedListing} view="grid" />
               ))}

@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { FavoriteButton } from "@/components/favorites/favorite-button";
 import { getListingBadges, UnifiedCatalogListing } from "@/lib/listings";
+import { getListingMarketingBadgeData } from "@/lib/sellers";
 
 type ListingCardProps = {
   listing: UnifiedCatalogListing;
@@ -9,10 +10,21 @@ type ListingCardProps = {
 
 export function ListingCard({ listing }: ListingCardProps) {
   const badges = getListingBadges(listing);
+  const marketing = getListingMarketingBadgeData(listing.id);
+  const promotionBadges = [
+    marketing.coupon
+      ? `Купон ${marketing.coupon.discountType === "percent" ? `${marketing.coupon.discountValue}%` : `${marketing.coupon.discountValue} ₽`}`
+      : null,
+    marketing.isSuper ? "Суперобъявление" : null,
+    marketing.isSponsored ? "Продвижение" : null,
+  ].filter((badge): badge is string => Boolean(badge));
   const badgeToneClass = (tone: "agriculture" | "electronics") =>
     tone === "agriculture"
       ? "border-emerald-200 bg-emerald-50 text-emerald-800"
       : "border-slate-300 bg-[linear-gradient(to_bottom,#ffffff,#eef3fa)] text-slate-700 shadow-sm";
+  const cardToneClass = marketing.isSuper
+    ? "border-amber-300 bg-[linear-gradient(to_bottom,#ffffff,#fff9eb)] shadow-[0_6px_16px_rgba(245,158,11,0.18)]"
+    : "border-slate-200 bg-white";
 
   const content = (
     <>
@@ -53,6 +65,18 @@ export function ListingCard({ listing }: ListingCardProps) {
             ))}
           </div>
         ) : null}
+        {promotionBadges.length ? (
+          <div className="flex flex-wrap gap-1.5">
+            {promotionBadges.map((badge) => (
+              <span
+                key={badge}
+                className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-medium text-slate-700"
+              >
+                {badge}
+              </span>
+            ))}
+          </div>
+        ) : null}
         <div className="flex items-center justify-between text-xs text-slate-500">
           <span className="inline-flex items-center gap-1">📍 {listing.location}</span>
           <span>{listing.publishedAt}</span>
@@ -65,7 +89,7 @@ export function ListingCard({ listing }: ListingCardProps) {
     return (
       <Link
         href={listing.detailsHref}
-        className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-lg"
+        className={`group overflow-hidden rounded-2xl border shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-lg ${cardToneClass}`}
       >
         {content}
       </Link>
@@ -73,7 +97,7 @@ export function ListingCard({ listing }: ListingCardProps) {
   }
 
   return (
-    <article className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-lg">
+    <article className={`group overflow-hidden rounded-2xl border shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-lg ${cardToneClass}`}>
       {content}
     </article>
   );
