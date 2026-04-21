@@ -21,6 +21,8 @@ function getTypeLabel(type: NotificationType) {
       return "Совет";
     case "similar_listing":
       return "Похоже на ваши интересы";
+    case "search_alert":
+      return "Поиск";
     default:
       return "Событие";
   }
@@ -38,6 +40,8 @@ function getTypeAccent(type: NotificationType) {
       return { dot: "bg-amber-500", pill: "bg-amber-50 text-amber-800 ring-amber-100" };
     case "similar_listing":
       return { dot: "bg-violet-500", pill: "bg-violet-50 text-violet-700 ring-violet-100" };
+    case "search_alert":
+      return { dot: "bg-cyan-500", pill: "bg-cyan-50 text-cyan-800 ring-cyan-100" };
     default:
       return { dot: "bg-slate-400", pill: "bg-slate-50 text-slate-700 ring-slate-100" };
   }

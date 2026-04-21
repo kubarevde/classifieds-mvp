@@ -1,5 +1,25 @@
+import Link from "next/link";
+
 import { categories } from "@/lib/mock-data";
 import { Container } from "@/components/ui/container";
+
+const homeCategoryLinks = [
+  ...categories.map((category) => ({
+    ...category,
+    href:
+      category.id === "electronics"
+        ? "/listings?world=electronics&category=smartphones"
+        : `/listings?world=all&category=${category.id}`,
+  })),
+  {
+    id: "agriculture_world",
+    label: "Сельское хозяйство",
+    caption: "Техника, материалы и сервисы для агробизнеса",
+    icon: "🌾",
+    listingCount: "10 240 объявлений",
+    href: "/listings?world=agriculture&category=ready_products",
+  },
+];
 
 export function CategoriesGrid() {
   return (
@@ -15,9 +35,10 @@ export function CategoriesGrid() {
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {categories.map((category) => (
-            <article
+          {homeCategoryLinks.map((category) => (
+            <Link
               key={category.id}
+              href={category.href}
               className="group rounded-2xl border border-slate-200 bg-white p-5 transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md"
             >
               <div className="flex items-start justify-between">
@@ -29,7 +50,7 @@ export function CategoriesGrid() {
               <h3 className="mt-4 text-base font-semibold text-slate-900">{category.label}</h3>
               <p className="mt-1 min-h-10 text-sm text-slate-600">{category.caption}</p>
               <p className="mt-3 text-xs font-medium text-slate-500">{category.listingCount}</p>
-            </article>
+            </Link>
           ))}
         </div>
       </Container>

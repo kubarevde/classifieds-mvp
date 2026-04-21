@@ -26,6 +26,7 @@ type NotificationsContextValue = {
   isHydrated: boolean;
   markAsRead: (id: string) => void;
   markAllAsRead: () => void;
+  addNotification: (notification: Omit<Notification, "id">) => void;
 };
 
 const NotificationsContext = createContext<NotificationsContextValue | null>(null);
@@ -191,6 +192,15 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
     writeNotificationsToStorage(current.map((item) => ({ ...item, isRead: true })));
   }, []);
 
+  const addNotification = useCallback((notification: Omit<Notification, "id">) => {
+    const current = readNotificationsFromStorage();
+    const id =
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `n-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    writeNotificationsToStorage([{ ...notification, id }, ...current]);
+  }, []);
+
   const value = useMemo<NotificationsContextValue>(() => {
     const unreadCount = notifications.reduce((total, item) => total + (item.isRead ? 0 : 1), 0);
 
@@ -202,8 +212,9 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
       isHydrated,
       markAsRead,
       markAllAsRead,
+      addNotification,
     };
-  }, [isHydrated, markAllAsRead, markAsRead, notifications]);
+  }, [addNotification, isHydrated, markAllAsRead, markAsRead, notifications]);
 
   return <NotificationsContext.Provider value={value}>{children}</NotificationsContext.Provider>;
 }

@@ -1,8 +1,30 @@
 import { CreateListingForm } from "@/components/create-listing/create-listing-form";
 import { Navbar } from "@/components/layout/navbar";
 import { Container } from "@/components/ui/container";
+import { CatalogWorld } from "@/lib/listings";
 
-export default function CreateListingPage() {
+type CreateListingPageProps = {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+function resolveWorld(raw: string | string[] | undefined): CatalogWorld {
+  const value = Array.isArray(raw) ? raw[0] : raw;
+  if (value === "agriculture" || value === "electronics") {
+    return value;
+  }
+  return "all";
+}
+
+function resolveIsAuthenticated(raw: string | string[] | undefined): boolean {
+  const value = Array.isArray(raw) ? raw[0] : raw;
+  return value !== "1";
+}
+
+export default async function CreateListingPage({ searchParams }: CreateListingPageProps) {
+  const params = searchParams ? await searchParams : undefined;
+  const initialWorld = resolveWorld(params?.world);
+  const initialIsAuthenticated = resolveIsAuthenticated(params?.guest);
+
   return (
     <div className="min-h-screen bg-slate-50/60">
       <Navbar />
@@ -16,11 +38,11 @@ export default function CreateListingPage() {
               Подать объявление
             </h1>
             <p className="max-w-2xl text-sm text-slate-600 sm:text-base">
-              Заполните форму, добавьте фото и опубликуйте объявление за пару минут.
+              Заполните форму, выберите тематический мир и опубликуйте объявление за пару минут.
             </p>
           </header>
 
-          <CreateListingForm />
+          <CreateListingForm initialWorld={initialWorld} initialIsAuthenticated={initialIsAuthenticated} />
         </Container>
       </main>
     </div>

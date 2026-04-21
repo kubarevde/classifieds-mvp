@@ -1,107 +1,110 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname, useSearchParams } from "next/navigation";
+import { useState } from "react";
 
+import { AccountMenu } from "@/components/layout/account-menu";
+import { HeaderActions } from "@/components/layout/header-actions";
+import { MobileMenu } from "@/components/layout/mobile-menu";
 import { useFavorites } from "@/components/favorites/favorites-provider";
 import { useNotifications } from "@/components/notifications/notifications-provider";
 import { Container } from "@/components/ui/container";
 import { getMockUnreadMessagesCount } from "@/lib/messages";
 
-const navLinks = [
+const primaryNavLinks = [
   { label: "Главная", href: "/" },
   { label: "Каталог", href: "/listings" },
-  { label: "Избранное", href: "/favorites" },
-  { label: "Сообщения", href: "/messages" },
-  { label: "Уведомления", href: "/notifications" },
-  { label: "Подать объявление", href: "/create-listing" },
-  { label: "Кабинет", href: "/dashboard" },
 ];
 
+function BurgerIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M4 7h16" />
+      <path d="M4 12h16" />
+      <path d="M4 17h16" />
+    </svg>
+  );
+}
+
 export function Navbar() {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const unreadCount = getMockUnreadMessagesCount();
   const { favoritesCount, isHydrated } = useFavorites();
   const { unreadCount: notificationsUnreadCount, isHydrated: notificationsHydrated } =
     useNotifications();
+  const worldFromUrl = searchParams.get("world");
+  const createListingHref =
+    pathname === "/listings" && (worldFromUrl === "agriculture" || worldFromUrl === "electronics")
+      ? `/create-listing?world=${worldFromUrl}`
+      : "/create-listing";
 
   return (
-    <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/90 backdrop-blur-xl">
-      <Container className="flex h-16 items-center justify-between sm:h-18">
-        <div className="flex items-center gap-2.5">
-          <div className="grid h-9 w-9 place-items-center rounded-xl bg-sky-500 text-lg font-semibold text-white shadow-sm shadow-sky-200">
-            C
-          </div>
-          <div>
-            <p className="text-base font-semibold tracking-tight text-slate-900">Classify</p>
-            <p className="hidden text-[11px] text-slate-500 sm:block">объявления без лишнего</p>
-          </div>
-        </div>
+    <>
+      <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/95 backdrop-blur-xl">
+        <Container className="flex h-16 items-center justify-between gap-3">
+          <Link href="/" className="flex items-center gap-2.5">
+            <div className="grid h-9 w-9 place-items-center rounded-xl bg-slate-900 text-lg font-semibold text-white shadow-sm shadow-slate-200">
+              C
+            </div>
+            <div>
+              <p className="text-base font-semibold tracking-tight text-slate-900">Classify</p>
+              <p className="hidden text-[11px] text-slate-500 md:block">объявления без лишнего</p>
+            </div>
+          </Link>
 
-        <nav className="hidden items-center gap-6 md:flex">
-          {navLinks.map((link) => (
+          <nav className="hidden items-center gap-3 md:flex">
+            {primaryNavLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="text-sm font-medium text-slate-600 transition hover:text-slate-900"
+              >
+                {link.label}
+              </Link>
+            ))}
+          </nav>
+
+          <div className="flex items-center gap-2">
+            <HeaderActions
+              messagesUnreadCount={unreadCount}
+              notificationsUnreadCount={notificationsUnreadCount}
+              notificationsHydrated={notificationsHydrated}
+            />
+
+            <AccountMenu favoritesCount={favoritesCount} favoritesHydrated={isHydrated} />
+
             <Link
-              key={link.href}
-              href={link.href}
-              className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-600 transition hover:text-slate-900"
+              href={createListingHref}
+              className="inline-flex h-10 items-center justify-center rounded-xl bg-slate-900 px-3 text-sm font-semibold text-white transition hover:bg-slate-700 sm:px-4"
             >
-              {link.label}
-              {link.href === "/messages" && unreadCount > 0 ? (
-                <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-sky-500 px-1.5 py-0.5 text-[11px] font-semibold text-white">
-                  {unreadCount}
-                </span>
-              ) : null}
-              {link.href === "/notifications" &&
-              notificationsHydrated &&
-              notificationsUnreadCount > 0 ? (
-                <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-violet-500 px-1.5 py-0.5 text-[11px] font-semibold text-white">
-                  {notificationsUnreadCount}
-                </span>
-              ) : null}
-              {link.href === "/favorites" && isHydrated && favoritesCount > 0 ? (
-                <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-rose-500 px-1.5 py-0.5 text-[11px] font-semibold text-white">
-                  {favoritesCount}
-                </span>
-              ) : null}
+              <span className="sm:hidden">Разместить</span>
+              <span className="hidden sm:inline">Разместить объявление</span>
             </Link>
-          ))}
-        </nav>
 
-        <div className="flex items-center gap-2 sm:gap-3">
-          <Link
-            href="/favorites"
-            className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-          >
-            Избранное
-            {isHydrated && favoritesCount > 0 ? (
-              <span className="ml-2 inline-flex min-w-5 items-center justify-center rounded-full bg-rose-500 px-1.5 py-0.5 text-[11px] font-semibold text-white">
-                {favoritesCount}
-              </span>
-            ) : null}
-          </Link>
-          <Link
-            href="/notifications"
-            className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-          >
-            Уведомления
-            {notificationsHydrated && notificationsUnreadCount > 0 ? (
-              <span className="ml-2 inline-flex min-w-5 items-center justify-center rounded-full bg-violet-500 px-1.5 py-0.5 text-[11px] font-semibold text-white">
-                {notificationsUnreadCount}
-              </span>
-            ) : null}
-          </Link>
-          <Link
-            href="/dashboard"
-            className="hidden rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 sm:block"
-          >
-            Мой кабинет
-          </Link>
-          <Link
-            href="/create-listing"
-            className="rounded-xl bg-slate-900 px-3.5 py-2 text-sm font-semibold text-white transition hover:bg-slate-700 sm:px-4"
-          >
-            Подать объявление
-          </Link>
-        </div>
-      </Container>
-    </header>
+            <button
+              type="button"
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50 sm:hidden"
+              aria-label="Открыть меню"
+            >
+              <BurgerIcon />
+            </button>
+          </div>
+        </Container>
+      </header>
+
+      <MobileMenu
+        isOpen={isMobileMenuOpen}
+        onClose={() => setIsMobileMenuOpen(false)}
+        favoritesCount={favoritesCount}
+        favoritesHydrated={isHydrated}
+        messagesUnreadCount={unreadCount}
+        notificationsUnreadCount={notificationsUnreadCount}
+        notificationsHydrated={notificationsHydrated}
+      />
+    </>
   );
 }

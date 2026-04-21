@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { popularListings } from "@/lib/mock-data";
+import { unifiedCatalogListings } from "@/lib/listings";
 import { Container } from "@/components/ui/container";
 import { ListingCard } from "@/components/home/listing-card";
 
@@ -24,7 +24,7 @@ export function PopularListings() {
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {popularListings.map((listing) => (
+          {unifiedCatalogListings.slice(0, 6).map((listing) => (
             <ListingCard key={listing.id} listing={listing} />
           ))}
         </div>

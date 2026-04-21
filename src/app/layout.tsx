@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 
 import { FavoritesProvider } from "@/components/favorites/favorites-provider";
 import { NotificationsProvider } from "@/components/notifications/notifications-provider";
+import { SavedSearchesProvider } from "@/components/saved-searches/saved-searches-provider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -30,7 +31,9 @@ export default function RootLayout({
     <html lang="ru" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
         <FavoritesProvider>
-          <NotificationsProvider>{children}</NotificationsProvider>
+          <NotificationsProvider>
+            <SavedSearchesProvider>{children}</SavedSearchesProvider>
+          </NotificationsProvider>
         </FavoritesProvider>
       </body>
     </html>

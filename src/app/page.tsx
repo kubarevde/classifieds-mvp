@@ -3,6 +3,7 @@ import { CtaBlock } from "@/components/home/cta-block";
 import { Features } from "@/components/home/features";
 import { HeroSearch } from "@/components/home/hero-search";
 import { PopularListings } from "@/components/home/popular-listings";
+import { WorldsEntry } from "@/components/home/worlds-entry";
 import { Navbar } from "@/components/layout/navbar";
 
 export default function Home() {
@@ -11,6 +12,7 @@ export default function Home() {
       <Navbar />
       <main className="space-y-2 pb-8 sm:space-y-3">
         <HeroSearch />
+        <WorldsEntry />
         <CategoriesGrid />
         <PopularListings />
         <Features />

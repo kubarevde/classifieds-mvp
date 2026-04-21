@@ -3,7 +3,8 @@ export type NotificationType =
   | "favorite"
   | "listing_status"
   | "tip"
-  | "similar_listing";
+  | "similar_listing"
+  | "search_alert";
 
 export type NotificationLink = {
   href: string;
@@ -22,6 +23,7 @@ export type Notification = {
     listingId?: string;
     conversationId?: string;
     status?: string;
+    savedSearchId?: string;
   };
 };
 

@@ -1,6 +1,12 @@
+import Link from "next/link";
+
 import { Container } from "@/components/ui/container";
 
 const quickFilters = ["Новые сегодня", "С доставкой", "До 50 000 ₽", "Рядом"];
+const thematicWorldLinks = [
+  { label: "Сельское хозяйство", href: "/listings?world=agriculture" },
+  { label: "Электроника", href: "/listings?world=electronics" },
+];
 
 export function HeroSearch() {
   return (
@@ -51,6 +57,18 @@ export function HeroSearch() {
                   >
                     {filter}
                   </button>
+                ))}
+              </div>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <span className="text-xs font-medium text-slate-500">Тематические миры:</span>
+                {thematicWorldLinks.map((world) => (
+                  <Link
+                    key={world.href}
+                    href={world.href}
+                    className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+                  >
+                    {world.label}
+                  </Link>
                 ))}
               </div>
             </div>

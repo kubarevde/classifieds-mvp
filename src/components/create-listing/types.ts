@@ -1,4 +1,4 @@
-import { ListingCategory } from "@/lib/types";
+import { CatalogWorld } from "@/lib/listings";
 
 export type ContactMethod = "phone" | "chat" | "both";
 
@@ -9,8 +9,10 @@ export type ListingImage = {
 };
 
 export type CreateListingFormData = {
+  world: CatalogWorld;
   title: string;
-  category: ListingCategory | "";
+  category: string;
+  subCategory: string;
   price: string;
   city: string;
   description: string;

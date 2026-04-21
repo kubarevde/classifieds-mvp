@@ -1,17 +1,25 @@
-import { ListingsView } from "@/lib/listings";
-import { Listing } from "@/lib/types";
+import { ListingsView, UnifiedCatalogListing } from "@/lib/listings";
 import { ListingPreviewCard } from "@/components/listings/listing-preview-card";
 
 type ListingsGridProps = {
-  listings: Listing[];
+  listings: UnifiedCatalogListing[];
   view: ListingsView;
+  emptyStateClassName?: string;
+  emptyMessage?: string;
 };
 
-export function ListingsGrid({ listings, view }: ListingsGridProps) {
+export function ListingsGrid({
+  listings,
+  view,
+  emptyStateClassName = "",
+  emptyMessage = "Ничего не найдено. Попробуйте изменить фильтры или поисковый запрос.",
+}: ListingsGridProps) {
   if (listings.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-slate-500">
-        Ничего не найдено. Попробуйте изменить фильтры или поисковый запрос.
+      <div
+        className={`rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-slate-500 ${emptyStateClassName}`}
+      >
+        {emptyMessage}
       </div>
     );
   }

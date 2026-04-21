@@ -1,12 +1,14 @@
-import { categoryLabels, ListingsView, SortOption } from "@/lib/listings";
-import { ListingCategory } from "@/lib/types";
+import { ReactNode } from "react";
+
+import { ListingsView, SortOption, UnifiedCategoryOption } from "@/lib/listings";
 import { SortSelect } from "@/components/listings/sort-select";
 
 type FiltersBarProps = {
   query: string;
   onQueryChange: (value: string) => void;
-  category: "all" | ListingCategory;
-  onCategoryChange: (value: "all" | ListingCategory) => void;
+  category: "all" | string;
+  onCategoryChange: (value: "all" | string) => void;
+  categoryOptions: UnifiedCategoryOption[];
   location: "all" | string;
   onLocationChange: (value: "all" | string) => void;
   locations: string[];
@@ -14,6 +16,8 @@ type FiltersBarProps = {
   onSortChange: (value: SortOption) => void;
   view: ListingsView;
   onViewChange: (value: ListingsView) => void;
+  actions?: ReactNode;
+  className?: string;
 };
 
 export function FiltersBar({
@@ -21,6 +25,7 @@ export function FiltersBar({
   onQueryChange,
   category,
   onCategoryChange,
+  categoryOptions,
   location,
   onLocationChange,
   locations,
@@ -28,9 +33,11 @@ export function FiltersBar({
   onSortChange,
   view,
   onViewChange,
+  actions,
+  className = "",
 }: FiltersBarProps) {
   return (
-    <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+    <section className={`space-y-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm ${className}`}>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <input
           type="search"
@@ -42,13 +49,13 @@ export function FiltersBar({
 
         <select
           value={category}
-          onChange={(event) => onCategoryChange(event.target.value as "all" | ListingCategory)}
+          onChange={(event) => onCategoryChange(event.target.value)}
           className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-slate-400"
         >
           <option value="all">Все категории</option>
-          {Object.entries(categoryLabels).map(([categoryKey, label]) => (
-            <option key={categoryKey} value={categoryKey}>
-              {label}
+          {categoryOptions.map((option) => (
+            <option key={option.id} value={option.id}>
+              {option.label}
             </option>
           ))}
         </select>
@@ -69,7 +76,7 @@ export function FiltersBar({
         <SortSelect value={sortBy} onChange={onSortChange} />
       </div>
 
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="inline-flex rounded-xl border border-slate-200 bg-slate-50 p-1">
           <button
             type="button"
@@ -94,6 +101,7 @@ export function FiltersBar({
             Список
           </button>
         </div>
+        {actions ? <div className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">{actions}</div> : null}
       </div>
     </section>
   );
