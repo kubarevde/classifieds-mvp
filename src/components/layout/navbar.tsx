@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { AccountMenu } from "@/components/layout/account-menu";
 import { HeaderActions } from "@/components/layout/header-actions";
@@ -29,17 +28,27 @@ function BurgerIcon() {
 
 export function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
+  const [createListingHref, setCreateListingHref] = useState("/create-listing");
   const unreadCount = getMockUnreadMessagesCount();
   const { favoritesCount, isHydrated } = useFavorites();
   const { unreadCount: notificationsUnreadCount, isHydrated: notificationsHydrated } =
     useNotifications();
-  const worldFromUrl = searchParams.get("world");
-  const createListingHref =
-    pathname === "/listings" && (worldFromUrl === "agriculture" || worldFromUrl === "electronics")
-      ? `/create-listing?world=${worldFromUrl}`
-      : "/create-listing";
+
+  useEffect(() => {
+    const updateCreateHref = () => {
+      const pathname = window.location.pathname;
+      const worldFromUrl = new URLSearchParams(window.location.search).get("world");
+      const nextHref =
+        pathname === "/listings" && (worldFromUrl === "agriculture" || worldFromUrl === "electronics")
+          ? `/create-listing?world=${worldFromUrl}`
+          : "/create-listing";
+      setCreateListingHref(nextHref);
+    };
+
+    updateCreateHref();
+    window.addEventListener("popstate", updateCreateHref);
+    return () => window.removeEventListener("popstate", updateCreateHref);
+  }, []);
 
   return (
     <>

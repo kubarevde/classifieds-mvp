@@ -6,7 +6,7 @@ import { ListingPreviewCard } from "@/components/listings/listing-preview-card";
 import { SellerCard } from "@/components/listings/seller-card";
 import { Navbar } from "@/components/layout/navbar";
 import { Container } from "@/components/ui/container";
-import { allListings, getRelatedListings } from "@/lib/listings";
+import { allListings, getRelatedUnifiedListings } from "@/lib/listings";
 
 type ListingDetailsPageProps = {
   params: Promise<{ id: string }>;
@@ -20,7 +20,7 @@ export default async function ListingDetailsPage({ params }: ListingDetailsPageP
     notFound();
   }
 
-  const relatedListings = getRelatedListings(listing, 4);
+  const relatedListings = getRelatedUnifiedListings(listing, 4);
 
   return (
     <div className="min-h-screen bg-slate-50/60">

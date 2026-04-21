@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 type MobileMenuProps = {
   isOpen: boolean;
@@ -58,8 +57,7 @@ export function MobileMenu({
   notificationsUnreadCount,
   notificationsHydrated,
 }: MobileMenuProps) {
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
+  const [createListingHref, setCreateListingHref] = useState("/create-listing");
 
   useEffect(() => {
     if (!isOpen) {
@@ -71,15 +69,25 @@ export function MobileMenu({
     return () => window.removeEventListener("keydown", handler);
   }, [isOpen, onClose]);
 
+  useEffect(() => {
+    const updateCreateHref = () => {
+      const pathname = window.location.pathname;
+      const worldFromUrl = new URLSearchParams(window.location.search).get("world");
+      const nextHref =
+        pathname === "/listings" && (worldFromUrl === "agriculture" || worldFromUrl === "electronics")
+          ? `/create-listing?world=${worldFromUrl}`
+          : "/create-listing";
+      setCreateListingHref(nextHref);
+    };
+
+    updateCreateHref();
+    window.addEventListener("popstate", updateCreateHref);
+    return () => window.removeEventListener("popstate", updateCreateHref);
+  }, []);
+
   if (!isOpen) {
     return null;
   }
-
-  const worldFromUrl = searchParams.get("world");
-  const createListingHref =
-    pathname === "/listings" && (worldFromUrl === "agriculture" || worldFromUrl === "electronics")
-      ? `/create-listing?world=${worldFromUrl}`
-      : "/create-listing";
 
   return (
     <div className="fixed inset-0 z-40 sm:hidden">

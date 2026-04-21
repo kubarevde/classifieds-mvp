@@ -8,19 +8,14 @@ type ListingCardProps = {
 };
 
 export function ListingCard({ listing }: ListingCardProps) {
-  const Wrapper = listing.detailsHref ? Link : "article";
-  const wrapperProps = listing.detailsHref ? { href: listing.detailsHref } : {};
   const badges = getListingBadges(listing);
   const badgeToneClass = (tone: "agriculture" | "electronics") =>
     tone === "agriculture"
       ? "border-emerald-200 bg-emerald-50 text-emerald-800"
       : "border-slate-300 bg-[linear-gradient(to_bottom,#ffffff,#eef3fa)] text-slate-700 shadow-sm";
 
-  return (
-    <Wrapper
-      {...wrapperProps}
-      className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-lg"
-    >
+  const content = (
+    <>
       <div
         className={`relative h-44 bg-gradient-to-br ${listing.image} p-4`}
         aria-label={`${listing.title} cover`}
@@ -63,6 +58,23 @@ export function ListingCard({ listing }: ListingCardProps) {
           <span>{listing.publishedAt}</span>
         </div>
       </div>
-    </Wrapper>
+    </>
+  );
+
+  if (listing.detailsHref) {
+    return (
+      <Link
+        href={listing.detailsHref}
+        className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-lg"
+      >
+        {content}
+      </Link>
+    );
+  }
+
+  return (
+    <article className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-lg">
+      {content}
+    </article>
   );
 }

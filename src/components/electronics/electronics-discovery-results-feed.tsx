@@ -17,6 +17,7 @@ function getFeedHeadline(answers: ElectronicsDiscoveryAnswers) {
     work: "для работы и учёбы",
     gaming: "для игр",
     content: "для контента",
+    study: "для учёбы",
     cheap: "с бюджетным фокусом",
   };
   const conditionMap = {

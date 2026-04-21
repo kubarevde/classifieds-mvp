@@ -358,6 +358,28 @@ export function getUniqueLocationsForUnified(listings: UnifiedCatalogListing[]) 
   );
 }
 
+export function toUnifiedCatalogListing(listing: Listing): UnifiedCatalogListing {
+  return {
+    id: listing.id,
+    title: listing.title,
+    price: listing.price,
+    priceValue: listing.priceValue,
+    location: listing.location,
+    publishedAt: listing.publishedAt,
+    postedAtIso: listing.postedAtIso,
+    image: listing.image,
+    condition: listing.condition,
+    description: listing.description,
+    sellerName: listing.sellerName,
+    sellerPhone: listing.sellerPhone,
+    categoryId: listing.category,
+    categoryLabel: categoryLabels[listing.category],
+    world: "base",
+    worldLabel: "Все объявления",
+    detailsHref: `/listings/${listing.id}`,
+  };
+}
+
 export function getRelatedListings(listing: Listing, limit = 4) {
   const byCategory = allListings.filter(
     (currentListing) => currentListing.id !== listing.id && currentListing.category === listing.category,
@@ -367,6 +389,10 @@ export function getRelatedListings(listing: Listing, limit = 4) {
   );
 
   return [...byCategory, ...fromOtherCategories].slice(0, limit);
+}
+
+export function getRelatedUnifiedListings(listing: Listing, limit = 4) {
+  return getRelatedListings(listing, limit).map(toUnifiedCatalogListing);
 }
 
 export function formatPostedAt(isoDate: string) {
