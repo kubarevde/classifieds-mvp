@@ -1,8 +1,4 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-/* временно БЕЗ @import "tailwindcss"; и БЕЗ @theme inline */
+@import "tailwindcss";
 
 :root {
   --background: #f8fafc;
