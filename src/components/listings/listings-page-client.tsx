@@ -31,8 +31,8 @@ import {
   resolveDiscoveryListings,
   resolveElectronicsDiscoveryListings,
 } from "@/lib/discovery";
+import { getActiveHeroBannerForWorld } from "@/lib/hero-board";
 import type { SavedSearchFilters } from "@/lib/saved-searches";
-import { getHeroBoardPlacementForWorld } from "@/lib/sellers";
 import { getWorldPresentation } from "@/lib/worlds";
 
 type ListingsPageClientProps = {
@@ -168,7 +168,7 @@ export function ListingsPageClient({ initialFilters }: ListingsPageClientProps) 
 
   const discoveryPreviewText = activeDiscoveryListings.slice(0, 3).map((item) => item.title).join(" · ");
   const worldHeroPlacement = useMemo(
-    () => (world === "all" ? null : getHeroBoardPlacementForWorld(world)),
+    () => (world === "all" ? null : getActiveHeroBannerForWorld(world)),
     [world],
   );
 
@@ -204,6 +204,7 @@ export function ListingsPageClient({ initialFilters }: ListingsPageClientProps) 
       setIsElectronicsDiscoveryOpen(true);
     }
   };
+  const discoveryAvailable = world === "agriculture" || world === "electronics";
 
   return (
     <div className={`space-y-4 rounded-3xl p-2 sm:p-3 ${worldPresentation.pageToneClass}`}>
@@ -224,9 +225,10 @@ export function ListingsPageClient({ initialFilters }: ListingsPageClientProps) 
             <button
               type="button"
               onClick={openDiscovery}
-              className="rounded-xl border border-white/30 bg-black/25 px-4 py-2 text-sm font-semibold text-white transition hover:bg-black/35"
+              disabled={!discoveryAvailable}
+              className="rounded-xl border border-white/30 bg-black/25 px-4 py-2 text-sm font-semibold text-white transition hover:bg-black/35 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {worldPresentation.discovery.primaryCtaLabel}
+              {discoveryAvailable ? worldPresentation.discovery.primaryCtaLabel : "Guided-подбор скоро"}
             </button>
           </div>
           <div className="grid gap-2 sm:grid-cols-3">
@@ -241,6 +243,9 @@ export function ListingsPageClient({ initialFilters }: ListingsPageClientProps) 
 
       <section className={`rounded-2xl border p-4 ${worldPresentation.sectionToneClass}`}>
         <div className="space-y-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Мир (режим платформы)
+          </p>
           <div className="no-scrollbar -mx-1 flex items-center gap-2 overflow-x-auto px-1 pb-1">
             {worldOptions.map((option) => {
               const isActive = option.id === world;
@@ -273,6 +278,9 @@ export function ListingsPageClient({ initialFilters }: ListingsPageClientProps) 
               </button>
             ))}
           </div>
+          <p className="text-xs text-slate-500">
+            Мир задаёт контекст выдачи, а категория в фильтрах ниже уточняет тип объявлений внутри выбранного мира.
+          </p>
         </div>
       </section>
 
@@ -292,9 +300,10 @@ export function ListingsPageClient({ initialFilters }: ListingsPageClientProps) 
           <button
             type="button"
             onClick={openDiscovery}
-            className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-700"
+            disabled={!discoveryAvailable}
+            className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {worldPresentation.discovery.primaryCtaLabel}
+            {discoveryAvailable ? worldPresentation.discovery.primaryCtaLabel : "Guided-подбор скоро"}
           </button>
           {worldPresentation.discovery.secondaryOptions.map((option) => (
             <button

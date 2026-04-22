@@ -46,7 +46,7 @@ export function Navbar() {
             </div>
             <div>
               <p className="text-base font-semibold tracking-tight text-slate-900">Classify</p>
-              <p className="hidden text-[11px] text-slate-500 md:block">объявления без лишнего</p>
+              <p className="hidden text-[11px] text-slate-500 md:block">бесплатные объявления + Pro‑инструменты</p>
             </div>
           </Link>
 

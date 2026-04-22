@@ -40,8 +40,12 @@ const scopeLabels: Record<ListingScope, string> = {
 
 const worldLabels: Record<ListingWorld, string> = {
   base: "Каталог",
+  autos: "Автомобили",
   agriculture: "Сельское хозяйство",
   electronics: "Электроника",
+  real_estate: "Недвижимость",
+  jobs: "Работа",
+  services: "Услуги",
 };
 
 const viewButtonClassName =

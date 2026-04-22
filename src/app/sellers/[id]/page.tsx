@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { Navbar } from "@/components/layout/navbar";
 import { StorefrontPageClient } from "@/components/sellers/storefront-page-client";
 import { Container } from "@/components/ui/container";
+import { getWorldLabel } from "@/lib/listings";
 import {
   getSellerCoupons,
   getSellerMarketingCampaigns,
@@ -48,7 +49,7 @@ export default async function SellerStorefrontPage({ params }: SellerStorefrontP
             </span>
             {seller.worldHint !== "all" ? (
               <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-600">
-                Мир: {seller.worldHint === "agriculture" ? "Сельское хозяйство" : "Электроника"}
+                Мир: {getWorldLabel(seller.worldHint)}
               </span>
             ) : null}
           </div>

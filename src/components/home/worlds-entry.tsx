@@ -3,7 +3,14 @@ import Link from "next/link";
 import { Container } from "@/components/ui/container";
 import { getWorldPresentation } from "@/lib/worlds";
 
-const worldCards = [getWorldPresentation("agriculture"), getWorldPresentation("electronics")];
+const worldCards = [
+  getWorldPresentation("electronics"),
+  getWorldPresentation("autos"),
+  getWorldPresentation("agriculture"),
+  getWorldPresentation("real_estate"),
+  getWorldPresentation("jobs"),
+  getWorldPresentation("services"),
+];
 
 export function WorldsEntry() {
   return (
@@ -12,11 +19,11 @@ export function WorldsEntry() {
         <div className="mb-5">
           <h2 className="text-2xl font-semibold tracking-tight text-slate-900">Миры как режимы платформы</h2>
           <p className="mt-1 text-sm text-slate-600">
-            Каждый мир — отдельный сценарий поиска и продаж с собственным контекстом, но единым аккаунтом.
+            Мир — верхний тематический режим, а категории внутри мира уточняют конкретный тип объявления.
           </p>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {worldCards.map((world) => (
             <article
               key={world.world}
@@ -54,7 +61,7 @@ export function WorldsEntry() {
                   href={`/listings?world=${world.world}`}
                   className="rounded-xl bg-slate-900 px-3.5 py-2 text-sm font-semibold text-white transition hover:bg-slate-700"
                 >
-                  Перейти в режим {world.title.toLowerCase()}
+                  Перейти в мир {world.title.toLowerCase()}
                 </Link>
                 <Link
                   href={`/create-listing?world=${world.world}`}

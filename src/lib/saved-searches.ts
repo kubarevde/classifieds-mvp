@@ -34,7 +34,15 @@ export const defaultSavedSearchFilters: SavedSearchFilters = {
 };
 
 function isCatalogWorld(value: string): value is CatalogWorld {
-  return value === "all" || value === "agriculture" || value === "electronics";
+  return (
+    value === "all" ||
+    value === "electronics" ||
+    value === "autos" ||
+    value === "agriculture" ||
+    value === "real_estate" ||
+    value === "jobs" ||
+    value === "services"
+  );
 }
 
 function isSortOption(value: string): value is SortOption {

@@ -4,6 +4,8 @@ import { Suspense } from "react";
 import { ListingsPageRoot } from "@/components/listings/listings-page-root";
 import { Navbar } from "@/components/layout/navbar";
 import { Container } from "@/components/ui/container";
+import { CatalogWorld } from "@/lib/listings";
+import { getWorldPresentation } from "@/lib/worlds";
 
 type ListingsPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -17,10 +19,19 @@ function ListingsFiltersFallback() {
   );
 }
 
-function resolveWorld(raw: string | string[] | undefined) {
+function resolveWorld(raw: string | string[] | undefined): CatalogWorld {
   const value = Array.isArray(raw) ? raw[0] : raw;
-  if (value === "agriculture" || value === "electronics") {
-    return value;
+  const allowed: CatalogWorld[] = [
+    "all",
+    "electronics",
+    "autos",
+    "agriculture",
+    "real_estate",
+    "jobs",
+    "services",
+  ];
+  if (value && allowed.includes(value as CatalogWorld)) {
+    return value as CatalogWorld;
   }
   return "all";
 }
@@ -28,12 +39,8 @@ function resolveWorld(raw: string | string[] | undefined) {
 export default async function ListingsPage({ searchParams }: ListingsPageProps) {
   const params = searchParams ? await searchParams : undefined;
   const world = resolveWorld(params?.world);
-  const pageTone =
-    world === "agriculture"
-      ? "bg-[radial-gradient(circle_at_top,#f4faef_0%,#eef6e8_50%,#f3ecdf_100%)]"
-      : world === "electronics"
-        ? "bg-[radial-gradient(circle_at_top,#edf2f9_0%,#e6edf6_45%,#dde6f1_100%)]"
-        : "bg-slate-50/60";
+  const worldPresentation = getWorldPresentation(world);
+  const pageTone = worldPresentation.pageToneClass;
   const createHref = world === "all" ? "/create-listing" : `/create-listing?world=${world}`;
 
   return (
@@ -47,7 +54,7 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
                 Каталог объявлений
               </h1>
               <p className="text-sm text-slate-600 sm:text-base">
-                Единый каталог с тематическими контекстами: все объявления, сельское хозяйство и электроника.
+                Единый каталог с тематическими мирами и чётким разделением: мир задаёт контекст, категории уточняют тип объявления.
               </p>
             </div>
             <Link

@@ -4,9 +4,9 @@ import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 
 import { StoreMarketingWorkspace } from "@/components/store-dashboard/store-marketing-workspace";
+import { HeroBannerPlacement } from "@/lib/hero-board";
 import { CatalogWorld, ListingWorld } from "@/lib/listings";
 import {
-  HeroBoardPlacement,
   MarketingCampaign,
   MarketingCoupon,
   MarketingMenuKey,
@@ -36,7 +36,7 @@ type StoreDashboardPageClientProps = {
   }[];
   initialCampaigns: MarketingCampaign[];
   initialPriceAnalytics: PriceAnalyticsSnapshot[];
-  initialHeroBoardPlacements: HeroBoardPlacement[];
+  initialHeroBoardPlacements: HeroBannerPlacement[];
   initialMarketingScreen?: MarketingMenuKey;
 };
 
@@ -118,8 +118,12 @@ const listingStatusLabels: Record<SellerListingStatus, string> = {
 
 const worldLabels: Record<ListingWorld, string> = {
   base: "Каталог",
+  autos: "Автомобили",
   agriculture: "Сельское хозяйство",
   electronics: "Электроника",
+  real_estate: "Недвижимость",
+  jobs: "Работа",
+  services: "Услуги",
 };
 
 const postTypeLabels: Record<SellerPostType, string> = {
@@ -197,11 +201,23 @@ function formatPostDate(isoDate: string) {
 }
 
 function toCreateListingWorld(world: ListingWorld): CatalogWorld {
+  if (world === "autos") {
+    return "autos";
+  }
   if (world === "agriculture") {
     return "agriculture";
   }
   if (world === "electronics") {
     return "electronics";
+  }
+  if (world === "real_estate") {
+    return "real_estate";
+  }
+  if (world === "jobs") {
+    return "jobs";
+  }
+  if (world === "services") {
+    return "services";
   }
   return "all";
 }
@@ -414,6 +430,17 @@ export function StoreDashboardPageClient({
     setIsTourOpen(false);
     if (typeof window !== "undefined") {
       window.sessionStorage.setItem(`store-dashboard-tour-${seller.id}`, "1");
+    }
+  }
+
+  function completeTour() {
+    closeTour();
+    setTourStepIndex(0);
+    const target = document.getElementById("dashboard-store-hero");
+    if (target) {
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+    } else if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
   }
 
@@ -979,7 +1006,7 @@ export function StoreDashboardPageClient({
                   type="button"
                   onClick={() => {
                     if (tourStepIndex === onboardingSteps.length - 1) {
-                      closeTour();
+                      completeTour();
                       return;
                     }
                     setTourStepIndex((prev) => Math.min(onboardingSteps.length - 1, prev + 1));

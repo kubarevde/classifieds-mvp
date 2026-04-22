@@ -2,10 +2,10 @@ import Link from "next/link";
 
 import { HeroBoardPlacementCard } from "@/components/hero-board/hero-board-placement-card";
 import { Container } from "@/components/ui/container";
-import { HeroBoardPlacement } from "@/lib/sellers";
+import { HeroBannerPlacement } from "@/lib/hero-board";
 
 type HeroBoardSpotlightProps = {
-  placement: HeroBoardPlacement | null;
+  placement: HeroBannerPlacement | null;
 };
 
 export function HeroBoardSpotlight({ placement }: HeroBoardSpotlightProps) {
@@ -20,7 +20,7 @@ export function HeroBoardSpotlight({ placement }: HeroBoardSpotlightProps) {
           <div>
             <h2 className="text-2xl font-semibold tracking-tight text-slate-900">Герой доски</h2>
             <p className="mt-1 text-sm text-slate-600">
-              Выделенное место на платформе с благотворительным компонентом.
+              Рекламный баннерный слот платформы с благотворительной демо-механикой.
             </p>
           </div>
           <Link

@@ -8,10 +8,10 @@ import { PopularListings } from "@/components/home/popular-listings";
 import { StoresShowcase } from "@/components/home/stores-showcase";
 import { WorldsEntry } from "@/components/home/worlds-entry";
 import { Navbar } from "@/components/layout/navbar";
-import { getCurrentHeroBoardPlacement } from "@/lib/sellers";
+import { getActiveHeroBanner } from "@/lib/hero-board";
 
 export default function Home() {
-  const currentHeroBoard = getCurrentHeroBoardPlacement();
+  const currentHeroBoard = getActiveHeroBanner();
 
   return (
     <div className="min-h-screen bg-slate-50/60">

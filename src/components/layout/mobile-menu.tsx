@@ -73,8 +73,11 @@ export function MobileMenu({
     const updateCreateHref = () => {
       const pathname = window.location.pathname;
       const worldFromUrl = new URLSearchParams(window.location.search).get("world");
+      const worldAwareCreateLinks = ["electronics", "autos", "agriculture", "real_estate", "jobs", "services"];
       const nextHref =
-        pathname === "/listings" && (worldFromUrl === "agriculture" || worldFromUrl === "electronics")
+        pathname === "/listings" &&
+        worldFromUrl &&
+        worldAwareCreateLinks.includes(worldFromUrl)
           ? `/create-listing?world=${worldFromUrl}`
           : "/create-listing";
       setCreateListingHref(nextHref);

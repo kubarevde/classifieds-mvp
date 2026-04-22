@@ -1,12 +1,33 @@
 import Link from "next/link";
 
 import { Container } from "@/components/ui/container";
+import { CatalogWorld } from "@/lib/listings";
 
 const quickFilters = ["Новые сегодня", "С доставкой", "До 50 000 ₽", "Рядом"];
 const thematicWorldLinks = [
-  { label: "Сельское хозяйство", href: "/listings?world=agriculture" },
-  { label: "Электроника", href: "/listings?world=electronics" },
+  { id: "electronics" as CatalogWorld, label: "Электроника", href: "/listings?world=electronics" },
+  { id: "autos" as CatalogWorld, label: "Автомобили", href: "/listings?world=autos" },
+  { id: "agriculture" as CatalogWorld, label: "Сельское хозяйство", href: "/listings?world=agriculture" },
+  { id: "real_estate" as CatalogWorld, label: "Недвижимость", href: "/listings?world=real_estate" },
+  { id: "jobs" as CatalogWorld, label: "Работа", href: "/listings?world=jobs" },
+  { id: "services" as CatalogWorld, label: "Услуги", href: "/listings?world=services" },
 ];
+
+const worldChipToneClass: Record<CatalogWorld, string> = {
+  all: "border-slate-200 bg-white text-slate-700 hover:bg-slate-50",
+  electronics:
+    "border-blue-200 bg-[linear-gradient(180deg,rgba(239,246,255,0.85),rgba(255,255,255,0.95))] text-slate-700 hover:border-blue-300",
+  autos:
+    "border-rose-200 bg-[linear-gradient(180deg,rgba(255,241,242,0.86),rgba(255,255,255,0.95))] text-slate-700 hover:border-rose-300",
+  agriculture:
+    "border-emerald-200 bg-[linear-gradient(180deg,rgba(236,253,245,0.86),rgba(255,255,255,0.95))] text-slate-700 hover:border-emerald-300",
+  real_estate:
+    "border-indigo-200 bg-[linear-gradient(180deg,rgba(238,242,255,0.88),rgba(255,255,255,0.95))] text-slate-700 hover:border-indigo-300",
+  jobs:
+    "border-sky-200 bg-[linear-gradient(180deg,rgba(240,249,255,0.88),rgba(255,255,255,0.95))] text-slate-700 hover:border-sky-300",
+  services:
+    "border-amber-200 bg-[linear-gradient(180deg,rgba(255,251,235,0.9),rgba(255,255,255,0.95))] text-slate-700 hover:border-amber-300",
+};
 
 export function HeroSearch() {
   return (
@@ -14,15 +35,13 @@ export function HeroSearch() {
       <Container>
         <div className="grid items-center gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:gap-10">
           <div className="text-left">
-            <p className="mb-4 inline-flex rounded-full border border-sky-200 bg-white/90 px-4 py-1 text-xs font-semibold uppercase tracking-wide text-sky-700">
-              Платформа объявлений + магазины
-            </p>
             <h1 className="text-balance text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl lg:text-5xl">
-              Вертикальные миры, storefront магазинов и умный каталог в одном продукте
+              Объявления в своём мире — без лишних затрат
             </h1>
             <p className="mt-4 max-w-2xl text-pretty text-base leading-7 text-slate-600 sm:text-lg">
-              Для покупателей: быстрый поиск, подписка на магазины и акции. Для продавцов:
-              mini‑витрина, кабинет управления и маркетинговые инструменты роста.
+              Размещение объявлений бесплатно. Платные Pro‑инструменты включают аналитику,
+              оформление и продвижение. Тематические миры и витрины магазинов помогают продавцам
+              строить узнаваемость, а покупателям — искать точнее.
             </p>
 
             <div className="mt-5 flex flex-wrap gap-2">
@@ -75,12 +94,11 @@ export function HeroSearch() {
                 ))}
               </div>
               <div className="mt-3 flex flex-wrap items-center gap-2">
-                <span className="text-xs font-medium text-slate-500">Тематические миры:</span>
                 {thematicWorldLinks.map((world) => (
                   <Link
                     key={world.href}
                     href={world.href}
-                    className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+                    className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${worldChipToneClass[world.id]}`}
                   >
                     {world.label}
                   </Link>

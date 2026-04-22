@@ -9,8 +9,17 @@ type CreateListingPageProps = {
 
 function resolveWorld(raw: string | string[] | undefined): CatalogWorld {
   const value = Array.isArray(raw) ? raw[0] : raw;
-  if (value === "agriculture" || value === "electronics") {
-    return value;
+  const allowed: CatalogWorld[] = [
+    "all",
+    "electronics",
+    "autos",
+    "agriculture",
+    "real_estate",
+    "jobs",
+    "services",
+  ];
+  if (value && allowed.includes(value as CatalogWorld)) {
+    return value as CatalogWorld;
   }
   return "all";
 }

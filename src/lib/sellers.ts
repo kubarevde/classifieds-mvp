@@ -1,4 +1,10 @@
 import { CatalogWorld, unifiedCatalogListings } from "@/lib/listings";
+import {
+  HeroBannerPlacement,
+  getActiveHeroBanner,
+  getActiveHeroBannerForWorld,
+  getHeroBannerPlacementsBySellerId,
+} from "@/lib/hero-board";
 
 export type SellerType =
   | "private_seller"
@@ -48,7 +54,7 @@ export type SellerStorefront = {
   avatarLabel: string;
   heroGradientClass: string;
   accentClass: string;
-  worldHint: "all" | "agriculture" | "electronics";
+  worldHint: CatalogWorld;
   responseSpeedLabel: string;
   planTier: SellerPlanTier;
   metrics: SellerDashboardMetrics;
@@ -172,25 +178,6 @@ export type MarketingMenuKey =
   | "sponsored"
   | "boosts"
   | "hero_board";
-
-export type HeroBoardTargetType = "storefront" | "listing";
-export type HeroBoardScope = "global" | "world";
-export type HeroBoardPeriod = "day" | "week" | "month";
-
-export type HeroBoardPlacement = {
-  id: string;
-  sellerId: string;
-  targetType: HeroBoardTargetType;
-  listingId?: string;
-  scope: HeroBoardScope;
-  world?: CatalogWorld;
-  period: HeroBoardPeriod;
-  startsAt: string;
-  endsAt: string;
-  mockPrice: number;
-  charityPercent: number;
-  isActive: boolean;
-};
 
 const sellerTypeLabels: Record<SellerType, string> = {
   private_seller: "Частный продавец",
@@ -846,48 +833,6 @@ const priceAnalyticsSnapshotsMock: PriceAnalyticsSnapshot[] = [
   },
 ];
 
-const heroBoardPlacementsMock: HeroBoardPlacement[] = [
-  {
-    id: "hero-board-1",
-    sellerId: "marina-tech",
-    targetType: "listing",
-    listingId: "2",
-    scope: "global",
-    period: "week",
-    startsAt: "2026-04-20T00:00:00.000Z",
-    endsAt: "2026-04-27T00:00:00.000Z",
-    mockPrice: 24000,
-    charityPercent: 20,
-    isActive: true,
-  },
-  {
-    id: "hero-board-2",
-    sellerId: "agro-don",
-    targetType: "storefront",
-    scope: "world",
-    world: "agriculture",
-    period: "day",
-    startsAt: "2026-04-21T00:00:00.000Z",
-    endsAt: "2026-04-22T00:00:00.000Z",
-    mockPrice: 6500,
-    charityPercent: 20,
-    isActive: true,
-  },
-  {
-    id: "hero-board-3",
-    sellerId: "pc-lab",
-    targetType: "listing",
-    listingId: "tech-4",
-    scope: "world",
-    world: "electronics",
-    period: "day",
-    startsAt: "2026-04-18T00:00:00.000Z",
-    endsAt: "2026-04-19T00:00:00.000Z",
-    mockPrice: 7200,
-    charityPercent: 20,
-    isActive: false,
-  },
-];
 
 function getSuggestedPlanTier(type: SellerType): SellerPlanTier {
   if (type === "electronics_oriented") {
@@ -1026,7 +971,7 @@ export function getSellerDashboardData(sellerId: string) {
     campaigns: getSellerMarketingCampaigns(sellerId),
     priceAnalytics: getSellerPriceAnalyticsSnapshots(sellerId),
     marketingOverview: getSellerMarketingOverview(sellerId),
-    heroBoardPlacements: getSellerHeroBoardPlacements(sellerId),
+    heroBoardPlacements: getHeroBannerPlacementsBySellerId(sellerId),
   };
 }
 
@@ -1057,24 +1002,6 @@ export function getSellerPromotionState(sellerId: string) {
 
 export function getSellerMarketingCampaigns(sellerId: string) {
   return sellerMarketingCampaignsMock.filter((campaign) => campaign.sellerId === sellerId);
-}
-
-export function getSellerHeroBoardPlacements(sellerId: string) {
-  return heroBoardPlacementsMock
-    .filter((placement) => placement.sellerId === sellerId)
-    .sort((a, b) => new Date(b.startsAt).getTime() - new Date(a.startsAt).getTime());
-}
-
-export function getCurrentHeroBoardPlacement() {
-  return heroBoardPlacementsMock.find((placement) => placement.isActive && placement.scope === "global") ?? null;
-}
-
-export function getHeroBoardPlacementForWorld(world: CatalogWorld) {
-  return (
-    heroBoardPlacementsMock.find(
-      (placement) => placement.isActive && placement.scope === "world" && placement.world === world,
-    ) ?? null
-  );
 }
 
 export function getSellerPriceAnalyticsSnapshots(sellerId: string) {
@@ -1125,7 +1052,7 @@ export function getSellerMarketingOverview(sellerId: string): SellerMarketingOve
   const promotionStates = getSellerPromotionState(sellerId);
   const campaigns = getSellerMarketingCampaigns(sellerId);
   const coupons = getSellerCoupons(sellerId);
-  const heroBoardPlacements = getSellerHeroBoardPlacements(sellerId);
+  const heroBoardPlacements = getHeroBannerPlacementsBySellerId(sellerId);
 
   const activeCampaignsCount = campaigns.filter((campaign) => campaign.status === "active").length;
   const activeCoupons = coupons.filter((coupon) => coupon.status === "active");
@@ -1190,4 +1117,15 @@ export function getSellerMarketingOverview(sellerId: string): SellerMarketingOve
       },
     ],
   };
+}
+
+// Compatibility aliases for legacy imports while hero-board moved to separate module.
+export type HeroBoardPlacement = HeroBannerPlacement;
+
+export function getCurrentHeroBoardPlacement() {
+  return getActiveHeroBanner();
+}
+
+export function getHeroBoardPlacementForWorld(world: Exclude<CatalogWorld, "all">) {
+  return getActiveHeroBannerForWorld(world);
 }
