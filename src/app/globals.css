@@ -1,15 +1,12 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* временно БЕЗ @import "tailwindcss"; и БЕЗ @theme inline */
 
 :root {
   --background: #f8fafc;
   --foreground: #0f172a;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
 }
 
 body {
