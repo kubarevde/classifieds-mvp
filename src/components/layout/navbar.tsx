@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 
+import { getDemoDisplayName, useDemoRole } from "@/components/demo-role/demo-role";
 import { AccountMenu } from "@/components/layout/account-menu";
 import { HeaderActions } from "@/components/layout/header-actions";
 import { MobileMenu } from "@/components/layout/mobile-menu";
@@ -11,13 +12,22 @@ import { useNotifications } from "@/components/notifications/notifications-provi
 import { Container } from "@/components/ui/container";
 import { getMockUnreadMessagesCount } from "@/lib/messages";
 
-const primaryNavLinks = [
-  { label: "Главная", href: "/" },
-  { label: "Каталог", href: "/listings" },
-  { label: "Миры", href: "/#worlds" },
-  { label: "Магазины", href: "/stores" },
-  { label: "Герой доски", href: "/sponsor-board" },
-];
+const navByRole = {
+  guest: [
+    { label: "Главная", href: "/" },
+    { label: "Объявления", href: "/listings" },
+    { label: "Магазины", href: "/stores" },
+  ],
+  buyer: [{ label: "Главная", href: "/" }, { label: "Объявления", href: "/listings" }, { label: "Магазины", href: "/stores" }],
+  seller: [{ label: "Главная", href: "/" }, { label: "Объявления", href: "/listings" }, { label: "Магазины", href: "/stores" }],
+  all: [
+    { label: "Главная", href: "/" },
+    { label: "Объявления", href: "/listings" },
+    { label: "Магазины", href: "/stores" },
+    { label: "Миры", href: "/#worlds" },
+    { label: "Герой доски", href: "/sponsor-board" },
+  ],
+} as const;
 
 function BurgerIcon() {
   return (
@@ -31,10 +41,18 @@ function BurgerIcon() {
 
 export function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { role, isHydrated: roleHydrated } = useDemoRole();
   const unreadCount = getMockUnreadMessagesCount();
-  const { favoritesCount, isHydrated } = useFavorites();
+  const { favoritesCount, isHydrated: favoritesHydrated } = useFavorites();
   const { unreadCount: notificationsUnreadCount, isHydrated: notificationsHydrated } =
     useNotifications();
+  const effectiveRole = roleHydrated ? role : "all";
+  const primaryNavLinks = navByRole[effectiveRole];
+  const isActivityVisible = effectiveRole === "buyer" || effectiveRole === "all";
+  const isAccountVisible = effectiveRole !== "guest";
+  const displayName = getDemoDisplayName(effectiveRole);
+  const accountMode: "buyer" | "seller" | "all" =
+    effectiveRole === "seller" ? "seller" : effectiveRole === "buyer" ? "buyer" : "all";
 
   return (
     <>
@@ -50,7 +68,7 @@ export function Navbar() {
             </div>
           </Link>
 
-          <nav className="hidden items-center gap-3 md:flex">
+          <nav className="hidden items-center gap-4 lg:flex">
             {primaryNavLinks.map((link) => (
               <Link
                 key={link.href}
@@ -63,21 +81,30 @@ export function Navbar() {
           </nav>
 
           <div className="flex items-center gap-2">
+            {effectiveRole === "guest" ? (
+              <Link
+                href="/profile"
+                className="hidden h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 sm:inline-flex"
+              >
+                Войти
+              </Link>
+            ) : null}
+
             <HeaderActions
               messagesUnreadCount={unreadCount}
               notificationsUnreadCount={notificationsUnreadCount}
               notificationsHydrated={notificationsHydrated}
+              isVisible={isActivityVisible}
             />
 
-            <AccountMenu favoritesCount={favoritesCount} favoritesHydrated={isHydrated} />
-
-            <Link
-              href="/dashboard/store?sellerId=marina-tech"
-              className="inline-flex h-10 items-center justify-center rounded-xl bg-slate-900 px-3 text-sm font-semibold text-white transition hover:bg-slate-700 sm:px-4"
-            >
-              <span className="sm:hidden">Я продавец</span>
-              <span className="hidden sm:inline">Я продавец / бизнес</span>
-            </Link>
+            {isAccountVisible ? (
+              <AccountMenu
+                favoritesCount={favoritesCount}
+                favoritesHydrated={favoritesHydrated}
+                displayName={displayName}
+                mode={accountMode}
+              />
+            ) : null}
 
             <button
               type="button"
@@ -95,10 +122,11 @@ export function Navbar() {
         isOpen={isMobileMenuOpen}
         onClose={() => setIsMobileMenuOpen(false)}
         favoritesCount={favoritesCount}
-        favoritesHydrated={isHydrated}
+        favoritesHydrated={favoritesHydrated}
         messagesUnreadCount={unreadCount}
         notificationsUnreadCount={notificationsUnreadCount}
         notificationsHydrated={notificationsHydrated}
+        role={effectiveRole}
       />
     </>
   );

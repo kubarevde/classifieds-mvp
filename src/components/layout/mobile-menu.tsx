@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+
+import { DemoRole } from "@/components/demo-role/demo-role";
 
 type MobileMenuProps = {
   isOpen: boolean;
@@ -11,6 +13,7 @@ type MobileMenuProps = {
   messagesUnreadCount: number;
   notificationsUnreadCount: number;
   notificationsHydrated: boolean;
+  role: DemoRole;
 };
 
 function closeOnEscape(event: KeyboardEvent, onClose: () => void) {
@@ -56,9 +59,8 @@ export function MobileMenu({
   messagesUnreadCount,
   notificationsUnreadCount,
   notificationsHydrated,
+  role,
 }: MobileMenuProps) {
-  const [createListingHref, setCreateListingHref] = useState("/create-listing");
-
   useEffect(() => {
     if (!isOpen) {
       return;
@@ -68,25 +70,6 @@ export function MobileMenu({
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [isOpen, onClose]);
-
-  useEffect(() => {
-    const updateCreateHref = () => {
-      const pathname = window.location.pathname;
-      const worldFromUrl = new URLSearchParams(window.location.search).get("world");
-      const worldAwareCreateLinks = ["electronics", "autos", "agriculture", "real_estate", "jobs", "services"];
-      const nextHref =
-        pathname === "/listings" &&
-        worldFromUrl &&
-        worldAwareCreateLinks.includes(worldFromUrl)
-          ? `/create-listing?world=${worldFromUrl}`
-          : "/create-listing";
-      setCreateListingHref(nextHref);
-    };
-
-    updateCreateHref();
-    window.addEventListener("popstate", updateCreateHref);
-    return () => window.removeEventListener("popstate", updateCreateHref);
-  }, []);
 
   if (!isOpen) {
     return null;
@@ -128,55 +111,64 @@ export function MobileMenu({
             <p className="px-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Главное</p>
             <ul className="mt-2 space-y-0.5">
               <MenuListItem href="/" label="Главная" onClose={onClose} />
-              <MenuListItem href="/listings" label="Каталог" onClose={onClose} />
-              <MenuListItem href="/#worlds" label="Миры" onClose={onClose} />
+              <MenuListItem href="/listings" label="Объявления" onClose={onClose} />
               <MenuListItem href="/stores" label="Магазины" onClose={onClose} />
-              <MenuListItem href="/sponsor-board" label="Герой доски" onClose={onClose} />
-              <MenuListItem href={createListingHref} label="Разместить объявление" onClose={onClose} />
+              {role === "all" ? <MenuListItem href="/#worlds" label="Миры" onClose={onClose} /> : null}
+              {role === "all" ? (
+                <MenuListItem href="/sponsor-board" label="Герой доски" onClose={onClose} />
+              ) : null}
+              {role === "guest" ? <MenuListItem href="/profile" label="Войти" onClose={onClose} /> : null}
             </ul>
           </section>
 
-          <section>
-            <p className="px-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Активность</p>
-            <ul className="mt-2 space-y-0.5">
-              <MenuListItem
-                href="/messages"
-                label="Сообщения"
-                badge={messagesUnreadCount}
-                onClose={onClose}
-              />
-              <MenuListItem
-                href="/notifications"
-                label="Уведомления"
-                badge={notificationsHydrated ? notificationsUnreadCount : 0}
-                onClose={onClose}
-              />
-              <MenuListItem
-                href="/favorites"
-                label="Избранное"
-                badge={favoritesHydrated ? favoritesCount : 0}
-                onClose={onClose}
-              />
-              <MenuListItem href="/saved-searches" label="Сохранённые поиски" onClose={onClose} />
-            </ul>
-          </section>
+          {role === "buyer" || role === "all" ? (
+            <section>
+              <p className="px-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Активность</p>
+              <ul className="mt-2 space-y-0.5">
+                <MenuListItem
+                  href="/messages"
+                  label="Сообщения"
+                  badge={messagesUnreadCount}
+                  onClose={onClose}
+                />
+                <MenuListItem
+                  href="/notifications"
+                  label="Уведомления"
+                  badge={notificationsHydrated ? notificationsUnreadCount : 0}
+                  onClose={onClose}
+                />
+                <MenuListItem
+                  href="/favorites"
+                  label="Избранное"
+                  badge={favoritesHydrated ? favoritesCount : 0}
+                  onClose={onClose}
+                />
+                <MenuListItem href="/saved-searches" label="Сохранённые поиски" onClose={onClose} />
+              </ul>
+            </section>
+          ) : null}
 
-          <section>
-            <p className="px-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Я продавец / бизнес</p>
-            <ul className="mt-2 space-y-0.5">
-              <MenuListItem href="/dashboard/store?sellerId=marina-tech" label="Управлять магазином" onClose={onClose} />
-              <MenuListItem href={createListingHref} label="Разместить объявление" onClose={onClose} />
-              <MenuListItem href="/sellers/marina-tech" label="Пример storefront" onClose={onClose} />
-            </ul>
-          </section>
+          {role === "seller" || role === "all" ? (
+            <section>
+              <p className="px-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Я продавец / бизнес</p>
+              <ul className="mt-2 space-y-0.5">
+                <MenuListItem href="/sellers/marina-tech" label="Мой магазин" onClose={onClose} />
+                <MenuListItem href="/dashboard/store?sellerId=marina-tech" label="Кабинет" onClose={onClose} />
+              </ul>
+            </section>
+          ) : null}
 
-          <section>
-            <p className="px-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Аккаунт</p>
-            <ul className="mt-2 space-y-0.5">
-              <MenuListItem href="/profile" label="Профиль" onClose={onClose} />
-              <MenuListItem href="/dashboard" label="Мои покупки и продажи" onClose={onClose} />
-            </ul>
-          </section>
+          {role !== "guest" ? (
+            <section>
+              <p className="px-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Аккаунт</p>
+              <ul className="mt-2 space-y-0.5">
+                <MenuListItem href="/profile" label="Профиль" onClose={onClose} />
+                {role === "buyer" || role === "all" ? (
+                  <MenuListItem href="/dashboard" label="Мои покупки и продажи" onClose={onClose} />
+                ) : null}
+              </ul>
+            </section>
+          ) : null}
         </div>
       </div>
     </div>

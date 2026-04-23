@@ -5,6 +5,8 @@ import Link from "next/link";
 type AccountMenuProps = {
   favoritesCount: number;
   favoritesHydrated: boolean;
+  displayName: string;
+  mode: "buyer" | "seller" | "all";
 };
 
 function ChevronDownIcon() {
@@ -24,12 +26,12 @@ function UserIcon() {
   );
 }
 
-export function AccountMenu({ favoritesCount, favoritesHydrated }: AccountMenuProps) {
+export function AccountMenu({ favoritesCount, favoritesHydrated, displayName, mode }: AccountMenuProps) {
   return (
     <details className="group relative hidden sm:block">
       <summary className="flex h-10 cursor-pointer list-none items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50">
         <UserIcon />
-        Профиль
+        {displayName}
         <ChevronDownIcon />
       </summary>
 
@@ -40,34 +42,46 @@ export function AccountMenu({ favoritesCount, favoritesHydrated }: AccountMenuPr
               Мой профиль
             </Link>
           </li>
-          <li>
-            <Link href="/dashboard" className="flex items-center rounded-lg px-3 py-2 hover:bg-slate-50">
-              Мои покупки и продажи
-            </Link>
-          </li>
-          <li>
-            <Link
-              href="/dashboard/store?sellerId=marina-tech"
-              className="flex items-center rounded-lg px-3 py-2 hover:bg-slate-50"
-            >
-              Управлять магазином
-            </Link>
-          </li>
-          <li>
-            <Link href="/favorites" className="flex items-center justify-between rounded-lg px-3 py-2 hover:bg-slate-50">
-              <span>Избранное</span>
-              {favoritesHydrated && favoritesCount > 0 ? (
-                <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-slate-900 px-1.5 py-0.5 text-[11px] font-semibold text-white">
-                  {favoritesCount > 99 ? "99+" : favoritesCount}
-                </span>
-              ) : null}
-            </Link>
-          </li>
-          <li>
-            <Link href="/saved-searches" className="flex items-center rounded-lg px-3 py-2 hover:bg-slate-50">
-              Сохранённые поиски
-            </Link>
-          </li>
+          {mode === "buyer" || mode === "all" ? (
+            <li>
+              <Link href="/dashboard" className="flex items-center rounded-lg px-3 py-2 hover:bg-slate-50">
+                Мои покупки и продажи
+              </Link>
+            </li>
+          ) : null}
+          {mode === "seller" || mode === "all" ? (
+            <li>
+              <Link href="/sellers/marina-tech" className="flex items-center rounded-lg px-3 py-2 hover:bg-slate-50">
+                Мой магазин
+              </Link>
+            </li>
+          ) : null}
+          {mode === "seller" || mode === "all" ? (
+            <li>
+              <Link href="/dashboard/store?sellerId=marina-tech" className="flex items-center rounded-lg px-3 py-2 hover:bg-slate-50">
+                Кабинет
+              </Link>
+            </li>
+          ) : null}
+          {mode === "buyer" || mode === "all" ? (
+            <li>
+              <Link href="/favorites" className="flex items-center justify-between rounded-lg px-3 py-2 hover:bg-slate-50">
+                <span>Избранное</span>
+                {favoritesHydrated && favoritesCount > 0 ? (
+                  <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-slate-900 px-1.5 py-0.5 text-[11px] font-semibold text-white">
+                    {favoritesCount > 99 ? "99+" : favoritesCount}
+                  </span>
+                ) : null}
+              </Link>
+            </li>
+          ) : null}
+          {mode === "buyer" || mode === "all" ? (
+            <li>
+              <Link href="/saved-searches" className="flex items-center rounded-lg px-3 py-2 hover:bg-slate-50">
+                Сохранённые поиски
+              </Link>
+            </li>
+          ) : null}
         </ul>
       </div>
     </details>

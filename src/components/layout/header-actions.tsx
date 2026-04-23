@@ -6,6 +6,7 @@ type HeaderActionsProps = {
   messagesUnreadCount: number;
   notificationsUnreadCount: number;
   notificationsHydrated: boolean;
+  isVisible?: boolean;
 };
 
 function IndicatorBadge({ value }: { value: number }) {
@@ -41,7 +42,12 @@ export function HeaderActions({
   messagesUnreadCount,
   notificationsUnreadCount,
   notificationsHydrated,
+  isVisible = true,
 }: HeaderActionsProps) {
+  if (!isVisible) {
+    return null;
+  }
+
   return (
     <div className="hidden items-center gap-1.5 sm:flex">
       <Link

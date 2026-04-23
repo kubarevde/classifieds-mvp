@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 
+import { DemoRoleFloatingControl, DemoRoleProvider } from "@/components/demo-role/demo-role";
 import { FavoritesProvider } from "@/components/favorites/favorites-provider";
 import { NotificationsProvider } from "@/components/notifications/notifications-provider";
 import { SavedSearchesProvider } from "@/components/saved-searches/saved-searches-provider";
@@ -30,11 +31,16 @@ export default function RootLayout({
   return (
     <html lang="ru" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
-        <FavoritesProvider>
-          <NotificationsProvider>
-            <SavedSearchesProvider>{children}</SavedSearchesProvider>
-          </NotificationsProvider>
-        </FavoritesProvider>
+        <DemoRoleProvider>
+          <FavoritesProvider>
+            <NotificationsProvider>
+              <SavedSearchesProvider>
+                {children}
+                <DemoRoleFloatingControl />
+              </SavedSearchesProvider>
+            </NotificationsProvider>
+          </FavoritesProvider>
+        </DemoRoleProvider>
       </body>
     </html>
   );
