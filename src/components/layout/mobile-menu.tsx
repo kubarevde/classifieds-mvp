@@ -130,7 +130,7 @@ export function MobileMenu({
               <MenuListItem href="/" label="Главная" onClose={onClose} />
               <MenuListItem href="/listings" label="Каталог" onClose={onClose} />
               <MenuListItem href="/#worlds" label="Миры" onClose={onClose} />
-              <MenuListItem href="/sellers/marina-tech" label="Магазины" onClose={onClose} />
+              <MenuListItem href="/stores" label="Магазины" onClose={onClose} />
               <MenuListItem href="/sponsor-board" label="Герой доски" onClose={onClose} />
               <MenuListItem href={createListingHref} label="Разместить объявление" onClose={onClose} />
             </ul>

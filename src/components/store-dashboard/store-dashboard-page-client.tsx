@@ -72,6 +72,8 @@ type PlanFeatureRow = {
   oneTime?: boolean;
 };
 
+type StoreSubscriptionTierId = "free" | "pro" | "business";
+
 function MetricIcon({ id }: { id: string }) {
   const className = "h-4 w-4";
   if (id === "active") {
@@ -94,6 +96,13 @@ function MetricIcon({ id }: { id: string }) {
     return (
       <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.8">
         <path d="M4 5h16v11H8l-4 3z" />
+      </svg>
+    );
+  }
+  if (id === "conversion") {
+    return (
+      <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.8">
+        <path d="M4 19V5M4 19h16M8 15v-4M12 15V9M16 15v-6" />
       </svg>
     );
   }
@@ -183,6 +192,82 @@ const tariffRows: PlanFeatureRow[] = [
   { id: "super", label: "Суперобъявление", free: false, pro: false, business: true },
 ];
 
+const subscriptionTierPresentation: Record<
+  StoreSubscriptionTierId,
+  {
+    title: string;
+    subtitle: string;
+    listingsLimit: string;
+    collectionsLimit: string;
+    rankingHint: string;
+    analyticsDepth: string;
+    marketingDepth: string;
+  }
+> = {
+  free: {
+    title: "Базовый",
+    subtitle: "Для запуска витрины",
+    listingsLimit: "До 12 активных объявлений",
+    collectionsLimit: "2 витринные подборки",
+    rankingHint: "Демо-правила видимости: базовый уровень в подборках",
+    analyticsDepth: "Базовые KPI",
+    marketingDepth: "Купоны и публикации",
+  },
+  pro: {
+    title: "Про",
+    subtitle: "Для роста магазина",
+    listingsLimit: "До 40 активных объявлений",
+    collectionsLimit: "3 витринные подборки",
+    rankingHint: "Демо-правила видимости: расширенный уровень в подборках",
+    analyticsDepth: "KPI + источники трафика",
+    marketingDepth: "Закрепления и кампании",
+  },
+  business: {
+    title: "Бизнес",
+    subtitle: "Для full mini-store ecosystem",
+    listingsLimit: "До 120 активных объявлений",
+    collectionsLimit: "Все подборки без лимита",
+    rankingHint: "Демо-правила видимости: максимальный уровень в подборках",
+    analyticsDepth: "Полная аналитика + growth-рекомендации",
+    marketingDepth: "Баннеры, кампании и расширенный промо-слой",
+  },
+};
+
+const growthToolAccessRows: { id: string; label: string; minTier: StoreSubscriptionTierId }[] = [
+  { id: "coupon", label: "Акции и купоны", minTier: "free" },
+  { id: "pin", label: "Закреплённые товары", minTier: "pro" },
+  { id: "campaign", label: "Кампании продвижения", minTier: "pro" },
+  { id: "banner", label: "Баннер витрины", minTier: "business" },
+];
+
+function stableSellerHash(input: string) {
+  let h = 0;
+  for (let i = 0; i < input.length; i += 1) {
+    h = Math.imul(31, h) + input.charCodeAt(i);
+  }
+  return Math.abs(h);
+}
+
+function mockTrafficSourcesForSeller(sellerId: string) {
+  const h = stableSellerHash(sellerId);
+  const weights = [
+    34 + (h % 22),
+    28 + ((h >> 4) % 16),
+    20 + ((h >> 9) % 14),
+    14 + ((h >> 14) % 12),
+  ];
+  const sum = weights.reduce((a, b) => a + b, 0);
+  const pct = weights.map((w) => Math.round((w / sum) * 100));
+  const drift = 100 - pct.reduce((a, b) => a + b, 0);
+  pct[0] += drift;
+  return [
+    { id: "search", label: "Поиск и каталог", pct: pct[0] },
+    { id: "store", label: "Витрина / профиль", pct: pct[1] },
+    { id: "ads", label: "Реклама на площадке", pct: pct[2] },
+    { id: "direct", label: "Прямые и соцсети", pct: pct[3] },
+  ];
+}
+
 function formatDate(isoDate: string) {
   return new Intl.DateTimeFormat("ru-RU", {
     day: "2-digit",
@@ -222,24 +307,14 @@ function toCreateListingWorld(world: ListingWorld): CatalogWorld {
   return "all";
 }
 
-function hasPlanFeature(plan: SellerPlanTier, feature: PlanFeatureRow) {
-  if (plan === "business") {
-    return feature.business;
+function getNextTier(tier: StoreSubscriptionTierId) {
+  if (tier === "free") {
+    return "pro";
   }
-  if (plan === "pro") {
-    return feature.pro;
+  if (tier === "pro") {
+    return "business";
   }
-  return feature.free;
-}
-
-function getLockedLabel(feature: PlanFeatureRow) {
-  if (feature.pro) {
-    return "Доступно в Про";
-  }
-  if (feature.business) {
-    return "Доступно в Бизнес";
-  }
-  return "По запросу";
+  return null;
 }
 
 export function StoreDashboardPageClient({
@@ -288,6 +363,9 @@ export function StoreDashboardPageClient({
   });
 
   const activeTourStep = onboardingSteps[tourStepIndex] ?? onboardingSteps[0];
+  const currentSubscriptionTier = selectedPlanTier as StoreSubscriptionTierId;
+  const currentTierPresentation = subscriptionTierPresentation[currentSubscriptionTier];
+  const nextSubscriptionTier = getNextTier(currentSubscriptionTier);
   const effectiveSeller = useMemo(
     () => ({ ...seller, planTier: selectedPlanTier }),
     [seller, selectedPlanTier],
@@ -317,13 +395,10 @@ export function StoreDashboardPageClient({
     [filter, listings],
   );
 
-  const totals = useMemo(
-    () => ({
-      views: listings.reduce((acc, listing) => acc + listing.views, 0),
-      responses: listings.reduce((acc, listing) => acc + listing.messages, 0),
-    }),
-    [listings],
-  );
+  const conversionEstimatePercent = useMemo(() => {
+    const ratio = seller.metrics.messagesLast30d / Math.max(1, seller.metrics.viewsLast30d);
+    return Math.min(100, ratio * 100);
+  }, [seller.metrics.messagesLast30d, seller.metrics.viewsLast30d]);
 
   const heroMetrics = useMemo(
     () => [
@@ -339,29 +414,147 @@ export function StoreDashboardPageClient({
       },
       {
         id: "responses",
-        label: "Отклики / сообщения",
+        label: "Отклики за 30 дней",
         value: seller.metrics.messagesLast30d.toLocaleString("ru-RU"),
       },
       {
-        id: "rating",
-        label: "Рейтинг магазина",
-        value: `${seller.metrics.rating.toFixed(1)} / 5`,
+        id: "conversion",
+        label: "Конверсия в отклик (оценка)",
+        value: `${conversionEstimatePercent.toFixed(1)}%`,
       },
     ],
-    [counts.active, seller.metrics.messagesLast30d, seller.metrics.rating, seller.metrics.viewsLast30d],
+    [counts.active, conversionEstimatePercent, seller.metrics.messagesLast30d, seller.metrics.viewsLast30d],
   );
 
-  const currentTierFeatures = useMemo(
+  const mockTrafficSources = useMemo(() => mockTrafficSourcesForSeller(seller.id), [seller.id]);
+  const loyaltyStats = useMemo(() => {
+    const seed = stableSellerHash(`${seller.id}-loyalty`);
+    const followersTrend = seed % 2 === 0 ? "up" : "down";
+    const favoritesTrend = (seed >> 1) % 2 === 0 ? "up" : "down";
+    return {
+      followers: seller.followersCount,
+      favorites: Math.max(18, Math.round(seller.followersCount * (0.48 + (seed % 7) * 0.01))),
+      followersTrendLabel: followersTrend === "up" ? `↑ +${2 + (seed % 5)}%` : `↓ -${1 + (seed % 4)}%`,
+      favoritesTrendLabel: favoritesTrend === "up" ? `↑ +${1 + ((seed >> 2) % 5)}%` : `↓ -${1 + ((seed >> 3) % 3)}%`,
+      followersTrendUp: followersTrend === "up",
+      favoritesTrendUp: favoritesTrend === "up",
+    };
+  }, [seller.followersCount, seller.id]);
+
+  const availableGrowthTools = useMemo(
     () =>
-      tariffRows.filter((feature) => hasPlanFeature(selectedPlanTier, feature)).slice(0, 5),
-    [selectedPlanTier],
+      growthToolAccessRows.filter((tool) =>
+        currentSubscriptionTier === "business"
+          ? true
+          : currentSubscriptionTier === "pro"
+            ? tool.minTier !== "business"
+            : tool.minTier === "free",
+      ),
+    [currentSubscriptionTier],
+  );
+  const lockedGrowthTools = useMemo(
+    () =>
+      growthToolAccessRows.filter((tool) =>
+        currentSubscriptionTier === "business"
+          ? false
+          : currentSubscriptionTier === "pro"
+            ? tool.minTier === "business"
+            : tool.minTier !== "free",
+      ),
+    [currentSubscriptionTier],
   );
 
-  const lockedTierFeatures = useMemo(
+  const topPerformingListings = useMemo(
     () =>
-      tariffRows.filter((feature) => !hasPlanFeature(selectedPlanTier, feature)).slice(0, 4),
-    [selectedPlanTier],
+      [...listings]
+        .filter((listing) => listing.status === "active")
+        .sort((a, b) => b.views + b.messages * 3 - (a.views + a.messages * 3))
+        .slice(0, 3),
+    [listings],
   );
+
+  const risingListings = useMemo(() => {
+    const h = stableSellerHash(`${seller.id}-rising`);
+    return [...listings]
+      .filter((listing) => listing.status === "active")
+      .sort(
+        (a, b) => b.messages / Math.max(1, b.views) - a.messages / Math.max(1, a.views),
+      )
+      .slice(0, 3)
+      .map((listing, index) => ({
+        listing,
+        viewsDeltaLabel: `+${8 + ((h >> index) % 11)}% просмотров к прошлой неделе (mock)`,
+      }));
+  }, [listings, seller.id]);
+
+  const improvementNotes = useMemo(() => {
+    const notes: string[] = [];
+    if (counts.inactive > 0) {
+      notes.push(
+        `В каталоге скрыто или в архиве: ${counts.inactive} — верните сильные позиции, чтобы витрина не выглядела пустой.`,
+      );
+    }
+    const lowViews = listings.filter((listing) => listing.status === "active" && listing.views < 90);
+    if (lowViews.length) {
+      notes.push(
+        `${lowViews.length} активных карточек с низкими просмотрами: обновите обложку и первую строку описания.`,
+      );
+    }
+    const cold = listings.filter((listing) => listing.status === "active" && listing.messages < 2);
+    if (cold.length) {
+      notes.push(
+        `${cold.length} объявлений почти без откликов — сравните цену с медианой рынка в разделе маркетинга.`,
+      );
+    }
+    if (notes.length === 0) {
+      notes.push("Добавьте публикацию в ленту магазина — подписчики чаще возвращаются к живым обновлениям.");
+    }
+    return notes.slice(0, 4);
+  }, [counts.inactive, listings]);
+
+  const assistantTips = useMemo(() => {
+    const tips: { title: string; body: string }[] = [
+      {
+        title: "Мини‑магазин внутри маркетплейса",
+        body: "Держите в первом экране «Лучшее», новинки и выгодный сегмент — так витрина воспринимается как curated store, а не просто список.",
+      },
+      {
+        title: "Разведите Follow и «В любимых»",
+        body: "Follow продвигает обновления и акции, а «любимые магазины» усиливают возврат и персональные рекомендации покупателей.",
+      },
+    ];
+    if (counts.active < 5) {
+      tips.push({
+        title: "Расширьте активный каталог",
+        body: "На демо-данных магазины с 6+ активными карточками получают больше повторных заходов из поиска.",
+      });
+    }
+    if (initialCoupons.filter((coupon) => coupon.status === "active").length === 0) {
+      tips.push({
+        title: "Запустите короткую акцию",
+        body: "Даже купон на 48 часов заметно повышает кликабельность в блоке промо на витрине.",
+      });
+    }
+    tips.push({
+      title: "Закрепите одного лидера",
+      body: "Суперобъявление + баннер купона в шапке витрины дают ощущение «главного товара недели».",
+    });
+    if (currentSubscriptionTier !== "business") {
+      tips.push({
+        title: "Используйте следующий уровень тарифа",
+        body: `На уровне ${nextSubscriptionTier ? subscriptionTierPresentation[nextSubscriptionTier].title : "выше"} доступно больше growth-инструментов и глубина аналитики.`,
+      });
+    }
+    tips.push({
+      title: "Активируйте оффер для подписчиков",
+      body: "Короткая акция для аудитории follow повышает частоту повторных визитов в витрину даже на mock-данных.",
+    });
+    tips.push({
+      title: "Следите за источниками",
+      body: "Если трафик из витрины проседает, обновите короткое описание магазина и контакты — это первый экран покупателя.",
+    });
+    return tips.slice(0, 5);
+  }, [counts.active, currentSubscriptionTier, initialCoupons, nextSubscriptionTier]);
 
   useEffect(() => {
     if (!isTourOpen) {
@@ -534,68 +727,107 @@ export function StoreDashboardPageClient({
               </Link>
               <button
                 type="button"
-                onClick={() => setIsTariffModalOpen(true)}
+                onClick={() => {
+                  const target = document.getElementById("dashboard-store-subscription");
+                  target?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }}
                 className="inline-flex w-full items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
               >
-                Подключить продвижение
+                Открыть подписку
               </button>
             </div>
-            <p className="text-xs text-slate-500">Подписчиков магазина: {seller.followersCount.toLocaleString("ru-RU")}</p>
+            <p className="text-xs text-slate-500">
+              На витрине покупатель может нажать «Следить за магазином» или добавить магазин в любимые.
+            </p>
             <p className="text-xs text-slate-500">Новые публикации будут попадать подписчикам в ленту обновлений.</p>
           </aside>
         </div>
 
-        <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {heroMetrics.map((metric) => (
-            <article key={metric.id} className="rounded-xl border border-slate-200 bg-slate-50/70 p-3">
-              <p className="flex items-center gap-1.5 text-xs text-slate-500">
-                <MetricIcon id={metric.id} />
+            <article
+              key={metric.id}
+              className="rounded-2xl border border-slate-200/80 bg-gradient-to-b from-white to-slate-50/90 p-4 shadow-sm"
+            >
+              <p className="flex items-center gap-2 text-xs font-medium text-slate-500">
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600">
+                  <MetricIcon id={metric.id} />
+                </span>
                 {metric.label}
               </p>
-              <p className="mt-1 text-xl font-semibold tracking-tight text-slate-900">{metric.value}</p>
+              <p className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">{metric.value}</p>
+              {metric.id === "conversion" ? (
+                <p className="mt-1 text-[11px] leading-snug text-slate-500">
+                  Демо-метрика: отношение откликов к просмотрам за 30 дней без учёта воронки по объявлениям.
+                </p>
+              ) : null}
             </article>
           ))}
         </div>
 
         <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50/70 p-3">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div>
-              <p className="text-sm font-semibold text-slate-900">Тариф и возможности</p>
-              <p className="text-sm text-slate-600">
-                Текущий план: <span className="font-semibold">{getSellerPlanTierLabel(selectedPlanTier)}</span>
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setIsTariffModalOpen(true)}
-              className="inline-flex h-9 items-center rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:bg-slate-100"
-            >
-              Смотреть тарифы
-            </button>
-          </div>
+          <p className="text-sm text-slate-600">
+            Текущий тариф: <span className="font-semibold text-slate-900">{getSellerPlanTierLabel(selectedPlanTier)}</span>.{" "}
+            Полная расшифровка и сравнение — в секции «Подписка магазина» ниже.
+          </p>
+        </div>
+      </section>
 
-          <div className="mt-3 grid gap-2 sm:grid-cols-2">
-            <div className="space-y-1 rounded-lg border border-slate-200 bg-white p-2.5">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Доступно сейчас</p>
-              {currentTierFeatures.map((feature) => (
-                <p key={feature.id} className="text-sm text-slate-700">
-                  ✅ {feature.label}
-                </p>
-              ))}
-            </div>
-            <div className="space-y-1 rounded-lg border border-slate-200 bg-white p-2.5">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Следующий уровень</p>
-              {lockedTierFeatures.map((feature) => (
-                <p key={feature.id} className="text-sm text-slate-600">
-                  🔒 {feature.label} — {getLockedLabel(feature)}
-                </p>
-              ))}
-            </div>
+      <section
+        id="dashboard-store-subscription"
+        className="space-y-4 rounded-3xl border border-slate-200/90 bg-white p-5 shadow-sm sm:p-6"
+      >
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold tracking-tight text-slate-900">Подписка магазина</h2>
+            <p className="mt-1 max-w-2xl text-sm text-slate-600">
+              UI-слой тарифов: влияет на объём витрины, глубину аналитики и доступность growth-инструментов.
+            </p>
           </div>
+          <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700">
+            Текущий уровень: {currentTierPresentation.title}
+          </span>
+        </div>
 
-          <div className="mt-3 rounded-lg border border-slate-200 bg-white p-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Демо‑переключатель тарифа</p>
-            <div className="mt-2 flex flex-wrap gap-2">
+        <div className="grid gap-3 lg:grid-cols-3">
+          {(["free", "pro", "business"] as StoreSubscriptionTierId[]).map((tier) => {
+            const tierData = subscriptionTierPresentation[tier];
+            const isCurrent = currentSubscriptionTier === tier;
+            return (
+              <article
+                key={tier}
+                className={`rounded-2xl border p-4 transition ${
+                  isCurrent
+                    ? "border-slate-900 bg-slate-900 text-white shadow-sm"
+                    : "border-slate-200 bg-slate-50/70 text-slate-700"
+                }`}
+              >
+                <p className={`text-xs font-semibold uppercase tracking-wide ${isCurrent ? "text-white/70" : "text-slate-500"}`}>
+                  {tierData.subtitle}
+                </p>
+                <p className="mt-1 text-lg font-semibold tracking-tight">{tierData.title}</p>
+                <ul className={`mt-3 space-y-1.5 text-xs ${isCurrent ? "text-white/85" : "text-slate-600"}`}>
+                  <li>{tierData.listingsLimit}</li>
+                  <li>{tierData.collectionsLimit}</li>
+                  <li>{tierData.analyticsDepth}</li>
+                  <li>{tierData.marketingDepth}</li>
+                </ul>
+              </article>
+            );
+          })}
+        </div>
+
+        <div className="grid gap-3 lg:grid-cols-2">
+          <article className="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4">
+            <h3 className="text-sm font-semibold text-slate-900">Что даёт текущий тариф</h3>
+            <p className="mt-1 text-xs text-slate-600">{currentTierPresentation.rankingHint}</p>
+            <ul className="mt-3 space-y-1.5 text-sm text-slate-700">
+              <li>• {currentTierPresentation.listingsLimit}</li>
+              <li>• {currentTierPresentation.collectionsLimit}</li>
+              <li>• {currentTierPresentation.analyticsDepth}</li>
+              <li>• {currentTierPresentation.marketingDepth}</li>
+            </ul>
+            <div className="mt-3 flex flex-wrap gap-2">
               {(["free", "pro", "business"] as SellerPlanTier[]).map((tier) => (
                 <button
                   key={tier}
@@ -611,11 +843,196 @@ export function StoreDashboardPageClient({
                 </button>
               ))}
             </div>
-            <p className="mt-2 text-xs text-slate-500">
-              В рамках MVP вы можете переключать тариф вручную, чтобы посмотреть, как будет выглядеть кабинет. Здесь нет реальной оплаты или тарификации.
+          </article>
+          <article className="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4">
+            <h3 className="text-sm font-semibold text-slate-900">Growth-инструменты</h3>
+            <p className="mt-1 text-xs text-slate-500">High-level доступ; детальные настройки в маркетинг-разделе.</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {availableGrowthTools.map((tool) => (
+                <span
+                  key={tool.id}
+                  className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-700"
+                >
+                  {tool.label}
+                </span>
+              ))}
+              {lockedGrowthTools.map((tool) => (
+                <span
+                  key={tool.id}
+                  className="rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-xs font-medium text-slate-400"
+                >
+                  {tool.label} · доступно на{" "}
+                  {tool.minTier === "pro" ? subscriptionTierPresentation.pro.title : subscriptionTierPresentation.business.title}
+                </span>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsTariffModalOpen(true)}
+              className="mt-3 inline-flex h-9 items-center rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:bg-slate-100"
+            >
+              Открыть сравнение тарифов
+            </button>
+          </article>
+        </div>
+      </section>
+
+      <section
+        id="dashboard-store-insights"
+        className="space-y-5 rounded-3xl border border-slate-200/90 bg-gradient-to-b from-white to-slate-50/90 p-5 shadow-sm sm:p-6"
+      >
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold tracking-tight text-slate-900">Аналитика витрины (демо)</h2>
+            <p className="mt-1 max-w-2xl text-sm text-slate-600">
+              Источники трафика, сильные объявления и подсказки ассистента — всё на mock‑данных, без подключения
+              стриминга событий.
             </p>
           </div>
+          <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            Демо-слой
+          </span>
         </div>
+
+        <div className="grid gap-4 lg:grid-cols-2">
+          <article className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
+            <h3 className="text-sm font-semibold text-slate-900">Источники трафика</h3>
+            <p className="mt-1 text-xs text-slate-500">Оценка за 30 дней, стабильная для демо по id магазина.</p>
+            <ul className="mt-4 space-y-3">
+              {mockTrafficSources.map((row) => (
+                <li key={row.id}>
+                  <div className="flex items-center justify-between gap-2 text-xs text-slate-600">
+                    <span>{row.label}</span>
+                    <span className="font-semibold tabular-nums text-slate-900">{row.pct}%</span>
+                  </div>
+                  <div className="mt-1 h-2 overflow-hidden rounded-full bg-slate-100">
+                    <div
+                      className="h-full rounded-full bg-slate-800/85"
+                      style={{ width: `${Math.min(100, row.pct)}%` }}
+                    />
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </article>
+
+          <article className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
+            <h3 className="text-sm font-semibold text-slate-900">Подписки и лояльность</h3>
+            <p className="mt-1 text-xs text-slate-500">Отдельный слой метрик для аудитории магазина.</p>
+            <ul className="mt-3 space-y-2 text-sm text-slate-700">
+              <li className="rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-2">
+                <p className="text-xs text-slate-500">Подписчики (follow)</p>
+                <p className="mt-1 flex items-center justify-between gap-2">
+                  <span className="font-semibold tabular-nums text-slate-900">
+                    {loyaltyStats.followers.toLocaleString("ru-RU")}
+                  </span>
+                  <span className={loyaltyStats.followersTrendUp ? "text-emerald-700" : "text-slate-500"}>
+                    {loyaltyStats.followersTrendLabel}
+                  </span>
+                </p>
+              </li>
+              <li className="rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-2">
+                <p className="text-xs text-slate-500">Магазин в любимых</p>
+                <p className="mt-1 flex items-center justify-between gap-2">
+                  <span className="font-semibold tabular-nums text-slate-900">
+                    {loyaltyStats.favorites.toLocaleString("ru-RU")}
+                  </span>
+                  <span className={loyaltyStats.favoritesTrendUp ? "text-emerald-700" : "text-slate-500"}>
+                    {loyaltyStats.favoritesTrendLabel}
+                  </span>
+                </p>
+              </li>
+            </ul>
+            <p className="mt-2 text-xs text-slate-500">
+              Follow и «в любимых» — разные сущности: новости/акции vs loyalty-сигнал и быстрый доступ.
+            </p>
+          </article>
+        </div>
+
+        <div className="grid gap-4 lg:grid-cols-2">
+          <article className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
+            <h3 className="text-sm font-semibold text-slate-900">Лучшие объявления</h3>
+            <p className="mt-1 text-xs text-slate-500">По сумме просмотров и откликов в демо-кабинете.</p>
+            <ul className="mt-3 space-y-2">
+              {topPerformingListings.length ? (
+                topPerformingListings.map((listing) => (
+                  <li
+                    key={listing.id}
+                    className="flex items-start justify-between gap-2 rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-2 text-xs"
+                  >
+                    <p className="min-w-0 font-medium leading-snug text-slate-900">{listing.title}</p>
+                    <span className="shrink-0 tabular-nums text-slate-600">
+                      {listing.views} просм. · {listing.messages} откл.
+                    </span>
+                  </li>
+                ))
+              ) : (
+                <li className="text-xs text-slate-500">Нет активных объявлений для рейтинга.</li>
+              )}
+            </ul>
+          </article>
+
+          <article className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
+            <h3 className="text-sm font-semibold text-slate-900">Что растёт</h3>
+            <p className="mt-1 text-xs text-slate-500">Высокая конверсия просмотр → отклик и динамика недели (mock).</p>
+            <ul className="mt-3 space-y-2">
+              {risingListings.length ? (
+                risingListings.map(({ listing, viewsDeltaLabel }) => (
+                  <li
+                    key={listing.id}
+                    className="rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-2 text-xs text-slate-700"
+                  >
+                    <p className="font-medium text-slate-900">{listing.title}</p>
+                    <p className="mt-1 text-[11px] font-medium text-slate-700">{viewsDeltaLabel}</p>
+                  </li>
+                ))
+              ) : (
+                <li className="text-xs text-slate-500">Нет данных о росте для активных объявлений.</li>
+              )}
+            </ul>
+          </article>
+        </div>
+
+        <article className="rounded-2xl border border-slate-200/90 bg-slate-50/80 p-4 shadow-sm">
+          <h3 className="text-sm font-semibold text-slate-900">Рекомендации</h3>
+          <p className="mt-1 text-xs text-slate-600">
+            Единый блок ассистента: контент, loyalty и возможности текущего тарифа.
+          </p>
+          <div className="mt-3 grid gap-3 lg:grid-cols-3">
+            <section className="rounded-xl border border-slate-200 bg-white p-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Контент</p>
+              <ul className="mt-2 list-disc space-y-1 pl-4 text-xs text-slate-700">
+                {improvementNotes.slice(0, 2).map((note) => (
+                  <li key={note}>{note}</li>
+                ))}
+              </ul>
+            </section>
+            <section className="rounded-xl border border-slate-200 bg-white p-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Loyalty</p>
+              <ul className="mt-2 list-disc space-y-1 pl-4 text-xs text-slate-700">
+                <li>Продвигайте follow в публикациях и карточках товаров.</li>
+                <li>Добавьте micro-оффер для «любимых магазинов» в акциях.</li>
+                <li>Держите частоту постов стабильной для возврата аудитории.</li>
+              </ul>
+            </section>
+            <section className="rounded-xl border border-slate-200 bg-white p-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Тариф</p>
+              <ul className="mt-2 list-disc space-y-1 pl-4 text-xs text-slate-700">
+                <li>Уровень: {currentTierPresentation.title}.</li>
+                <li>Аналитика: {currentTierPresentation.analyticsDepth}.</li>
+                <li>Маркетинг: {currentTierPresentation.marketingDepth}.</li>
+              </ul>
+            </section>
+          </div>
+          <ul className="mt-3 space-y-2">
+            {assistantTips.slice(0, 3).map((tip) => (
+              <li key={tip.title} className="rounded-lg border border-slate-200 bg-white px-3 py-2">
+                <p className="text-xs font-semibold text-slate-900">{tip.title}</p>
+                <p className="mt-1 text-xs text-slate-600">{tip.body}</p>
+              </li>
+            ))}
+          </ul>
+        </article>
       </section>
 
       <section
@@ -724,7 +1141,7 @@ export function StoreDashboardPageClient({
           initialHeroBoardPlacements={initialHeroBoardPlacements}
           initialScreen={initialMarketingScreen}
           onNotify={showMockMessage}
-          onOpenTariffs={() => setIsTariffModalOpen(true)}
+          onOpenTariffs={() => showMockMessage("Откройте раздел «Подписка магазина», чтобы посмотреть тарифы.")}
         />
       </div>
 
@@ -834,11 +1251,13 @@ export function StoreDashboardPageClient({
               </div>
             </div>
             <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3">
-              <p className="text-sm font-semibold text-slate-900">Подписчики магазина</p>
+              <p className="text-sm font-semibold text-slate-900">Аудитория и вовлечение</p>
               <p className="mt-1 text-sm text-slate-600">
-                {seller.followersCount.toLocaleString("ru-RU")} подписчиков следят за обновлениями витрины.
+                Используйте посты, купоны и закрепления, чтобы направлять аудиторию в актуальные подборки витрины.
               </p>
-              <p className="mt-1 text-xs text-slate-500">Каждая публикация будет показываться подписчикам в их ленте (mock-логика).</p>
+              <p className="mt-1 text-xs text-slate-500">
+                Числовые метрики подписок и loyalty вынесены в блок аналитики, здесь только action-уровень.
+              </p>
               <button
                 type="button"
                 onClick={() => showMockMessage("Механика подписок появится в следующей итерации.")}
@@ -958,23 +1377,6 @@ export function StoreDashboardPageClient({
             </button>
           </form>
         </article>
-      </section>
-
-      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <h2 className="text-lg font-semibold tracking-tight text-slate-900">Сводка по кабинету</h2>
-            <p className="text-sm text-slate-600">
-              Сейчас в кабинете: {counts.all} объявлений, {totals.views} просмотров и {totals.responses} откликов.
-            </p>
-          </div>
-          <Link
-            href={`/sellers/${seller.id}`}
-            className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-          >
-            Перейти к витрине магазина
-          </Link>
-        </div>
       </section>
 
       {isTourOpen ? (

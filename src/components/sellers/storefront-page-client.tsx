@@ -3,12 +3,12 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
+import { ListingPreviewCard } from "@/components/listings/listing-preview-card";
 import { ListingsGrid } from "@/components/listings/listings-grid";
 import {
   MarketingCampaign,
   MarketingCoupon,
   SellerPost,
-  SellerPostType,
   SellerStorefront,
   StorefrontListing,
   getSellerTypeLabel,
@@ -51,26 +51,37 @@ const worldLabels: Record<ListingWorld, string> = {
 const viewButtonClassName =
   "rounded-xl border px-3 py-2 text-sm font-medium transition hover:border-slate-300 hover:bg-slate-50";
 
-const postTypeLabels: Record<SellerPostType, string> = {
-  news: "Новость",
-  promo: "Акция",
-  product: "Товар",
-  video: "Видео",
-};
-
-const postTypeToneClassNames: Record<SellerPostType, string> = {
-  news: "border-sky-200 bg-sky-50 text-sky-700",
-  promo: "border-amber-200 bg-amber-50 text-amber-700",
-  product: "border-emerald-200 bg-emerald-50 text-emerald-700",
-  video: "border-violet-200 bg-violet-50 text-violet-700",
-};
-
-const postTypeIcon: Record<SellerPostType, string> = {
-  news: "📰",
-  promo: "🏷️",
-  product: "📦",
-  video: "🎬",
-};
+function TrustBadgeIcon({ badgeId }: { badgeId: string }) {
+  const className = "h-5 w-5";
+  if (badgeId === "verified") {
+    return (
+      <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.7">
+        <path d="M12 3 4 6v6c0 5 3.5 9 8 10 4.5-1 8-5 8-10V6l-8-3Z" />
+        <path d="m9 12 2 2 4-5" />
+      </svg>
+    );
+  }
+  if (badgeId === "response") {
+    return (
+      <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.7">
+        <circle cx="12" cy="12" r="9" />
+        <path d="M12 7v5l3 2" />
+      </svg>
+    );
+  }
+  if (badgeId === "repeat") {
+    return (
+      <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.7">
+        <path d="M4 19a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4M8 11a4 4 0 1 1 8 0 4 4 0 0 1-8 0Z" />
+      </svg>
+    );
+  }
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.7">
+      <path d="M9 12l2 2 4-4M12 3l7 4v6c0 4-3 8-7 9-4-1-7-5-7-9V7l7-4Z" />
+    </svg>
+  );
+}
 
 function formatPostDate(isoDate: string) {
   return new Intl.DateTimeFormat("ru-RU", {
@@ -82,8 +93,6 @@ function formatPostDate(isoDate: string) {
 export function StorefrontPageClient({
   seller,
   listings,
-  posts,
-  pinnedPost,
   coupons,
   promotionState,
   campaigns,
@@ -93,7 +102,7 @@ export function StorefrontPageClient({
   const [view, setView] = useState<ListingsView>("grid");
   const [isPhoneRevealed, setIsPhoneRevealed] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
-  const [followersCount, setFollowersCount] = useState(seller.followersCount);
+  const [isFavoriteStore, setIsFavoriteStore] = useState(false);
 
   const worlds = useMemo(
     () =>
@@ -119,7 +128,6 @@ export function StorefrontPageClient({
   );
 
   const firstListing = visibleListings[0] ?? listings[0];
-  const visiblePosts = useMemo(() => posts.slice(0, 5), [posts]);
   const activeCoupons = useMemo(() => coupons.filter((coupon) => coupon.status === "active"), [coupons]);
   const activeCampaigns = useMemo(
     () => campaigns.filter((campaign) => campaign.status === "active"),
@@ -136,71 +144,171 @@ export function StorefrontPageClient({
     return listings.filter((listing) => promotedListingIds.has(listing.id)).slice(0, 4);
   }, [activeCampaigns, listings, promotionState]);
 
-  function toggleSubscription() {
-    setIsSubscribed((current) => {
-      setFollowersCount((count) => (current ? Math.max(0, count - 1) : count + 1));
-      return !current;
+  const vitrinePopular = useMemo(() => {
+    const used = new Set<string>();
+    const rows: StorefrontListing[] = [];
+    for (const listing of featuredListings) {
+      if (!used.has(listing.id)) {
+        used.add(listing.id);
+        rows.push(listing);
+      }
+    }
+    const filler = [...listings]
+      .filter((listing) => listing.status === "active" && !used.has(listing.id))
+      .sort((a, b) => b.priceValue - a.priceValue);
+    for (const listing of filler) {
+      if (rows.length >= 4) {
+        break;
+      }
+      rows.push(listing);
+      used.add(listing.id);
+    }
+    return rows;
+  }, [featuredListings, listings]);
+
+  const vitrineNew = useMemo(
+    () =>
+      [...listings]
+        .filter((listing) => listing.status === "active")
+        .sort((a, b) => new Date(b.postedAtIso).getTime() - new Date(a.postedAtIso).getTime())
+        .slice(0, 4),
+    [listings],
+  );
+
+  const vitrineBudgetCap = useMemo(() => {
+    const prices = listings
+      .filter((listing) => listing.status === "active")
+      .map((listing) => listing.priceValue)
+      .sort((a, b) => a - b);
+    if (!prices.length) {
+      return null;
+    }
+    const idx = Math.min(prices.length - 1, Math.floor((prices.length - 1) * 0.35));
+    return prices[idx] ?? null;
+  }, [listings]);
+
+  const vitrineBudget = useMemo(() => {
+    if (vitrineBudgetCap == null) {
+      return [];
+    }
+    return listings
+      .filter((listing) => listing.status === "active" && listing.priceValue <= vitrineBudgetCap)
+      .sort((a, b) => a.priceValue - b.priceValue)
+      .slice(0, 4);
+  }, [listings, vitrineBudgetCap]);
+
+  const pinnedPromoListings = useMemo(() => {
+    const orderedIds: string[] = [];
+    promotionState.forEach((state) => {
+      if (state.isSuper) {
+        orderedIds.push(state.listingId);
+      }
     });
+    promotionState.forEach((state) => {
+      if (state.lastBoostedAt && !orderedIds.includes(state.listingId)) {
+        orderedIds.push(state.listingId);
+      }
+    });
+    featuredListings.forEach((listing) => {
+      if (!orderedIds.includes(listing.id)) {
+        orderedIds.push(listing.id);
+      }
+    });
+    const out: StorefrontListing[] = [];
+    for (const id of orderedIds) {
+      const listing = listings.find((item) => item.id === id && item.status === "active");
+      if (listing) {
+        out.push(listing);
+      }
+      if (out.length >= 6) {
+        break;
+      }
+    }
+    return out;
+  }, [featuredListings, listings, promotionState]);
+
+  const primaryCoupon = activeCoupons[0] ?? null;
+  function toggleSubscription() {
+    setIsSubscribed((current) => !current);
+  }
+
+  function toggleFavoriteStore() {
+    setIsFavoriteStore((current) => !current);
   }
 
   return (
     <div className="space-y-4">
       <section
-        className={`relative overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br p-5 text-white sm:p-7 ${seller.heroGradientClass}`}
+        className={`relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br p-4 text-white shadow-lg shadow-slate-900/10 sm:p-5 lg:min-h-[190px] ${seller.heroGradientClass}`}
       >
-        <div className="pointer-events-none absolute -left-10 top-8 h-28 w-28 rounded-full bg-white/15 blur-2xl" />
-        <div className="pointer-events-none absolute -right-12 bottom-0 h-40 w-40 rounded-full bg-black/30 blur-3xl" />
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(255,255,255,0.14),transparent_55%)]" />
+        <div className="pointer-events-none absolute -left-10 top-8 h-32 w-32 rounded-full bg-white/12 blur-2xl" />
+        <div className="pointer-events-none absolute -right-16 bottom-0 h-44 w-44 rounded-full bg-black/25 blur-3xl" />
 
-        <div className="relative grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
-          <div className="space-y-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/75">Storefront MVP</p>
-            <div className="flex items-start gap-3">
-              <div className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl border border-white/35 bg-white/20 text-lg font-semibold">
+        <div className="relative grid gap-5 lg:grid-cols-[minmax(0,1fr)_280px] lg:items-stretch">
+          <div className="flex h-full min-h-[150px] flex-col justify-between">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-full border border-white/20 bg-white/10 px-2.5 py-1 text-[11px] font-medium text-white/85">
+                Витрина магазина
+              </span>
+              <span className="rounded-full border border-white/15 bg-black/10 px-2.5 py-1 text-[11px] font-medium text-white/80">
+                {seller.city}
+              </span>
+              <span className="rounded-full border border-white/15 bg-black/10 px-2.5 py-1 text-[11px] font-medium text-white/80">
+                {getSellerTypeLabel(seller.type)}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-4">
+              <div className="grid h-16 w-16 shrink-0 self-start place-items-center rounded-xl border border-white/35 bg-white/20 text-lg font-semibold tracking-tight shadow-[inset_0_1px_0_rgba(255,255,255,0.25),0_8px_20px_rgba(15,23,42,0.22)]">
                 {seller.avatarLabel}
               </div>
-              <div>
-                <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{seller.storefrontName}</h1>
-                <p className="mt-1 text-sm text-white/85">
-                  {seller.displayName} · {getSellerTypeLabel(seller.type)}
+              <div className="min-w-0 space-y-1.5">
+                <div className="flex flex-wrap items-center">
+                  <h1 className="text-balance text-2xl font-semibold tracking-tight sm:text-3xl">{seller.storefrontName}</h1>
+                  <button
+                    type="button"
+                    onClick={toggleFavoriteStore}
+                    aria-label={isFavoriteStore ? "Убрать из избранных магазинов" : "Добавить магазин в избранные"}
+                    className={`ml-3 inline-flex h-8 w-8 items-center justify-center rounded-full border transition ${
+                      isFavoriteStore
+                        ? "border-white/35 bg-white/20 text-white"
+                        : "border-white/25 bg-black/15 text-white/80 hover:bg-white/10"
+                    }`}
+                  >
+                    <svg viewBox="0 0 24 24" className="h-4 w-4" fill={isFavoriteStore ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.8">
+                      <path d="m12 20-1.1-1C6 14.5 3 11.7 3 8.3A4.3 4.3 0 0 1 7.3 4 4.8 4.8 0 0 1 12 6.2 4.8 4.8 0 0 1 16.7 4 4.3 4.3 0 0 1 21 8.3c0 3.4-3 6.2-7.9 10.7Z" />
+                    </svg>
+                  </button>
+                </div>
+                <p className="text-sm text-white/75">
+                  {seller.displayName} · {seller.city}
+                </p>
+                <p className="max-w-2xl text-pretty text-sm leading-relaxed text-white/88 sm:text-[15px]">
+                  {seller.shortDescription}
                 </p>
               </div>
             </div>
-            <p className="max-w-3xl text-sm leading-6 text-white/90 sm:text-base">{seller.shortDescription}</p>
-            <div className="flex flex-wrap gap-2">
-              {seller.trustBadges.map((badge) => (
-                <span key={badge.id} className="rounded-full border border-white/35 bg-white/15 px-3 py-1 text-xs">
-                  {badge.label}
-                </span>
-              ))}
-            </div>
+
+            <p className="text-xs text-white/80 sm:text-sm">
+              Активно: <span className="font-semibold tabular-nums text-white">{activeListingsCount}</span>
+              <span className="text-white/55"> · </span>
+              Рейтинг: <span className="font-semibold tabular-nums text-white">{seller.metrics.rating.toFixed(1)}</span>
+              <span className="text-white/55"> · </span>
+              На платформе: <span className="font-semibold text-white">{seller.memberSinceLabel}</span>
+            </p>
           </div>
 
-          <aside className="space-y-2 rounded-2xl border border-white/25 bg-black/20 p-4 text-sm">
-            <p className="font-semibold">Профиль продавца</p>
-            <p className={seller.accentClass}>
-              {seller.city}, {seller.region}
-            </p>
-            <p className="text-white/80">{seller.memberSinceLabel}</p>
-            <p className="text-white/80">{seller.responseSpeedLabel}</p>
-            <p className="text-white/80">
-              Активных объявлений: <span className="font-semibold text-white">{activeListingsCount}</span>
-            </p>
-            <p className="text-white/80">
-              Подписчики: <span className="font-semibold text-white">{followersCount.toLocaleString("ru-RU")}</span>
-            </p>
-            <button
-              type="button"
-              onClick={toggleSubscription}
-              className={`inline-flex w-full items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
-                isSubscribed
-                  ? "border border-white/30 bg-white/20 text-white hover:bg-white/30"
-                  : "bg-white text-slate-900 hover:bg-slate-200"
-              }`}
-            >
-              {isSubscribed ? "Вы подписаны" : "Подписаться"}
-            </button>
-            <p className="text-xs text-white/70">Подписчики видят ваши обновления в своей ленте.</p>
-            <div className="mt-3 space-y-2">
+          <aside className="flex flex-col gap-3 rounded-2xl border border-white/20 bg-black/25 p-4 text-sm shadow-lg shadow-black/20 backdrop-blur-md sm:p-5">
+            <div className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-wide text-white/60">Связь с магазином</p>
+              <p className={`text-sm font-medium ${seller.accentClass}`}>
+                {seller.city}, {seller.region}
+              </p>
+              <p className="text-xs leading-relaxed text-white/75">{seller.responseSpeedLabel}</p>
+            </div>
+
+            <div className="space-y-2 border-t border-white/15 pt-3">
               <Link
                 href={{
                   pathname: "/messages",
@@ -210,138 +318,144 @@ export function StorefrontPageClient({
                     listingTitle: firstListing?.title ?? seller.storefrontName,
                   },
                 }}
-                className="inline-flex w-full items-center justify-center rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:bg-slate-200"
+                className="inline-flex w-full items-center justify-center rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:bg-slate-100"
               >
                 Написать продавцу
               </Link>
               <button
                 type="button"
                 onClick={() => setIsPhoneRevealed((previous) => !previous)}
-                className="inline-flex w-full items-center justify-center rounded-xl border border-white/35 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/20"
+                className="inline-flex w-full items-center justify-center rounded-xl border border-white/30 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/10"
               >
                 {isPhoneRevealed ? seller.phone : "Показать телефон"}
               </button>
               <a
                 href="#seller-listings"
-                className="inline-flex w-full items-center justify-center rounded-xl border border-white/35 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/20"
+                className="inline-flex w-full items-center justify-center rounded-xl border border-white/30 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/10"
               >
-                Смотреть все объявления
+                Ко всем объявлениям
               </a>
-              <Link
-                href={`/dashboard/store?sellerId=${seller.id}`}
-                className="inline-flex w-full items-center justify-center rounded-xl border border-white/35 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/20"
-              >
-                Управлять магазином
-              </Link>
             </div>
-            <p className="text-xs text-white/70">Ссылка видна как owner-CTA в рамках MVP.</p>
+
+            <div className="border-t border-white/15 pt-3">
+              <button
+                type="button"
+                onClick={toggleSubscription}
+                className={`inline-flex w-full items-center justify-center rounded-xl border px-4 py-2.5 text-sm font-semibold transition ${
+                  isSubscribed
+                    ? "border-white/35 bg-white/15 text-white hover:bg-white/20"
+                    : "border-white/25 bg-white text-slate-900 hover:bg-slate-100"
+                }`}
+              >
+                {isSubscribed ? "Подписан ✓" : "Подписаться"}
+              </button>
+            </div>
           </aside>
         </div>
       </section>
 
-      <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <h2 className="text-lg font-semibold tracking-tight text-slate-900">Лента магазина</h2>
-            <p className="text-sm text-slate-600">Новости, акции и обновления от продавца.</p>
-          </div>
-        </div>
-
-        {pinnedPost ? (
-          <article className="rounded-xl border border-slate-200 bg-slate-50/80 p-3">
-            <div className="flex items-center gap-2">
-              <span className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-700">
-                Закреплено
+      <section className="rounded-2xl bg-white/70 px-2 py-1">
+        <ul className="flex flex-wrap items-center gap-2">
+          {seller.trustBadges.map((badge) => (
+            <li
+              key={badge.id}
+              className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm"
+            >
+              <span className="text-slate-500">
+                <TrustBadgeIcon badgeId={badge.id} />
               </span>
-              <span
-                className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${postTypeToneClassNames[pinnedPost.type]}`}
-              >
-                {postTypeLabels[pinnedPost.type]}
-              </span>
-              <span className="text-xs text-slate-500">{formatPostDate(pinnedPost.createdAt)}</span>
-            </div>
-            <p className="mt-2 text-sm font-semibold text-slate-900">{pinnedPost.title}</p>
-            <p className="mt-1 line-clamp-2 text-sm text-slate-600">{pinnedPost.body}</p>
-          </article>
-        ) : null}
-
-        {visiblePosts.length ? (
-          <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
-            {visiblePosts.map((post) => (
-              <article key={post.id} className="rounded-xl border border-slate-200 bg-slate-50/60 p-3">
-                <div className="flex items-start justify-between gap-2">
-                  <span
-                    className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium ${postTypeToneClassNames[post.type]}`}
-                  >
-                    {postTypeLabels[post.type]}
-                  </span>
-                  <span className="text-xs text-slate-500">{formatPostDate(post.createdAt)}</span>
-                </div>
-                <p className="mt-2 line-clamp-1 text-sm font-semibold text-slate-900">{post.title}</p>
-                <p className="mt-1 line-clamp-2 text-sm text-slate-600">{post.body}</p>
-                <div className="mt-2 flex h-20 items-center justify-center rounded-lg border border-slate-200 bg-white text-2xl">
-                  {post.imageUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={post.imageUrl} alt={post.title} className="h-full w-full rounded-lg object-cover" />
-                  ) : (
-                    <span>{postTypeIcon[post.type]}</span>
-                  )}
-                </div>
-              </article>
-            ))}
-          </div>
-        ) : (
-          <p className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
-            Публикаций пока нет. Следите за обновлениями магазина.
-          </p>
-        )}
+              <span>{badge.label}</span>
+            </li>
+          ))}
+        </ul>
       </section>
 
-      {activeCoupons.length ? (
-        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-          <h2 className="text-lg font-semibold tracking-tight text-slate-900">Акции и купоны</h2>
-          <p className="mt-1 text-sm text-slate-600">
-            Магазин может создавать временные предложения и купоны — вы видите их здесь.
-          </p>
-          <div className="mt-3 grid gap-2 md:grid-cols-2">
-            {activeCoupons.map((coupon) => (
-              <article key={coupon.id} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700">
-                    Купон
-                  </span>
-                  <span className="text-xs font-semibold text-slate-700">{coupon.code}</span>
-                </div>
-                <p className="mt-1 text-sm font-semibold text-slate-900">{coupon.title}</p>
-                <p className="text-sm text-slate-600">
-                  {coupon.discountType === "percent"
-                    ? `Скидка ${coupon.discountValue}%`
-                    : `Скидка ${coupon.discountValue.toLocaleString("ru-RU")} ₽`}
-                  {" · до "}
-                  {formatPostDate(coupon.validUntil)}
-                </p>
-              </article>
-            ))}
-          </div>
-        </section>
-      ) : null}
-
-      {featuredListings.length ? (
-        <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-          <div>
-            <h2 className="text-lg font-semibold tracking-tight text-slate-900">Выделенные объявления</h2>
-            <p className="text-sm text-slate-600">Суперобъявления и продвигаемые позиции магазина.</p>
+      {vitrinePopular.length ? (
+        <section className="space-y-4 rounded-3xl border border-slate-200/90 bg-white p-5 shadow-sm sm:p-6">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-semibold tracking-tight text-slate-900">Лучшее</h2>
+              <p className="mt-1 max-w-2xl text-sm text-slate-600">
+                Подборка сильных позиций по демо-правилам видимости и релевантности витрины.
+              </p>
+            </div>
+            <a
+              href="#seller-listings"
+              className="text-sm font-semibold text-slate-700 underline decoration-slate-300 underline-offset-4 hover:text-slate-900"
+            >
+              Все объявления ↓
+            </a>
           </div>
           <ListingsGrid
-            listings={featuredListings}
+            listings={vitrinePopular}
             view="grid"
-            emptyMessage="Выделенных объявлений пока нет."
+            emptyMessage="Пока нет позиций для подборки «Лучшее»."
             emptyStateClassName="bg-slate-50"
           />
         </section>
       ) : null}
 
-      <section id="seller-listings" className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      {vitrineNew.length ? (
+        <section className="space-y-4 rounded-3xl border border-slate-200/90 bg-white p-5 shadow-sm sm:p-6">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-semibold tracking-tight text-slate-900">Новое поступление</h2>
+              <p className="mt-1 max-w-2xl text-sm text-slate-600">
+                Свежие активные объявления — по дате публикации, чтобы покупатель видел динамику магазина.
+              </p>
+            </div>
+            <a
+              href="#seller-listings"
+              className="text-sm font-semibold text-slate-700 underline decoration-slate-300 underline-offset-4 hover:text-slate-900"
+            >
+              Полный каталог ↓
+            </a>
+          </div>
+          <ListingsGrid
+            listings={vitrineNew}
+            view="grid"
+            emptyMessage="Новых активных объявлений пока нет."
+            emptyStateClassName="bg-slate-50"
+          />
+        </section>
+      ) : null}
+
+      {vitrineBudget.length > 0 && vitrineBudgetCap != null ? (
+        <section className="space-y-4 rounded-3xl border border-slate-200/90 bg-white p-5 shadow-sm sm:p-6">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-semibold tracking-tight text-slate-900">Выгодная витрина</h2>
+              <p className="mt-1 max-w-2xl text-sm text-slate-600">
+                Активные объявления до порога{" "}
+                <span className="font-semibold tabular-nums text-slate-800">
+                  {vitrineBudgetCap.toLocaleString("ru-RU")} ₽
+                </span>{" "}
+                — нижняя треть ценового ряда магазина (mock‑подборка без персонализации).
+              </p>
+            </div>
+            <a
+              href="#seller-listings"
+              className="text-sm font-semibold text-slate-700 underline decoration-slate-300 underline-offset-4 hover:text-slate-900"
+            >
+              Все объявления ↓
+            </a>
+          </div>
+          <ListingsGrid
+            listings={vitrineBudget}
+            view="grid"
+            emptyMessage="В этой ценовой витрине пока пусто."
+            emptyStateClassName="bg-slate-50"
+          />
+        </section>
+      ) : null}
+
+      <section id="seller-listings" className="rounded-3xl border border-slate-200/90 bg-white p-5 shadow-sm sm:p-6">
+        <div className="mb-4 border-b border-slate-100 pb-4">
+          <h2 className="text-lg font-semibold tracking-tight text-slate-900">Все объявления</h2>
+          <p className="mt-1 text-sm text-slate-600">
+            Полный каталог магазина с фильтрами по статусу и тематическим «мирам» каталога.
+          </p>
+        </div>
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex flex-wrap gap-2">
             {(["all", "active"] as ListingScope[]).map((section) => {
@@ -420,30 +534,162 @@ export function StorefrontPageClient({
         emptyMessage="По выбранным фильтрам у продавца пока нет объявлений."
       />
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-        <h2 className="text-lg font-semibold tracking-tight text-slate-900">О магазине</h2>
-        <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50/70 p-3">
-            <p className="text-sm font-semibold text-slate-900">Описание</p>
-            <p className="text-sm text-slate-600">{seller.shortDescription}</p>
-          </div>
-          <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50/70 p-3">
-            <p className="text-sm font-semibold text-slate-900">Контакты и соцсети</p>
-            <p className="text-sm text-slate-600">Телефон: {seller.phone}</p>
-            <p className="break-all text-sm text-slate-600">Сайт: {seller.contactLinks.website || "не указан"}</p>
-            <p className="break-all text-sm text-slate-600">Telegram: {seller.contactLinks.telegram || "не указан"}</p>
-            <p className="break-all text-sm text-slate-600">VK: {seller.contactLinks.vk || "не указан"}</p>
-          </div>
+      <section
+        id="store-promo-hub"
+        className="space-y-4 rounded-3xl border border-slate-200/90 bg-white p-5 shadow-sm sm:p-6"
+      >
+        <div>
+          <h2 className="text-lg font-semibold tracking-tight text-slate-900">Промо и закрепления</h2>
+          <p className="mt-1 max-w-2xl text-sm text-slate-600">
+            Закреплённые товары и статусы кампаний — рабочий growth-слой витрины (демо-логика).
+          </p>
         </div>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {seller.trustBadges.map((badge) => (
-            <span
-              key={badge.id}
-              className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-700"
-            >
-              {badge.label}
-            </span>
-          ))}
+
+        {pinnedPromoListings.length ? (
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Закреплённые товары</p>
+            <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-1 pt-0.5 [scrollbar-width:thin]">
+              {pinnedPromoListings.map((listing) => (
+                <div key={listing.id} className="w-[min(100%,18rem)] shrink-0">
+                  <ListingPreviewCard listing={listing} view="grid" />
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <p className="rounded-2xl border border-slate-100 bg-slate-50/80 px-3 py-2 text-sm text-slate-600">
+            Закреплённых позиций пока нет — витрина показывает каталог в естественном порядке.
+          </p>
+        )}
+
+        {campaigns.length ? (
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Кампании продвижения</p>
+            <ul className="flex flex-wrap gap-2">
+              {campaigns.map((campaign) => (
+                <li
+                  key={campaign.id}
+                  className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium ${
+                    campaign.status === "active"
+                      ? "border-emerald-200/80 bg-emerald-50/90 text-emerald-900"
+                      : "border-slate-200 bg-slate-50 text-slate-600"
+                  }`}
+                >
+                  <span className="max-w-[200px] truncate">{campaign.name}</span>
+                  <span className="tabular-nums text-[10px] uppercase tracking-wide text-slate-500">
+                    {campaign.status === "active" ? "идёт" : "пауза"}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+      </section>
+
+      {activeCoupons.length ? (
+        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+          <h2 className="text-lg font-semibold tracking-tight text-slate-900">Акции и купоны</h2>
+          <p className="mt-1 text-sm text-slate-600">
+            Магазин может создавать временные предложения и купоны — вы видите их здесь.
+          </p>
+          {primaryCoupon ? (
+            <div className="relative mt-3 overflow-hidden rounded-2xl border border-slate-200 bg-gradient-to-r from-slate-50 to-white px-5 py-4 shadow-sm">
+              <div className="pointer-events-none absolute -right-6 top-0 h-24 w-24 rounded-full bg-slate-200/40 blur-2xl" />
+              <div className="relative flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Промо-плашка акции</p>
+                  <p className="mt-1 text-base font-semibold text-slate-900">{primaryCoupon.title}</p>
+                  <p className="mt-1 text-sm text-slate-600">
+                    Код <span className="font-mono font-semibold text-slate-800">{primaryCoupon.code}</span>
+                    {" · "}
+                    {primaryCoupon.discountType === "percent"
+                      ? `−${primaryCoupon.discountValue}%`
+                      : `−${primaryCoupon.discountValue.toLocaleString("ru-RU")} ₽`}{" "}
+                    до {formatPostDate(primaryCoupon.validUntil)}
+                  </p>
+                </div>
+                <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700">
+                  Активно
+                </span>
+              </div>
+            </div>
+          ) : null}
+          <div className="mt-3 grid gap-2 md:grid-cols-2">
+            {activeCoupons.map((coupon) => (
+              <article key={coupon.id} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700">
+                    Купон
+                  </span>
+                  <span className="text-xs font-semibold text-slate-700">{coupon.code}</span>
+                </div>
+                <p className="mt-1 text-sm font-semibold text-slate-900">{coupon.title}</p>
+                <p className="text-sm text-slate-600">
+                  {coupon.discountType === "percent"
+                    ? `Скидка ${coupon.discountValue}%`
+                    : `Скидка ${coupon.discountValue.toLocaleString("ru-RU")} ₽`}
+                  {" · до "}
+                  {formatPostDate(coupon.validUntil)}
+                </p>
+              </article>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      <section className="rounded-3xl border border-slate-200/90 bg-gradient-to-b from-white to-slate-50/90 p-5 shadow-sm sm:p-6">
+        <h2 className="text-lg font-semibold tracking-tight text-slate-900">О магазине</h2>
+        <p className="mt-1 max-w-2xl text-sm text-slate-600">
+          Краткий профиль продавца, сервисные обещания и контакты — в одном блоке, без лишних экранов.
+        </p>
+        <div className="mt-5 grid gap-4 lg:grid-cols-3">
+          <div className="space-y-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm shadow-slate-900/5">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">История и позиционирование</p>
+            <p className="text-sm leading-relaxed text-slate-700">{seller.shortDescription}</p>
+            <p className="text-xs text-slate-500">
+              Тип продавца: <span className="font-medium text-slate-700">{getSellerTypeLabel(seller.type)}</span>
+            </p>
+          </div>
+          <div className="space-y-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm shadow-slate-900/5">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Сервис и репутация</p>
+            <ul className="space-y-2 text-sm text-slate-700">
+              <li className="flex justify-between gap-2 border-b border-slate-100 pb-2">
+                <span className="text-slate-500">Рейтинг</span>
+                <span className="font-semibold tabular-nums text-slate-900">{seller.metrics.rating.toFixed(1)} / 5</span>
+              </li>
+              <li className="flex justify-between gap-2 border-b border-slate-100 pb-2">
+                <span className="text-slate-500">Ответ</span>
+                <span className="text-right font-medium text-slate-800">{seller.responseSpeedLabel}</span>
+              </li>
+              <li className="flex justify-between gap-2">
+                <span className="text-slate-500">Активные лоты</span>
+                <span className="font-semibold tabular-nums text-slate-900">{activeListingsCount}</span>
+              </li>
+            </ul>
+            <p className="text-xs leading-relaxed text-slate-500">
+              Метрики на витрине — демо-значения для MVP, без подключения аналитики.
+            </p>
+          </div>
+          <div className="space-y-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm shadow-slate-900/5">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Контакты</p>
+            <p className="text-sm text-slate-700">
+              Телефон: <span className="font-medium text-slate-900">{seller.phone}</span>
+            </p>
+            <p className="break-all text-sm text-slate-600">
+              Сайт: {seller.contactLinks.website ? <span className="text-slate-900">{seller.contactLinks.website}</span> : "не указан"}
+            </p>
+            <p className="break-all text-sm text-slate-600">
+              Telegram:{" "}
+              {seller.contactLinks.telegram ? (
+                <span className="text-slate-900">{seller.contactLinks.telegram}</span>
+              ) : (
+                "не указан"
+              )}
+            </p>
+            <p className="break-all text-sm text-slate-600">
+              VK: {seller.contactLinks.vk ? <span className="text-slate-900">{seller.contactLinks.vk}</span> : "не указан"}
+            </p>
+          </div>
         </div>
       </section>
     </div>

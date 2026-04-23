@@ -15,7 +15,7 @@ const primaryNavLinks = [
   { label: "Главная", href: "/" },
   { label: "Каталог", href: "/listings" },
   { label: "Миры", href: "/#worlds" },
-  { label: "Магазины", href: "/sellers/marina-tech" },
+  { label: "Магазины", href: "/stores" },
   { label: "Герой доски", href: "/sponsor-board" },
 ];
 

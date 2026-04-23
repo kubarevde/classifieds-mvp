@@ -107,14 +107,14 @@ const menuItems: MarketingMenuItem[] = [
   },
   {
     id: "boosts",
-    label: "Поднятие и Суперобъявление",
+    label: "Поднятие / Супер",
     requiredPlan: "pro",
     lockedHint: "Поднятие объявлений и усиленное выделение карточек в выдаче.",
     icon: "boost",
   },
   {
     id: "hero_board",
-    label: "Герой доски / Благотворительность",
+    label: "Герой доски",
     requiredPlan: "business",
     lockedHint: "Выделенный герой платформы или мира с mock‑бюджетом и благотворительным отчислением.",
     icon: "hero",
@@ -534,7 +534,7 @@ export function StoreMarketingWorkspace({
         <p className="text-sm text-slate-600">Управляйте продвижением витрины инструментами Pro‑панели.</p>
       </div>
 
-      <div className="grid gap-3 xl:grid-cols-[230px_minmax(0,1fr)]">
+      <div className="grid gap-3 xl:grid-cols-[248px_minmax(0,1fr)]">
         <nav className="space-y-1 rounded-xl border border-slate-200 bg-slate-50 p-2">
           {menuItems.map((menuItem) => {
             const isAllowed = hasPlanAccess(seller.planTier, menuItem.requiredPlan);
@@ -550,7 +550,7 @@ export function StoreMarketingWorkspace({
                 key={menuItem.id}
                 type="button"
                 onClick={() => openScreen(menuItem)}
-                className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium transition ${
+                className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium transition ${
                   activeScreen === menuItem.id
                     ? "bg-slate-900 text-white"
                     : "text-slate-700 hover:bg-white hover:text-slate-900"
@@ -559,10 +559,10 @@ export function StoreMarketingWorkspace({
                 <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md border border-current/20">
                   <MenuIcon icon={menuItem.icon} />
                 </span>
-                <span className="min-w-0 flex-1 break-words leading-5">{menuItem.label}</span>
+                <span className="min-w-0 flex-1 truncate whitespace-nowrap leading-5">{menuItem.label}</span>
                 {tierBadge ? (
                   <span
-                    className={`inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[10px] ${
+                    className={`ml-auto inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[10px] ${
                       activeScreen === menuItem.id
                         ? "border-white/40 text-white"
                         : isAllowed
