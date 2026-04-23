@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { Bookmark } from "lucide-react";
 
 import { useSavedSearches } from "@/components/saved-searches/saved-searches-provider";
 import type { SavedSearchFilters } from "@/lib/saved-searches";
@@ -28,14 +29,7 @@ export function SaveSearchButton({ filters, className = "" }: SaveSearchButtonPr
         onClick={handleSave}
         className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 text-sm font-semibold text-slate-800 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
       >
-        <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4 text-slate-500" aria-hidden="true">
-          <path
-            d="M6 4h12v16l-6-4-6 4V4Z"
-            stroke="currentColor"
-            strokeWidth="1.7"
-            strokeLinejoin="round"
-          />
-        </svg>
+        <Bookmark className="h-4 w-4 text-slate-500" strokeWidth={1.5} aria-hidden="true" />
         Сохранить поиск
       </button>
       {showSaved ? (

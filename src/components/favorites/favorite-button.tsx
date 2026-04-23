@@ -1,6 +1,7 @@
 "use client";
 
 import { MouseEvent } from "react";
+import { Heart } from "lucide-react";
 
 import { useFavorites } from "@/components/favorites/favorites-provider";
 
@@ -46,16 +47,12 @@ export function FavoriteButton({
           : "border-slate-200 bg-white/90 text-slate-600 hover:border-slate-300 hover:bg-white hover:text-slate-900"
       } ${sizeClass} ${className}`}
     >
-      <svg
-        viewBox="0 0 24 24"
-        fill={favorite ? "currentColor" : "none"}
-        stroke="currentColor"
-        strokeWidth={2}
+      <Heart
         className={iconSizeClass}
+        fill={favorite ? "currentColor" : "none"}
+        strokeWidth={1.5}
         aria-hidden="true"
-      >
-        <path d="M12 21s-6.5-4.6-9-8.2C1 10.3 1.3 7 4.2 5.3c2.1-1.2 4.6-.7 6.1 1.1L12 8.2l1.7-1.8c1.5-1.8 4-2.3 6.1-1.1 2.9 1.7 3.2 5 .2 7.5C18.5 16.4 12 21 12 21Z" />
-      </svg>
+      />
       {showLabel ? (
         <span className="ml-2 text-sm font-medium">
           {isHydrated ? (favorite ? "В избранном" : "В избранное") : "В избранное"}

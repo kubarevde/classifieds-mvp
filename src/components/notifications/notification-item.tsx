@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ExternalLink } from "lucide-react";
 
 import { Notification, NotificationType, formatNotificationTimestamp } from "@/lib/notifications";
 
@@ -90,15 +91,7 @@ export function NotificationItem({ notification, onMarkAsRead }: NotificationIte
                 className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-900 underline decoration-slate-300 underline-offset-4 transition hover:decoration-slate-500"
               >
                 {notification.link.label}
-                <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden="true">
-                  <path
-                    d="M9 6h9v9M18 6l-12 12"
-                    stroke="currentColor"
-                    strokeWidth="1.7"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
+                <ExternalLink className="h-4 w-4" strokeWidth={1.5} aria-hidden="true" />
               </Link>
             ) : (
               <span className="text-sm text-slate-500">Без ссылки</span>

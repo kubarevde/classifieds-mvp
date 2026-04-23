@@ -1,18 +1,11 @@
 import Link from "next/link";
+import { Bookmark } from "lucide-react";
 
 export function EmptySavedSearchesState() {
   return (
     <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-6 text-center shadow-sm sm:p-10">
       <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-slate-100 text-slate-600">
-        <svg viewBox="0 0 24 24" fill="none" className="h-6 w-6" aria-hidden="true">
-          <path
-            d="M11 4h2v3M6 8h12l-1 11H7L6 8Zm2 0V6a3 3 0 0 1 6 0v2"
-            stroke="currentColor"
-            strokeWidth="1.7"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
+        <Bookmark className="h-6 w-6" strokeWidth={1.5} aria-hidden="true" />
       </div>
       <h2 className="mt-4 text-lg font-semibold tracking-tight text-slate-900">Пока нет сохранённых поисков</h2>
       <p className="mt-2 text-sm text-slate-600">

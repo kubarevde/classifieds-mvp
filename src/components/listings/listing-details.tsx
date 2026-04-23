@@ -1,4 +1,5 @@
 import { FavoriteButton } from "@/components/favorites/favorite-button";
+import { Clock3, MapPin } from "lucide-react";
 import { categoryLabels, formatPostedAt } from "@/lib/listings";
 import { Listing } from "@/lib/types";
 
@@ -27,8 +28,12 @@ export function ListingDetails({ listing }: ListingDetailsProps) {
         </div>
 
         <div className="flex flex-wrap gap-3 text-sm text-slate-600">
-          <span>📍 {listing.location}</span>
-          <span>🕒 {formatPostedAt(listing.postedAtIso)}</span>
+          <span className="inline-flex items-center gap-1">
+            <MapPin className="h-4 w-4" strokeWidth={1.5} /> {listing.location}
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <Clock3 className="h-4 w-4" strokeWidth={1.5} /> {formatPostedAt(listing.postedAtIso)}
+          </span>
           <span>• {listing.condition}</span>
         </div>
 

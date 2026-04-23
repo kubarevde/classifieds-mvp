@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Star } from "lucide-react";
 
 export type StoreCatalogItem = {
   id: string;
@@ -35,7 +36,9 @@ export function StoreCard({ store }: StoreCardProps) {
 
       <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-600">
         <span>{store.city}</span>
-        <span>★ {store.rating.toFixed(1)} · {store.reviewsCount}</span>
+        <span className="inline-flex items-center gap-1">
+          <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" strokeWidth={1.5} /> {store.rating.toFixed(1)} · {store.reviewsCount}
+        </span>
         <span>{store.activeListingsCount} объявлений</span>
       </div>
 

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { Menu } from "lucide-react";
 
 import { getDemoDisplayName, useDemoRole } from "@/components/demo-role/demo-role";
 import { AccountMenu } from "@/components/layout/account-menu";
@@ -30,13 +31,7 @@ const navByRole = {
 } as const;
 
 function BurgerIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M4 7h16" />
-      <path d="M4 12h16" />
-      <path d="M4 17h16" />
-    </svg>
-  );
+  return <Menu className="h-5 w-5" strokeWidth={1.5} />;
 }
 
 export function Navbar() {

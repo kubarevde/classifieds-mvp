@@ -1,7 +1,9 @@
 import Link from "next/link";
+import { Car, Home, Sprout, Wrench } from "lucide-react";
 
 import { categories } from "@/lib/mock-data";
 import { Container } from "@/components/ui/container";
+import { WORLD_ICONS } from "@/config/icons";
 
 const homeCategoryLinks = [
   ...categories.map((category) => ({
@@ -15,11 +17,20 @@ const homeCategoryLinks = [
     id: "agriculture_world",
     label: "Сельское хозяйство",
     caption: "Техника, материалы и сервисы для агробизнеса",
-    icon: "🌾",
+    icon: "agriculture",
     listingCount: "10 240 объявлений",
     href: "/listings?world=agriculture&category=ready_products",
   },
 ];
+
+function getCategoryIcon(id: string) {
+  if (id === "auto") return Car;
+  if (id === "electronics") return WORLD_ICONS.electronics;
+  if (id === "real_estate") return Home;
+  if (id === "services") return Wrench;
+  if (id === "agriculture_world") return Sprout;
+  return WORLD_ICONS.electronics;
+}
 
 export function CategoriesGrid() {
   return (
@@ -41,12 +52,17 @@ export function CategoriesGrid() {
               href={category.href}
               className="group rounded-2xl border border-slate-200 bg-white p-5 transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md"
             >
+              {(() => {
+                const Icon = getCategoryIcon(category.id);
+                return (
               <div className="flex items-start justify-between">
                 <div className="grid h-11 w-11 place-items-center rounded-xl bg-slate-100 text-xl transition group-hover:bg-slate-900 group-hover:text-white">
-                  {category.icon}
+                  <Icon className="h-5 w-5" strokeWidth={1.5} />
                 </div>
                 <span className="text-xs font-medium text-slate-400">→</span>
               </div>
+                );
+              })()}
               <h3 className="mt-4 text-base font-semibold text-slate-900">{category.label}</h3>
               <p className="mt-1 min-h-10 text-sm text-slate-600">{category.caption}</p>
               <p className="mt-3 text-xs font-medium text-slate-500">{category.listingCount}</p>

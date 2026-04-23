@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChangeEvent, FormEvent, useMemo, useState } from "react";
+import { CheckCircle2 } from "lucide-react";
 
 import { FormField } from "@/components/create-listing/form-field";
 import { ImageUploader } from "@/components/create-listing/image-uploader";
@@ -220,8 +221,8 @@ export function CreateListingForm({
   if (isSubmitted) {
     return (
       <section className="mx-auto w-full max-w-2xl rounded-2xl border border-emerald-200 bg-white p-6 shadow-sm sm:p-8">
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-2xl">
-          ✓
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+          <CheckCircle2 className="h-7 w-7" strokeWidth={1.5} />
         </div>
         <h2 className="mt-4 text-center text-2xl font-semibold tracking-tight text-slate-900">
           Объявление опубликовано

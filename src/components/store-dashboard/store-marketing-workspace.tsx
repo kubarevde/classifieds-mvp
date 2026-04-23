@@ -1,6 +1,18 @@
 "use client";
 
 import { FormEvent, useMemo, useState } from "react";
+import {
+  BarChart2,
+  Calendar,
+  ChevronsUpDown,
+  Clapperboard,
+  LayoutDashboard,
+  Lock,
+  Mail,
+  Megaphone,
+  Percent,
+  Sparkles,
+} from "lucide-react";
 
 import { HeroBannerPlacement } from "@/lib/hero-board";
 import { CatalogWorld, getWorldLabel } from "@/lib/listings";
@@ -164,86 +176,34 @@ function MenuIcon({ icon }: { icon: MarketingMenuItem["icon"] }) {
   const baseClassName = "h-4 w-4";
 
   if (icon === "overview") {
-    return (
-      <svg viewBox="0 0 24 24" className={baseClassName} fill="none" stroke="currentColor" strokeWidth="1.8">
-        <path d="M4 5h16v14H4z" />
-        <path d="M8 11h2v4H8zM12 9h2v6h-2zM16 7h2v8h-2z" />
-      </svg>
-    );
+    return <LayoutDashboard className={baseClassName} strokeWidth={1.5} />;
   }
   if (icon === "analytics") {
-    return (
-      <svg viewBox="0 0 24 24" className={baseClassName} fill="none" stroke="currentColor" strokeWidth="1.8">
-        <path d="M4 19h16" />
-        <path d="M7 15l4-4 3 2 4-5" />
-        <path d="M17 8h2v2" />
-      </svg>
-    );
+    return <BarChart2 className={baseClassName} strokeWidth={1.5} />;
   }
   if (icon === "mailing") {
-    return (
-      <svg viewBox="0 0 24 24" className={baseClassName} fill="none" stroke="currentColor" strokeWidth="1.8">
-        <rect x="3" y="6" width="18" height="12" rx="2" />
-        <path d="m4 8 8 6 8-6" />
-      </svg>
-    );
+    return <Mail className={baseClassName} strokeWidth={1.5} />;
   }
   if (icon === "coupon") {
-    return (
-      <svg viewBox="0 0 24 24" className={baseClassName} fill="none" stroke="currentColor" strokeWidth="1.8">
-        <path d="M3 8a2 2 0 0 0 2 2 2 2 0 1 1 0 4 2 2 0 0 0-2 2h14l4-4V8l-4-4H3z" />
-        <path d="m9 8 4 8" />
-      </svg>
-    );
+    return <Percent className={baseClassName} strokeWidth={1.5} />;
   }
   if (icon === "planner") {
-    return (
-      <svg viewBox="0 0 24 24" className={baseClassName} fill="none" stroke="currentColor" strokeWidth="1.8">
-        <rect x="3" y="5" width="18" height="16" rx="2" />
-        <path d="M8 3v4M16 3v4M3 10h18" />
-      </svg>
-    );
+    return <Calendar className={baseClassName} strokeWidth={1.5} />;
   }
   if (icon === "video") {
-    return (
-      <svg viewBox="0 0 24 24" className={baseClassName} fill="none" stroke="currentColor" strokeWidth="1.8">
-        <rect x="3" y="6" width="13" height="12" rx="2" />
-        <path d="m16 10 5-3v10l-5-3z" />
-      </svg>
-    );
+    return <Clapperboard className={baseClassName} strokeWidth={1.5} />;
   }
   if (icon === "sponsored") {
-    return (
-      <svg viewBox="0 0 24 24" className={baseClassName} fill="none" stroke="currentColor" strokeWidth="1.8">
-        <path d="M4 17V7l10-2v14z" />
-        <path d="M14 7h5a2 2 0 0 1 0 4h-5" />
-        <path d="M6 17v3" />
-      </svg>
-    );
+    return <Megaphone className={baseClassName} strokeWidth={1.5} />;
   }
   if (icon === "hero") {
-    return (
-      <svg viewBox="0 0 24 24" className={baseClassName} fill="none" stroke="currentColor" strokeWidth="1.8">
-        <path d="m12 3 2.8 5.6 6.2.9-4.5 4.3 1.1 6.2L12 17l-5.6 3 1.1-6.2L3 9.5l6.2-.9z" />
-      </svg>
-    );
+    return <Sparkles className={baseClassName} strokeWidth={1.5} />;
   }
-  return (
-    <svg viewBox="0 0 24 24" className={baseClassName} fill="none" stroke="currentColor" strokeWidth="1.8">
-      <path d="M12 4v16" />
-      <path d="m8 8 4-4 4 4" />
-      <path d="m8 16 4 4 4-4" />
-    </svg>
-  );
+  return <ChevronsUpDown className={baseClassName} strokeWidth={1.5} />;
 }
 
 function LockMiniIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="mr-1 h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8">
-      <rect x="5" y="11" width="14" height="9" rx="2" />
-      <path d="M8 11V8a4 4 0 1 1 8 0v3" />
-    </svg>
-  );
+  return <Lock className="mr-1 h-3.5 w-3.5" strokeWidth={1.5} />;
 }
 
 export function StoreMarketingWorkspace({

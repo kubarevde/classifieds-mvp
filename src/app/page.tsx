@@ -1,16 +1,19 @@
+import { CheckCircle2, ChevronRight, Heart, Star } from "lucide-react";
 import Link from "next/link";
+
+import { WORLD_ICONS } from "@/config/icons";
 import { Navbar } from "@/components/layout/navbar";
+import { CatalogWorld, worldOptions } from "@/lib/listings";
 
 const quickFilters = ["Новые сегодня", "С доставкой", "До 50 000 ₽", "Рядом"];
 
-const quickCategories = [
-  { mark: "EL", label: "Электроника", href: "/listings?category=electronics" },
-  { mark: "AU", label: "Авто", href: "/listings?category=auto" },
-  { mark: "RE", label: "Недвижимость", href: "/listings?category=realty" },
-  { mark: "AG", label: "Агро", href: "/agriculture" },
-  { mark: "SV", label: "Услуги", href: "/listings?category=services" },
-  { mark: "WR", label: "Миры", href: "#worlds" },
-];
+const quickCategories = worldOptions
+  .filter((world): world is (typeof worldOptions)[number] & { id: Exclude<CatalogWorld, "all"> } => world.id !== "all")
+  .map((world) => ({
+    id: world.id,
+    label: world.label,
+    href: `/listings?world=${world.id}`,
+  }));
 
 const heroCards = [
   {
@@ -18,7 +21,7 @@ const heroCards = [
     price: "75 000 ₽",
     rating: "4.9",
     category: "Электроника",
-    href: "/listings?category=electronics",
+    href: "/listings?world=electronics",
     visual: "from-blue-200 via-indigo-100 to-slate-100",
     rotate: "-rotate-6",
     position: "left-3 top-14",
@@ -28,7 +31,7 @@ const heroCards = [
     price: "4 500 000 ₽",
     rating: "4.8",
     category: "Недвижимость",
-    href: "/listings?category=realty",
+    href: "/listings?world=real_estate",
     visual: "from-fuchsia-200 via-purple-100 to-pink-100",
     rotate: "rotate-3",
     position: "right-4 top-4",
@@ -38,7 +41,7 @@ const heroCards = [
     price: "450 000 ₽",
     rating: "4.7",
     category: "Агро",
-    href: "/agriculture",
+    href: "/listings?world=agriculture",
     visual: "from-emerald-200 via-lime-100 to-green-100",
     rotate: "-rotate-2",
     position: "right-10 bottom-8",
@@ -52,114 +55,92 @@ const stats = [
   { value: "120", label: "городов" },
 ];
 
-const worlds = [
-  {
-    mark: "EL",
-    name: "Электроника",
-    description: "Гаджеты, техника и аксессуары",
+const worldTones: Record<Exclude<CatalogWorld, "all">, { gradient: string; tint: string }> = {
+  electronics: {
     gradient: "from-blue-600 to-indigo-600",
-    badge: "bg-blue-50 text-blue-700 ring-1 ring-blue-200",
-    href: "/listings?category=electronics",
+    tint: "bg-blue-50 text-blue-700 ring-1 ring-blue-200",
   },
-  {
-    mark: "AU",
-    name: "Автомобили",
-    description: "Авто, запчасти и сервис",
-    gradient: "from-orange-500 to-amber-600",
-    badge: "bg-orange-50 text-orange-700 ring-1 ring-orange-200",
-    href: "/listings?category=auto",
+  autos: {
+    gradient: "from-orange-500 to-red-500",
+    tint: "bg-orange-50 text-orange-700 ring-1 ring-orange-200",
   },
-  {
-    mark: "AG",
-    name: "Сельское хозяйство",
-    description: "Техника, семена и оборудование",
+  agriculture: {
     gradient: "from-emerald-600 to-green-600",
-    badge: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200",
-    href: "/agriculture",
+    tint: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200",
   },
-  {
-    mark: "RE",
-    name: "Недвижимость",
-    description: "Квартиры, дома и коммерция",
+  real_estate: {
     gradient: "from-violet-600 to-purple-600",
-    badge: "bg-violet-50 text-violet-700 ring-1 ring-violet-200",
-    href: "/listings?category=realty",
+    tint: "bg-violet-50 text-violet-700 ring-1 ring-violet-200",
   },
-  {
-    mark: "SV",
-    name: "Услуги",
-    description: "Проверенные специалисты рядом",
+  services: {
     gradient: "from-cyan-600 to-sky-600",
-    badge: "bg-cyan-50 text-cyan-700 ring-1 ring-cyan-200",
-    href: "/listings?category=services",
+    tint: "bg-cyan-50 text-cyan-700 ring-1 ring-cyan-200",
   },
-];
+  jobs: {
+    gradient: "from-slate-700 to-blue-700",
+    tint: "bg-slate-100 text-slate-700 ring-1 ring-slate-200",
+  },
+};
 
 const stores = [
   {
     name: "ФермаПро",
     category: "Агро",
-    rating: "4.9",
-    items: "124 товара",
-    since: "На платформе с 2023",
-    avatarColor: "bg-emerald-500",
     tagline: "Фирменная агровитрина с поставками по РФ",
-    ribbon: "from-emerald-500/20 to-teal-500/20",
+    rating: "4.9",
+    count: "124 товара",
+    since: "2023",
+    ribbon: "from-emerald-400/30 to-teal-400/20",
     href: "/stores",
   },
   {
     name: "ТехноМаркет",
     category: "Электроника",
-    rating: "4.8",
-    items: "89 товаров",
-    since: "На платформе с 2022",
-    avatarColor: "bg-blue-500",
     tagline: "Премиальная электроника с гарантией",
-    ribbon: "from-blue-500/20 to-indigo-500/20",
+    rating: "4.8",
+    count: "89 товаров",
+    since: "2022",
+    ribbon: "from-blue-400/30 to-indigo-400/20",
     href: "/stores",
   },
   {
     name: "АвтоДетали",
     category: "Авто",
-    rating: "4.7",
-    items: "203 товара",
-    since: "На платформе с 2021",
-    avatarColor: "bg-orange-500",
     tagline: "Крупная витрина запчастей и комплектующих",
-    ribbon: "from-orange-500/20 to-amber-500/20",
+    rating: "4.7",
+    count: "203 товара",
+    since: "2021",
+    ribbon: "from-orange-400/30 to-red-400/20",
     href: "/stores",
   },
   {
     name: "ДомСтрой",
     category: "Недвижимость",
-    rating: "4.9",
-    items: "45 объявлений",
-    since: "На платформе с 2023",
-    avatarColor: "bg-fuchsia-500",
     tagline: "Подбор недвижимости с проверкой объектов",
-    ribbon: "from-violet-500/20 to-fuchsia-500/20",
+    rating: "4.9",
+    count: "45 объявлений",
+    since: "2023",
+    ribbon: "from-purple-400/30 to-pink-400/20",
     href: "/stores",
   },
   {
     name: "МастерСервис",
     category: "Услуги",
-    rating: "4.8",
-    items: "67 услуг",
-    since: "На платформе с 2022",
-    avatarColor: "bg-cyan-500",
     tagline: "Команда мастеров для частных и B2B задач",
-    ribbon: "from-cyan-500/20 to-sky-500/20",
+    rating: "4.8",
+    count: "67 услуг",
+    since: "2022",
+    ribbon: "from-cyan-400/30 to-sky-400/20",
     href: "/stores",
   },
   {
     name: "АгроСеть",
     category: "Агро",
-    rating: "4.9",
-    items: "156 товаров",
-    since: "На платформе с 2020",
-    avatarColor: "bg-lime-500",
     tagline: "Одна из самых стабильных агросетей",
-    ribbon: "from-lime-500/20 to-emerald-500/20",
+    rating: "4.9",
+    count: "156 товаров",
+    since: "2020",
+    ribbon: "from-lime-400/30 to-green-400/20",
     href: "/stores",
   },
 ];
@@ -186,7 +167,7 @@ const listings = [
     price: "450 000 ₽",
     meta: "Краснодар, вчера",
     category: "Агро",
-    href: "/agriculture",
+    href: "/listings?world=agriculture",
     visual: "from-emerald-500 to-green-500",
   },
   {
@@ -194,7 +175,7 @@ const listings = [
     price: "4 500 000 ₽",
     meta: "Воронеж, 3 часа назад",
     category: "Недвижимость",
-    href: "/listings",
+    href: "/listings?world=real_estate",
     visual: "from-fuchsia-500 to-pink-500",
   },
   {
@@ -202,7 +183,7 @@ const listings = [
     price: "120 000 ₽",
     meta: "СПб, 1 час назад",
     category: "Электроника",
-    href: "/listings",
+    href: "/listings?world=electronics",
     visual: "from-sky-500 to-blue-500",
   },
   {
@@ -210,7 +191,7 @@ const listings = [
     price: "3 500 ₽",
     meta: "Ростов, 6 часов назад",
     category: "Агро",
-    href: "/agriculture",
+    href: "/listings?world=agriculture",
     visual: "from-lime-500 to-emerald-500",
   },
   {
@@ -218,7 +199,7 @@ const listings = [
     price: "от 3 000 ₽/м²",
     meta: "Воронеж, сегодня",
     category: "Услуги",
-    href: "/listings",
+    href: "/listings?world=services",
     visual: "from-cyan-500 to-blue-500",
   },
   {
@@ -226,7 +207,7 @@ const listings = [
     price: "12 000 ₽",
     meta: "Казань, 4 часа назад",
     category: "Авто",
-    href: "/listings",
+    href: "/listings?world=autos",
     visual: "from-amber-500 to-orange-500",
   },
 ];
@@ -264,16 +245,16 @@ export default function Home() {
                     className="h-12 rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none transition-all duration-200 placeholder:text-slate-400 focus:border-blue-500 focus:bg-white"
                   />
                   <select
-                    name="category"
+                    name="world"
                     defaultValue=""
                     className="h-12 rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-700 outline-none transition-all duration-200 focus:border-blue-500 focus:bg-white"
                   >
-                    <option value="">Все категории</option>
-                    <option value="electronics">Электроника</option>
-                    <option value="auto">Авто</option>
-                    <option value="realty">Недвижимость</option>
-                    <option value="agriculture">Агро</option>
-                    <option value="services">Услуги</option>
+                    <option value="">Все миры</option>
+                    {quickCategories.map((world) => (
+                      <option key={world.id} value={world.id}>
+                        {world.label}
+                      </option>
+                    ))}
                   </select>
                   <button
                     type="submit"
@@ -295,24 +276,19 @@ export default function Home() {
                 </div>
               </form>
               <div className="flex flex-wrap gap-3">
-                {quickCategories.map((category) => (
-                  <Link
-                    key={category.label}
-                    href={category.href}
-                    className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
-                  >
-                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-[10px] font-semibold tracking-wide text-slate-600">
-                      {category.mark}
-                    </span>
-                    <span>{category.label}</span>
-                  </Link>
-                ))}
-                <Link
-                  href="/listings"
-                  className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-blue-700 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
-                >
-                  Всё →
-                </Link>
+                {quickCategories.map((category) => {
+                  const Icon = WORLD_ICONS[category.id];
+                  return (
+                    <Link
+                      key={category.label}
+                      href={category.href}
+                      className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+                    >
+                      <Icon className="h-4 w-4" strokeWidth={1.5} />
+                      <span>{category.label}</span>
+                    </Link>
+                  );
+                })}
               </div>
             </div>
             <div className="relative hidden h-[430px] w-full overflow-hidden lg:block lg:w-2/5">
@@ -339,7 +315,7 @@ export default function Home() {
                       {card.price}
                     </p>
                     <p className="text-xs text-slate-500">
-                      {card.category} · ⭐ {card.rating}
+                      {card.category} · <Star className="inline h-3.5 w-3.5 text-amber-400" strokeWidth={1.5} /> {card.rating}
                     </p>
                   </div>
                 </Link>
@@ -367,86 +343,90 @@ export default function Home() {
               <h2 className="text-3xl font-black tracking-tight text-slate-950">
                 Выбери свой мир
               </h2>
-              <p className="text-slate-600">
-                Реальные направления портала с понятной логикой категорий
-              </p>
+              <p className="text-slate-600">Все миры проекта с актуальными ссылками на существующий каталог</p>
             </div>
-            <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
-              {worlds.map((world) => (
-                <Link
-                  key={world.name}
-                  href={world.href}
-                  className="group rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-xl"
-                >
-                  <div className="space-y-4">
-                    <span
-                      className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold tracking-wide ${world.badge}`}
-                    >
-                      {world.mark}
-                    </span>
-                    <div
-                      aria-hidden
-                      className={`h-1.5 rounded-full bg-gradient-to-r ${world.gradient}`}
-                    />
-                    <div className="space-y-1">
-                      <h3 className="text-base font-bold text-slate-900">
-                        {world.name}
-                      </h3>
-                      <p className="text-sm text-slate-600">{world.description}</p>
-                      <p className="pt-2 text-sm font-semibold text-slate-900">
-                        Войти →
-                      </p>
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
+              {quickCategories.map((world) => {
+                const worldMeta = worldOptions.find((item) => item.id === world.id);
+                if (!worldMeta) {
+                  return null;
+                }
+                const Icon = WORLD_ICONS[world.id];
+                const tone = worldTones[world.id];
+                return (
+                  <Link
+                    key={world.id}
+                    href={world.href}
+                    className="group rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-xl"
+                  >
+                    <div className="space-y-4">
+                      <span className={`inline-flex rounded-full p-2 ${tone.tint}`}>
+                        <Icon className="h-7 w-7" strokeWidth={1.5} />
+                      </span>
+                      <div aria-hidden className={`h-1.5 rounded-full bg-gradient-to-r ${tone.gradient}`} />
+                      <div className="space-y-1">
+                        <h3 className="text-base font-bold text-slate-900">{worldMeta.label}</h3>
+                        <p className="text-sm text-slate-600">{worldMeta.description}</p>
+                        <p className="pt-2 text-sm font-semibold text-slate-900">Войти →</p>
+                      </div>
                     </div>
-                  </div>
-                </Link>
-              ))}
+                  </Link>
+                );
+              })}
             </div>
           </div>
         </section>
 
         <section className="py-16">
           <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="mb-8 space-y-2">
-              <h2 className="text-3xl font-black tracking-tight text-slate-950">
-                Проверенные магазины
-              </h2>
-              <p className="text-slate-600">
-                Витрины продавцов с брендом, репутацией и стабильным ассортиментом
-              </p>
+            <div className="mb-5 flex items-end justify-between">
+              <div>
+                <h2 className="text-2xl font-semibold tracking-tight text-slate-900">
+                  Проверенные магазины
+                </h2>
+                <p className="mt-1 text-sm text-slate-600">
+                  Продавцы с витриной, рейтингом и постоянными покупателями
+                </p>
+              </div>
+              <Link
+                href="/stores"
+                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+              >
+                Смотреть все <ChevronRight className="ml-1 inline h-4 w-4" strokeWidth={1.5} />
+              </Link>
             </div>
-            <div className="-mx-4 overflow-x-auto px-4 pb-4 sm:mx-0 sm:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="flex gap-4 overflow-x-auto pb-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
               {stores.map((store) => (
                 <article
                   key={store.name}
-                  className="mr-4 inline-block w-[296px] shrink-0 overflow-hidden rounded-2xl border border-slate-200 bg-white align-top shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-xl"
+                  className="w-72 min-w-[288px] shrink-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
                 >
                   <div className={`h-16 bg-gradient-to-r ${store.ribbon}`} />
-                  <div className="p-5">
-                    <div className="mb-3 flex items-center gap-3">
-                      <div
-                        className={`flex h-11 w-11 items-center justify-center rounded-full text-lg font-bold text-white ${store.avatarColor}`}
-                      >
-                        {store.name.charAt(0)}
-                      </div>
-                      <div>
-                        <p className="font-semibold text-slate-900">{store.name}</p>
-                        <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
-                          {store.category}
+                  <div className="relative px-5 pb-5">
+                    <div className="absolute -top-5 left-5 flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 text-sm font-bold text-white shadow-sm">
+                      {store.name.charAt(0)}
+                    </div>
+                    <div className="pt-8">
+                      <p className="font-semibold text-slate-900">{store.name}</p>
+                      <span className="mt-1 inline-block rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
+                        {store.category}
+                      </span>
+                      <p className="mt-3 line-clamp-2 text-sm text-slate-600">{store.tagline}</p>
+                      <div className="mt-3 flex items-center justify-between text-xs text-slate-500">
+                        <span className="flex items-center gap-1">
+                          <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" strokeWidth={1.5} />
+                          {store.rating}
                         </span>
+                        <span>{store.count}</span>
                       </div>
+                      <p className="mt-1 text-xs text-slate-400">На платформе с {store.since}</p>
+                      <Link
+                        href={store.href}
+                        className="mt-4 block w-full rounded-xl bg-slate-900 py-2.5 text-center text-sm font-semibold text-white transition hover:bg-slate-700"
+                      >
+                        Открыть витрину →
+                      </Link>
                     </div>
-                    <p className="mb-4 text-sm text-slate-600">{store.tagline}</p>
-                    <div className="grid grid-cols-2 gap-2 rounded-xl bg-slate-50 p-3 text-xs text-slate-600">
-                      <span>⭐ {store.rating}</span>
-                      <span className="text-right">{store.items}</span>
-                      <span className="col-span-2">{store.since}</span>
-                    </div>
-                    <Link
-                      href={store.href}
-                      className="mt-4 inline-flex w-full items-center justify-center rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition-all duration-200 hover:bg-slate-800"
-                    >
-                      Открыть витрину магазина →
-                    </Link>
                   </div>
                 </article>
               ))}
@@ -487,7 +467,7 @@ export default function Home() {
                       {listing.category}
                     </span>
                     <span className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-slate-700 transition-all duration-200">
-                      ♡
+                      <Heart className="h-4 w-4" strokeWidth={1.5} />
                     </span>
                   </div>
                   <div className="space-y-2 p-4">
@@ -509,7 +489,7 @@ export default function Home() {
               <div className="grid gap-8 lg:grid-cols-[1.4fr_1fr] lg:items-center">
                 <div className="space-y-4">
                   <span className="inline-flex rounded-full border border-white/25 bg-white/10 px-4 py-1 text-xs font-medium">
-                    Витрина недели ⭐
+                    Витрина недели
                   </span>
                   <h2 className="text-3xl font-black tracking-tight sm:text-4xl">
                     ФермаПро — лучший агромагазин месяца
@@ -529,7 +509,10 @@ export default function Home() {
                   <p className="text-sm text-slate-200">Магазин месяца</p>
                   <p className="mt-1 text-xl font-bold">ФермаПро</p>
                   <div className="mt-4 space-y-3 text-sm text-slate-200">
-                    <p>⭐ Рейтинг: 4.9</p>
+                    <p>
+                      <Star className="mr-1 inline h-3.5 w-3.5 text-amber-400" strokeWidth={1.5} />
+                      Рейтинг: 4.9
+                    </p>
                     <p>124 товара в наличии</p>
                     <p>Экспресс-доставка по России</p>
                   </div>
@@ -565,9 +548,15 @@ export default function Home() {
               </Link>
             </div>
             <div className="mt-6 flex flex-wrap items-center justify-center gap-4 text-sm text-slate-600">
-              <span>✓ Бесплатно</span>
-              <span>✓ Без скрытых платежей</span>
-              <span>✓ Поддержка 24/7</span>
+              <span>
+                <CheckCircle2 className="mr-1 inline h-4 w-4 text-emerald-500" strokeWidth={1.5} /> Бесплатно
+              </span>
+              <span>
+                <CheckCircle2 className="mr-1 inline h-4 w-4 text-emerald-500" strokeWidth={1.5} /> Без скрытых платежей
+              </span>
+              <span>
+                <CheckCircle2 className="mr-1 inline h-4 w-4 text-emerald-500" strokeWidth={1.5} /> Поддержка 24/7
+              </span>
             </div>
           </div>
         </section>

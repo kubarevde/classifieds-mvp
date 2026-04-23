@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect } from "react";
+import { X } from "lucide-react";
 
 import { DemoRole } from "@/components/demo-role/demo-role";
 
@@ -93,16 +94,7 @@ export function MobileMenu({
             className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50"
             aria-label="Закрыть"
           >
-            <svg
-              viewBox="0 0 24 24"
-              className="h-4.5 w-4.5"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <path d="m6 6 12 12" />
-              <path d="m18 6-12 12" />
-            </svg>
+            <X className="h-4.5 w-4.5" strokeWidth={1.5} />
           </button>
         </div>
 

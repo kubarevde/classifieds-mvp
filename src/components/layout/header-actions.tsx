@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Bell, MessageCircle } from "lucide-react";
 
 type HeaderActionsProps = {
   messagesUnreadCount: number;
@@ -22,20 +23,11 @@ function IndicatorBadge({ value }: { value: number }) {
 }
 
 function MessagesIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M3 5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H8l-5 4V5Z" />
-    </svg>
-  );
+  return <MessageCircle className="h-5 w-5" strokeWidth={1.5} />;
 }
 
 function BellIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M15 17H5a1 1 0 0 1-.8-1.6l1.3-1.7A6 6 0 0 0 7 10V8a5 5 0 0 1 10 0v2a6 6 0 0 0 1.5 3.7l1.3 1.7A1 1 0 0 1 19 17h-4Z" />
-      <path d="M9 18a3 3 0 0 0 6 0" />
-    </svg>
-  );
+  return <Bell className="h-5 w-5" strokeWidth={1.5} />;
 }
 
 export function HeaderActions({

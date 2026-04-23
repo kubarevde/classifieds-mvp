@@ -2,6 +2,17 @@
 
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import {
+  CheckCircle2,
+  CircleHelp,
+  Eye,
+  LayoutList,
+  Lock,
+  MessageCircle,
+  Star,
+  TrendingUp,
+  X,
+} from "lucide-react";
 
 import { StoreMarketingWorkspace } from "@/components/store-dashboard/store-marketing-workspace";
 import { HeroBannerPlacement } from "@/lib/hero-board";
@@ -77,40 +88,18 @@ type StoreSubscriptionTierId = "free" | "pro" | "business";
 function MetricIcon({ id }: { id: string }) {
   const className = "h-4 w-4";
   if (id === "active") {
-    return (
-      <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.8">
-        <rect x="4" y="5" width="16" height="14" rx="2" />
-        <path d="M8 10h8M8 14h5" />
-      </svg>
-    );
+    return <LayoutList className={className} strokeWidth={1.5} />;
   }
   if (id === "views") {
-    return (
-      <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.8">
-        <path d="M2 12s4-6 10-6 10 6 10 6-4 6-10 6S2 12 2 12z" />
-        <circle cx="12" cy="12" r="2.5" />
-      </svg>
-    );
+    return <Eye className={className} strokeWidth={1.5} />;
   }
   if (id === "responses") {
-    return (
-      <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.8">
-        <path d="M4 5h16v11H8l-4 3z" />
-      </svg>
-    );
+    return <MessageCircle className={className} strokeWidth={1.5} />;
   }
   if (id === "conversion") {
-    return (
-      <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.8">
-        <path d="M4 19V5M4 19h16M8 15v-4M12 15V9M16 15v-6" />
-      </svg>
-    );
+    return <TrendingUp className={className} strokeWidth={1.5} />;
   }
-  return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.8">
-      <path d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.8 1-6.1-4.4-4.3 6.1-.9z" />
-    </svg>
-  );
+  return <Star className={className} strokeWidth={1.5} />;
 }
 
 const listingFilterLabels: Record<ListingFilter, string> = {
@@ -657,11 +646,7 @@ export function StoreDashboardPageClient({
           onClick={launchTour}
           className="inline-flex h-9 items-center rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
         >
-          <svg viewBox="0 0 24 24" className="mr-1.5 h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8">
-            <circle cx="12" cy="12" r="9" />
-            <path d="M9.8 9.2a2.2 2.2 0 1 1 3.8 1.6c-.8.8-1.6 1.3-1.6 2.3" />
-            <circle cx="12" cy="17" r="1" />
-          </svg>
+          <CircleHelp className="mr-1.5 h-4 w-4" strokeWidth={1.5} />
           Как это работает
         </button>
       </div>
@@ -1436,7 +1421,7 @@ export function StoreDashboardPageClient({
                 onClick={() => setIsTariffModalOpen(false)}
                 className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50"
               >
-                ✕
+                <X className="h-4 w-4" strokeWidth={1.5} />
               </button>
             </div>
 
@@ -1455,10 +1440,34 @@ export function StoreDashboardPageClient({
                   {tariffRows.map((row) => (
                     <tr key={row.id}>
                       <td className="border-b border-slate-100 px-2 py-2 text-slate-700">{row.label}</td>
-                      <td className="border-b border-slate-100 px-2 py-2">{row.free ? "✅" : "🔒"}</td>
-                      <td className="border-b border-slate-100 px-2 py-2">{row.pro ? "✅" : "🔒"}</td>
-                      <td className="border-b border-slate-100 px-2 py-2">{row.business ? "✅" : "🔒"}</td>
-                      <td className="border-b border-slate-100 px-2 py-2">{row.oneTime ? "✅" : "—"}</td>
+                      <td className="border-b border-slate-100 px-2 py-2 text-center">
+                        {row.free ? (
+                          <CheckCircle2 className="mx-auto h-5 w-5 text-emerald-500" strokeWidth={1.5} />
+                        ) : (
+                          <Lock className="mx-auto h-4 w-4 text-slate-300" strokeWidth={1.5} />
+                        )}
+                      </td>
+                      <td className="border-b border-slate-100 px-2 py-2 text-center">
+                        {row.pro ? (
+                          <CheckCircle2 className="mx-auto h-5 w-5 text-emerald-500" strokeWidth={1.5} />
+                        ) : (
+                          <Lock className="mx-auto h-4 w-4 text-slate-300" strokeWidth={1.5} />
+                        )}
+                      </td>
+                      <td className="border-b border-slate-100 px-2 py-2 text-center">
+                        {row.business ? (
+                          <CheckCircle2 className="mx-auto h-5 w-5 text-emerald-500" strokeWidth={1.5} />
+                        ) : (
+                          <Lock className="mx-auto h-4 w-4 text-slate-300" strokeWidth={1.5} />
+                        )}
+                      </td>
+                      <td className="border-b border-slate-100 px-2 py-2 text-center">
+                        {row.oneTime ? (
+                          <CheckCircle2 className="mx-auto h-5 w-5 text-emerald-500" strokeWidth={1.5} />
+                        ) : (
+                          "—"
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>

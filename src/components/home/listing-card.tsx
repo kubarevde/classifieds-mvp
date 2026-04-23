@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { MapPin } from "lucide-react";
 
 import { FavoriteButton } from "@/components/favorites/favorite-button";
 import { getListingBadges, UnifiedCatalogListing } from "@/lib/listings";
@@ -78,7 +79,9 @@ export function ListingCard({ listing }: ListingCardProps) {
           </div>
         ) : null}
         <div className="flex items-center justify-between text-xs text-slate-500">
-          <span className="inline-flex items-center gap-1">📍 {listing.location}</span>
+          <span className="inline-flex items-center gap-1">
+            <MapPin className="h-3.5 w-3.5" strokeWidth={1.5} /> {listing.location}
+          </span>
           <span>{listing.publishedAt}</span>
         </div>
       </div>

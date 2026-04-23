@@ -1,4 +1,5 @@
 import { DiscoveryListing } from "@/lib/discovery";
+import { MapPin } from "lucide-react";
 
 type VerticalListingCardProps = {
   listing: DiscoveryListing;
@@ -49,7 +50,9 @@ export function VerticalListingCard({ listing, tone = "agriculture" }: VerticalL
 
       <div className="space-y-3 p-4 sm:p-5">
         <div className="flex items-center justify-between text-xs text-stone-500">
-          <span>📍 {listing.location}</span>
+          <span className="inline-flex items-center gap-1">
+            <MapPin className="h-3.5 w-3.5" strokeWidth={1.5} /> {listing.location}
+          </span>
           <span>{listing.publishedAt}</span>
         </div>
         <p className="line-clamp-3 text-sm leading-6 text-stone-700">{listing.description}</p>

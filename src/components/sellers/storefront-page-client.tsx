@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { CheckCircle2, Clock3, Heart, ShieldCheck, Users } from "lucide-react";
 
 import { ListingPreviewCard } from "@/components/listings/listing-preview-card";
 import { ListingsGrid } from "@/components/listings/listings-grid";
@@ -54,33 +55,15 @@ const viewButtonClassName =
 function TrustBadgeIcon({ badgeId }: { badgeId: string }) {
   const className = "h-5 w-5";
   if (badgeId === "verified") {
-    return (
-      <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.7">
-        <path d="M12 3 4 6v6c0 5 3.5 9 8 10 4.5-1 8-5 8-10V6l-8-3Z" />
-        <path d="m9 12 2 2 4-5" />
-      </svg>
-    );
+    return <ShieldCheck className={className} strokeWidth={1.5} />;
   }
   if (badgeId === "response") {
-    return (
-      <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.7">
-        <circle cx="12" cy="12" r="9" />
-        <path d="M12 7v5l3 2" />
-      </svg>
-    );
+    return <Clock3 className={className} strokeWidth={1.5} />;
   }
   if (badgeId === "repeat") {
-    return (
-      <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.7">
-        <path d="M4 19a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4M8 11a4 4 0 1 1 8 0 4 4 0 0 1-8 0Z" />
-      </svg>
-    );
+    return <Users className={className} strokeWidth={1.5} />;
   }
-  return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.7">
-      <path d="M9 12l2 2 4-4M12 3l7 4v6c0 4-3 8-7 9-4-1-7-5-7-9V7l7-4Z" />
-    </svg>
-  );
+  return <ShieldCheck className={className} strokeWidth={1.5} />;
 }
 
 function formatPostDate(isoDate: string) {
@@ -276,9 +259,7 @@ export function StorefrontPageClient({
                         : "border-white/25 bg-black/15 text-white/80 hover:bg-white/10"
                     }`}
                   >
-                    <svg viewBox="0 0 24 24" className="h-4 w-4" fill={isFavoriteStore ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.8">
-                      <path d="m12 20-1.1-1C6 14.5 3 11.7 3 8.3A4.3 4.3 0 0 1 7.3 4 4.8 4.8 0 0 1 12 6.2 4.8 4.8 0 0 1 16.7 4 4.3 4.3 0 0 1 21 8.3c0 3.4-3 6.2-7.9 10.7Z" />
-                    </svg>
+                    <Heart className="h-4 w-4" fill={isFavoriteStore ? "currentColor" : "none"} strokeWidth={1.5} />
                   </button>
                 </div>
                 <p className="text-sm text-white/75">
@@ -347,7 +328,13 @@ export function StorefrontPageClient({
                     : "border-white/25 bg-white text-slate-900 hover:bg-slate-100"
                 }`}
               >
-                {isSubscribed ? "Подписан ✓" : "Подписаться"}
+                {isSubscribed ? (
+                  <span className="inline-flex items-center gap-1">
+                    Подписан <CheckCircle2 className="h-4 w-4" strokeWidth={1.5} />
+                  </span>
+                ) : (
+                  "Подписаться"
+                )}
               </button>
             </div>
           </aside>

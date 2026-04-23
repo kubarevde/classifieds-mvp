@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { MapPin, Sparkles } from "lucide-react";
 
 import { AgricultureCategories } from "@/components/agriculture/agriculture-categories";
 import { DiscoveryFlowModal } from "@/components/agriculture/discovery-flow-modal";
@@ -42,7 +43,8 @@ export function AgriculturePageClient() {
             onClick={() => setIsFlowOpen(true)}
             className="sticky top-20 inline-flex h-11 items-center justify-center rounded-xl border border-emerald-300 bg-gradient-to-r from-emerald-700 to-green-600 px-4 text-sm font-semibold text-white shadow-md shadow-emerald-900/20 transition hover:-translate-y-0.5 hover:brightness-105"
           >
-            ✨ Умная агро-лента
+            <Sparkles className="mr-1.5 h-4 w-4" strokeWidth={1.5} />
+            Умная агро-лента
           </button>
         </div>
       </section>
@@ -63,7 +65,9 @@ export function AgriculturePageClient() {
                 <p className="text-xs font-semibold uppercase tracking-wide text-emerald-800">{listing.categoryLabel}</p>
                 <p className="mt-1 text-base font-semibold text-stone-900">{listing.title}</p>
                 <p className="mt-1 text-sm font-semibold text-emerald-900">{listing.price}</p>
-                <p className="mt-1 text-xs text-stone-500">📍 {listing.location}</p>
+                <p className="mt-1 inline-flex items-center gap-1 text-xs text-stone-500">
+                  <MapPin className="h-3.5 w-3.5" strokeWidth={1.5} /> {listing.location}
+                </p>
               </article>
             ))}
           </div>

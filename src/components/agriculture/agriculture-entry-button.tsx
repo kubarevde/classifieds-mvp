@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Sprout } from "lucide-react";
 
 type AgricultureEntryButtonProps = {
   className?: string;
@@ -21,7 +22,7 @@ export function AgricultureEntryButton({
         compact ? "h-9 text-xs sm:text-sm" : "h-10"
       } ${className ?? ""}`}
     >
-      <span className="mr-1.5">🌿</span>
+      <Sprout className="mr-1.5 h-4 w-4" strokeWidth={1.5} />
       Сельское хозяйство
     </Link>
   );

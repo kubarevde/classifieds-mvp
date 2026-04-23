@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ChevronDown, User } from "lucide-react";
 
 type AccountMenuProps = {
   favoritesCount: number;
@@ -10,20 +11,11 @@ type AccountMenuProps = {
 };
 
 function ChevronDownIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="m6 9 6 6 6-6" />
-    </svg>
-  );
+  return <ChevronDown className="h-4 w-4" strokeWidth={1.5} />;
 }
 
 function UserIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-4.5 w-4.5" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M20 21a8 8 0 1 0-16 0" />
-      <circle cx="12" cy="8" r="4" />
-    </svg>
-  );
+  return <User className="h-4.5 w-4.5" strokeWidth={1.5} />;
 }
 
 export function AccountMenu({ favoritesCount, favoritesHydrated, displayName, mode }: AccountMenuProps) {
