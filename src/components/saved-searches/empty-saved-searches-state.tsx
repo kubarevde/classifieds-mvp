@@ -19,7 +19,7 @@ export function EmptySavedSearchesState() {
           Перейти в каталог
         </Link>
         <Link
-          href="/notifications"
+          href="/dashboard?tab=notifications"
           className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
         >
           Уведомления

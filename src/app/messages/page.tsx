@@ -1,43 +1,41 @@
-import { Suspense } from "react";
+"use client";
 
-import { DemoRoleGuard } from "@/components/demo-role/demo-role";
-import { Navbar } from "@/components/layout/navbar";
-import { MessagesPageClient } from "@/components/messages/messages-page-client";
-import { Container } from "@/components/ui/container";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
-function MessagesPageFallback() {
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-500 shadow-sm">
-      Загружаем диалоги...
-    </div>
-  );
-}
+import { useDemoRole } from "@/components/demo-role/demo-role";
+import { resolveDemoStoreNavSellerId } from "@/lib/demo-role-constants";
 
 export default function MessagesPage() {
-  return (
-    <div className="min-h-screen bg-slate-50/60">
-      <Navbar />
-      <main className="py-6 sm:py-8">
-        <Container className="space-y-4">
-          <DemoRoleGuard
-            allowedRoles={["buyer", "seller", "all"]}
-            title="Сообщения доступны после входа"
-            description="В демо-режиме гостя диалоги отключены. Переключитесь на buyer или seller, чтобы открыть переписку."
-            ctaRoles={["buyer", "seller"]}
-          >
-            <header className="space-y-1">
-              <h1 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">Сообщения</h1>
-              <p className="text-sm text-slate-600 sm:text-base">
-                Переписывайтесь по объявлениям прямо внутри сервиса.
-              </p>
-            </header>
+  const router = useRouter();
+  const { role, isHydrated } = useDemoRole();
 
-            <Suspense fallback={<MessagesPageFallback />}>
-              <MessagesPageClient />
-            </Suspense>
-          </DemoRoleGuard>
-        </Container>
-      </main>
-    </div>
-  );
+  useEffect(() => {
+    if (!isHydrated) {
+      return;
+    }
+    if (role === "seller") {
+      const sellerId = resolveDemoStoreNavSellerId(role);
+      if (sellerId) {
+        router.replace(`/dashboard/store?sellerId=${sellerId}&section=messages`);
+        return;
+      }
+    }
+    if (role === "guest") {
+      router.replace("/");
+      return;
+    }
+
+    const next = new URLSearchParams({ tab: "messages" });
+    const params = new URLSearchParams(window.location.search);
+    ["conversationId", "listingId", "sellerName", "listingTitle"].forEach((key) => {
+      const value = params.get(key);
+      if (value) {
+        next.set(key, value);
+      }
+    });
+    router.replace(`/dashboard?${next.toString()}`);
+  }, [isHydrated, role, router]);
+
+  return null;
 }

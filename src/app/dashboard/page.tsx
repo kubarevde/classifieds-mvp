@@ -1,4 +1,5 @@
-import { DashboardPageClient } from "@/components/dashboard/dashboard-page-client";
+import { type AccountTab } from "@/components/account/account-layout";
+import { DashboardTabContent } from "@/components/dashboard/dashboard-tab-content";
 import { DashboardStoreCabinetLink } from "@/components/dashboard/dashboard-store-cabinet-link";
 import { DemoRoleGuard } from "@/components/demo-role/demo-role";
 import { Navbar } from "@/components/layout/navbar";
@@ -16,6 +17,17 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   const intentRaw = params?.intent;
   const intentValue = Array.isArray(intentRaw) ? intentRaw[0] : intentRaw;
   const promoteHeroIntent = intentValue === "promote-hero";
+  const tabRaw = params?.tab;
+  const tabValue = Array.isArray(tabRaw) ? tabRaw[0] : tabRaw;
+  const activeTab: AccountTab =
+    tabValue === "promotion" ||
+    tabValue === "favorites" ||
+    tabValue === "saved-searches" ||
+    tabValue === "messages" ||
+    tabValue === "notifications" ||
+    tabValue === "profile"
+      ? tabValue
+      : "listings";
 
   return (
     <div className="min-h-screen bg-slate-50/60">
@@ -33,15 +45,15 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                 Личный кабинет
               </p>
               <h1 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
-                Кабинет пользователя
+                Лучший кабинет частного лица
               </h1>
               <p className="max-w-2xl text-sm text-slate-600 sm:text-base">
-                Здесь вы можете видеть свои объявления, менять их статус и управлять публикациями.
+                Все ключевые разделы в одном пространстве: объявления, избранное, сообщения, уведомления и профиль.
               </p>
               <DashboardStoreCabinetLink />
             </header>
 
-            <DashboardPageClient fromSponsorBoard={fromSponsorBoard} promoteHeroIntent={promoteHeroIntent} />
+            <DashboardTabContent activeTab={activeTab} fromSponsorBoard={fromSponsorBoard} promoteHeroIntent={promoteHeroIntent} />
           </DemoRoleGuard>
         </Container>
       </main>

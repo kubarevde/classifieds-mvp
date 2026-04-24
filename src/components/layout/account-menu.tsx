@@ -36,15 +36,10 @@ export function AccountMenu({
 
       <div className="absolute right-0 top-12 z-40 w-60 overflow-hidden rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg shadow-slate-900/10">
         <ul className="space-y-0.5 text-sm text-slate-700">
-          <li>
-            <Link href="/profile" className="flex items-center rounded-lg px-3 py-2 hover:bg-slate-50">
-              Мой профиль
-            </Link>
-          </li>
           {mode === "buyer" || mode === "all" ? (
             <li>
               <Link href="/dashboard" className="flex items-center rounded-lg px-3 py-2 hover:bg-slate-50">
-                Мои покупки и продажи
+                Личный кабинет
               </Link>
             </li>
           ) : null}
@@ -64,11 +59,31 @@ export function AccountMenu({
                 href={`/dashboard/store?sellerId=${storeNavSellerId}`}
                 className="flex items-center rounded-lg px-3 py-2 hover:bg-slate-50"
               >
-                Кабинет
+                Кабинет магазина
               </Link>
             </li>
           ) : null}
           {mode === "buyer" || mode === "seller" || mode === "all" ? (
+            <>
+              <li>
+                <Link
+                  href={mode === "seller" && storeNavSellerId ? `/dashboard/store?sellerId=${storeNavSellerId}&section=messages` : "/messages"}
+                  className="flex items-center rounded-lg px-3 py-2 hover:bg-slate-50"
+                >
+                  Сообщения
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href={mode === "seller" && storeNavSellerId ? `/dashboard/store?sellerId=${storeNavSellerId}&section=notifications` : "/notifications"}
+                  className="flex items-center rounded-lg px-3 py-2 hover:bg-slate-50"
+                >
+                  Уведомления
+                </Link>
+              </li>
+            </>
+          ) : null}
+          {mode === "buyer" || mode === "all" ? (
             <li>
               <Link href="/favorites" className="flex items-center justify-between rounded-lg px-3 py-2 hover:bg-slate-50">
                 <span>Избранное</span>
@@ -80,7 +95,7 @@ export function AccountMenu({
               </Link>
             </li>
           ) : null}
-          {mode === "buyer" || mode === "seller" || mode === "all" ? (
+          {mode === "buyer" || mode === "all" ? (
             <li>
               <Link href="/saved-searches" className="flex items-center rounded-lg px-3 py-2 hover:bg-slate-50">
                 Сохранённые поиски

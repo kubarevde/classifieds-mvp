@@ -51,7 +51,7 @@ export function ProfileForm({ value, onChange }: ProfileFormProps) {
         <FormField
           label="Краткое описание"
           htmlFor="profile-description"
-          hint="Пару предложений о себе — это видно на карточке продавца."
+          hint="Пару предложений о себе — это видно в вашем профиле и объявлениях."
         >
           <Textarea
             id="profile-description"

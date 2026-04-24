@@ -5,9 +5,11 @@ import { useRouter } from "next/navigation";
 import { ChangeEvent, createElement, FormEvent, useMemo, useState } from "react";
 import { CheckCircle2 } from "lucide-react";
 
+import { useBuyer } from "@/components/buyer/buyer-provider";
 import { FormField } from "@/components/create-listing/form-field";
 import { ImageUploader } from "@/components/create-listing/image-uploader";
 import { Input } from "@/components/create-listing/input";
+import { useProfile } from "@/components/profile/profile-provider";
 import { Select } from "@/components/create-listing/select";
 import { SubmitBar } from "@/components/create-listing/submit-bar";
 import { Textarea } from "@/components/create-listing/textarea";
@@ -24,8 +26,8 @@ import {
   worldOptions,
 } from "@/lib/listings";
 import { catalogWorldLucideIcons } from "@/config/icons";
-import { defaultProfileFields } from "@/lib/profile-mock";
 import { getWorldPresentation } from "@/lib/worlds";
+import { Button, buttonVariants } from "@/components/ui";
 
 const contactMethods = [
   { id: "phone", label: "Только звонки" },
@@ -68,7 +70,7 @@ function validateForm(
   }
   const shouldValidateManualContacts = !options.isAuthenticated || !options.useProfileContacts;
 
-  if (shouldValidateManualContacts && !values.sellerName.trim()) errors.sellerName = "Укажите имя продавца";
+  if (shouldValidateManualContacts && !values.sellerName.trim()) errors.sellerName = "Укажите имя пользователя";
   if (shouldValidateManualContacts && !values.phone.trim()) {
     errors.phone = "Укажите номер телефона";
   } else if (shouldValidateManualContacts && !/^[+\d()\s-]{10,20}$/.test(values.phone.trim())) {
@@ -90,6 +92,8 @@ export function CreateListingForm({
   initialIsAuthenticated = true,
 }: CreateListingFormProps) {
   const router = useRouter();
+  const buyer = useBuyer();
+  const profile = useProfile();
   const [formData, setFormData] = useState<CreateListingFormData>({ ...defaultForm, world: initialWorld });
   const [isAuthenticated, setIsAuthenticated] = useState(initialIsAuthenticated);
   const [useProfileContacts, setUseProfileContacts] = useState(initialIsAuthenticated);
@@ -103,10 +107,10 @@ export function CreateListingForm({
 
   const profileContacts = useMemo(
     () => ({
-      sellerName: defaultProfileFields.name,
-      phone: defaultProfileFields.phone,
+      sellerName: profile.name,
+      phone: profile.phone,
     }),
-    [],
+    [profile.name, profile.phone],
   );
 
   const errors = useMemo(
@@ -212,6 +216,14 @@ export function CreateListingForm({
     await new Promise((resolve) => setTimeout(resolve, 900));
     setIsSubmitting(false);
     setIsSubmitted(true);
+    buyer.addListing({
+      title: formData.title.trim(),
+      price: `${formData.price.trim()} ₽`,
+      category: formData.category,
+      city: formData.city.trim(),
+      image: "from-slate-700 via-slate-500 to-slate-200",
+      status: "active",
+    });
     if (formData.world !== "all") {
       router.replace(`/create-listing?world=${formData.world}`);
     }
@@ -236,17 +248,13 @@ export function CreateListingForm({
         <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
           <Link
             href={formData.world === "all" ? "/listings" : `/listings?world=${formData.world}`}
-            className="rounded-xl bg-slate-900 px-5 py-2.5 text-center text-sm font-semibold text-white transition hover:bg-slate-700 active:scale-[0.99]"
+            className={buttonVariants({ variant: "primary" })}
           >
             Перейти к объявлениям
           </Link>
-          <button
-            type="button"
-            onClick={resetForm}
-            className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 active:scale-[0.99]"
-          >
+          <Button type="button" variant="outline" onClick={resetForm}>
             Создать еще одно
-          </button>
+          </Button>
         </div>
       </section>
     );
@@ -455,7 +463,7 @@ export function CreateListingForm({
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-lg font-semibold text-slate-900">Контакты продавца</h2>
+          <h2 className="text-lg font-semibold text-slate-900">Контакты пользователя</h2>
           {isAuthenticated ? (
             <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50/70 p-3">
               <p className="text-sm text-slate-600">Контакты из профиля:</p>
@@ -484,7 +492,7 @@ export function CreateListingForm({
           {!isAuthenticated || !useProfileContacts ? (
             <div className="grid gap-4 sm:grid-cols-2">
               <FormField
-                label="Имя продавца"
+                label="Имя пользователя"
                 htmlFor="sellerName"
                 required
                 error={showErrors || touched.sellerName ? errors.sellerName : undefined}

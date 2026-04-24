@@ -157,18 +157,22 @@ export function MobileMenu({
               <p className="px-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Активность</p>
               <ul className="mt-2 space-y-0.5">
                 <MenuListItem
-                  href="/messages"
+                  href={role === "seller" && storeNavSellerId ? `/dashboard/store?sellerId=${storeNavSellerId}&section=messages` : "/messages"}
                   label="Сообщения"
                   badge={messagesUnreadCount}
                   onClose={onClose}
                 />
                 <MenuListItem
-                  href="/notifications"
+                  href={
+                    role === "seller" && storeNavSellerId
+                      ? `/dashboard/store?sellerId=${storeNavSellerId}&section=notifications`
+                      : "/notifications"
+                  }
                   label="Уведомления"
                   badge={notificationsHydrated ? notificationsUnreadCount : 0}
                   onClose={onClose}
                 />
-                {role === "buyer" || role === "seller" || role === "all" ? (
+                {role === "buyer" || role === "all" ? (
                   <>
                     <MenuListItem
                       href="/favorites"
@@ -205,9 +209,8 @@ export function MobileMenu({
             <section>
               <p className="px-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Аккаунт</p>
               <ul className="mt-2 space-y-0.5">
-                <MenuListItem href="/profile" label="Профиль" onClose={onClose} />
                 {role === "buyer" || role === "all" ? (
-                  <MenuListItem href="/dashboard" label="Мои покупки и продажи" onClose={onClose} />
+                  <MenuListItem href="/dashboard" label="Личный кабинет" onClose={onClose} />
                 ) : null}
               </ul>
             </section>

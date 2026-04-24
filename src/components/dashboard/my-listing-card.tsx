@@ -1,4 +1,5 @@
 import { DashboardListing, DashboardListingStatus } from "@/components/dashboard/types";
+import { Badge, Button, Card } from "@/components/ui";
 import { dashboardCategoryLabel, dashboardStatusLabel } from "@/lib/dashboard";
 
 type ListingActions = {
@@ -27,17 +28,18 @@ export function MyListingCard({
   onDelete,
 }: MyListingCardProps) {
   return (
-    <article className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
+    <Card className="p-3 sm:p-4">
       <div className="flex gap-3">
         <div className={`h-20 w-20 shrink-0 rounded-xl bg-gradient-to-br ${listing.image} sm:h-24 sm:w-24`} />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <p className="text-lg font-bold tracking-tight text-slate-900">{listing.price}</p>
-            <span
+            <Badge
               className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${statusStyle[listing.status]}`}
+              variant="outline"
             >
               {dashboardStatusLabel[listing.status]}
-            </span>
+            </Badge>
           </div>
           <h3 className="mt-1 line-clamp-2 text-sm font-semibold leading-5 text-slate-900 sm:text-base">
             {listing.title}
@@ -55,35 +57,40 @@ export function MyListingCard({
       </div>
 
       <div className="mt-3 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
-        <button
+        <Button
           type="button"
           onClick={() => onEdit(listing.id)}
-          className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50 sm:text-sm"
+          variant="outline"
+          size="sm"
         >
           Редактировать
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
           onClick={() => onArchive(listing.id)}
-          className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50 sm:text-sm"
+          variant="outline"
+          size="sm"
         >
           Снять с публикации
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
           onClick={() => onMarkSold(listing.id)}
-          className="rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-xs font-medium text-sky-700 transition hover:bg-sky-100 sm:text-sm"
+          variant="secondary"
+          size="sm"
         >
           Отметить как продано
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
           onClick={() => onDelete(listing.id)}
-          className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-700 transition hover:bg-rose-100 sm:text-sm"
+          variant="outline"
+          size="sm"
+          className="border-rose-200 text-rose-700 hover:bg-rose-50"
         >
           Удалить
-        </button>
+        </Button>
       </div>
-    </article>
+    </Card>
   );
 }

@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { EmptyFavoritesState } from "@/components/favorites/empty-favorites-state";
 import { FavoritesGrid } from "@/components/favorites/favorites-grid";
 import { useFavorites } from "@/components/favorites/favorites-provider";
+import { Card } from "@/components/ui";
 import { allListings } from "@/lib/listings";
 import { Listing } from "@/lib/types";
 
@@ -66,7 +67,7 @@ export function FavoritesPageClient() {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <Card className="p-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-sm text-slate-600">Сохранено объявлений</p>
@@ -89,7 +90,7 @@ export function FavoritesPageClient() {
             </select>
           </label>
         </div>
-      </div>
+      </Card>
 
       <FavoritesGrid
         listings={savedListings}

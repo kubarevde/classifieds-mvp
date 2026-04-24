@@ -1,4 +1,5 @@
 import { SellerProfile } from "@/components/dashboard/types";
+import { Card } from "@/components/ui";
 
 type DashboardProfileCardProps = {
   profile: SellerProfile;
@@ -6,8 +7,8 @@ type DashboardProfileCardProps = {
 
 export function DashboardProfileCard({ profile }: DashboardProfileCardProps) {
   return (
-    <aside className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Профиль продавца</p>
+    <Card className="p-4 sm:p-5">
+      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Мой профиль</p>
       <div className="mt-4 flex items-center gap-3">
         <div className="grid h-11 w-11 place-items-center rounded-full bg-sky-100 text-sm font-semibold text-sky-700">
           {profile.avatarInitials}
@@ -27,6 +28,6 @@ export function DashboardProfileCard({ profile }: DashboardProfileCardProps) {
           <dd className="font-medium text-slate-800">{profile.memberSince}</dd>
         </div>
       </dl>
-    </aside>
+    </Card>
   );
 }

@@ -8,7 +8,6 @@ import { HeroBoardPlacementCard } from "@/components/hero-board/hero-board-place
 import { Container } from "@/components/ui/container";
 import type { HeroBoardCharityStats, HeroBoardContributorRow, HeroBannerPlacement } from "@/lib/hero-board";
 import { getWorldLabel } from "@/lib/listings";
-import { DEMO_STOREFRONT_SELLER_ID } from "@/lib/demo-role-constants";
 import { getSellerTypeLabel, getStorefrontSellerById } from "@/lib/sellers";
 
 type CoverageFilter = "all" | "global" | "world";
@@ -19,8 +18,8 @@ type SponsorBoardPageClientProps = {
   charityStats: HeroBoardCharityStats;
 };
 
-const STORE_PLACEMENT_URL = `/dashboard/store?sellerId=${DEMO_STOREFRONT_SELLER_ID}&section=hero-board&from=sponsor-board`;
-const USER_PROMOTE_FLOW = "/dashboard?from=sponsor-board&intent=promote-hero";
+const STORE_PLACEMENT_URL = "/dashboard/store?section=hero-board";
+const USER_PROMOTE_FLOW = "/dashboard?tab=promotion";
 const CREATE_LISTING_ENTRY = "/create-listing?world=all";
 
 export function SponsorBoardPageClient({

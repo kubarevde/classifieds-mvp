@@ -15,7 +15,10 @@ import {
 } from "lucide-react";
 
 import { StoreMarketingWorkspace } from "@/components/store-dashboard/store-marketing-workspace";
+import { SellerMessagesPanel } from "@/components/store-dashboard/seller-messages-panel";
+import { SellerNotificationsPanel } from "@/components/store-dashboard/seller-notifications-panel";
 import HeroBoardManager from "@/components/sponsor-board/hero-board-manager";
+import { useSellerActivity } from "@/components/seller/use-seller-activity";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { HeroBannerPlacement } from "@/lib/hero-board";
 import { CatalogWorld, ListingWorld } from "@/lib/listings";
@@ -51,6 +54,7 @@ type StoreDashboardPageClientProps = {
   initialPriceAnalytics: PriceAnalyticsSnapshot[];
   initialHeroBoardPlacements: HeroBannerPlacement[];
   initialMarketingScreen?: MarketingMenuKey;
+  initialSection?: "messages" | "notifications";
 };
 
 type ListingFilter = "all" | "active" | "inactive";
@@ -318,7 +322,9 @@ export function StoreDashboardPageClient({
   initialPriceAnalytics,
   initialHeroBoardPlacements,
   initialMarketingScreen,
+  initialSection,
 }: StoreDashboardPageClientProps) {
+  const sellerActivity = useSellerActivity();
   const [listings, setListings] = useState<SellerDashboardListing[]>(initialListings);
   const [posts, setPosts] = useState<SellerPost[]>(initialPosts);
   const [filter, setFilter] = useState<ListingFilter>("all");
@@ -639,6 +645,35 @@ export function StoreDashboardPageClient({
   }
 
   const createHref = `/create-listing?world=${seller.worldHint}&sellerId=${seller.id}`;
+  const baseStoreHref = `/dashboard/store?sellerId=${seller.id}`;
+
+  if (initialSection === "messages") {
+    return (
+      <div className="space-y-4">
+        <Link
+          href={baseStoreHref}
+          className="inline-flex text-sm font-medium text-slate-600 transition hover:text-slate-900"
+        >
+          ← Назад в кабинет
+        </Link>
+        <SellerMessagesPanel onUnreadChange={sellerActivity.setMessagesUnreadCount} />
+      </div>
+    );
+  }
+
+  if (initialSection === "notifications") {
+    return (
+      <div className="space-y-4">
+        <Link
+          href={baseStoreHref}
+          className="inline-flex text-sm font-medium text-slate-600 transition hover:text-slate-900"
+        >
+          ← Назад в кабинет
+        </Link>
+        <SellerNotificationsPanel onUnreadChange={sellerActivity.setNotificationsUnreadCount} />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4 sm:space-y-5">

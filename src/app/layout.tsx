@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 
+import { BuyerProvider } from "@/components/buyer/buyer-provider";
 import { DemoRoleFloatingControl, DemoRoleProvider } from "@/components/demo-role/demo-role";
-import { FavoritesProvider } from "@/components/favorites/favorites-provider";
-import { NotificationsProvider } from "@/components/notifications/notifications-provider";
-import { SavedSearchesProvider } from "@/components/saved-searches/saved-searches-provider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -32,14 +30,10 @@ export default function RootLayout({
     <html lang="ru" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
         <DemoRoleProvider>
-          <FavoritesProvider>
-            <NotificationsProvider>
-              <SavedSearchesProvider>
-                {children}
-                <DemoRoleFloatingControl />
-              </SavedSearchesProvider>
-            </NotificationsProvider>
-          </FavoritesProvider>
+          <BuyerProvider>
+            {children}
+            <DemoRoleFloatingControl />
+          </BuyerProvider>
         </DemoRoleProvider>
       </body>
     </html>

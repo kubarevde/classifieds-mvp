@@ -35,10 +35,19 @@ function resolveMarketingScreen(raw: string | string[] | undefined): MarketingMe
   return value && allowed.includes(value as MarketingMenuKey) ? (value as MarketingMenuKey) : undefined;
 }
 
+function resolveSection(raw: string | string[] | undefined): "messages" | "notifications" | undefined {
+  const value = Array.isArray(raw) ? raw[0] : raw;
+  if (value === "messages" || value === "notifications") {
+    return value;
+  }
+  return undefined;
+}
+
 export default async function StoreDashboardPage({ searchParams }: StoreDashboardPageProps) {
   const params = searchParams ? await searchParams : undefined;
   const sellerId = resolveSellerId(params?.sellerId);
   const initialMarketingScreen = resolveMarketingScreen(params?.marketing);
+  const initialSection = resolveSection(params?.section);
   const data = getSellerDashboardData(sellerId);
 
   if (!data) {
@@ -78,6 +87,7 @@ export default async function StoreDashboardPage({ searchParams }: StoreDashboar
               initialPriceAnalytics={data.priceAnalytics}
               initialHeroBoardPlacements={data.heroBoardPlacements}
               initialMarketingScreen={initialMarketingScreen}
+              initialSection={initialSection}
             />
           </DemoRoleGuard>
         </Container>

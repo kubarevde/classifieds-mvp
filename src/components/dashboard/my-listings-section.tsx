@@ -1,6 +1,8 @@
 import { DashboardFilter, DashboardListing } from "@/components/dashboard/types";
 import { dashboardFilterLabel } from "@/lib/dashboard";
 import { MyListingCard } from "@/components/dashboard/my-listing-card";
+import Link from "next/link";
+import { Button } from "@/components/ui";
 
 type MyListingsSectionProps = {
   listings: DashboardListing[];
@@ -26,6 +28,11 @@ export function MyListingsSection({
         <p className="mt-2 text-sm text-slate-600">
           Создайте первое объявление в пару кликов и начните получать отклики.
         </p>
+        <div className="mt-4">
+          <Link href="/create-listing">
+            <Button>Разместить объявление</Button>
+          </Link>
+        </div>
       </section>
     );
   }

@@ -4,15 +4,16 @@ import Link from "next/link";
 import { useRef, useState } from "react";
 import { Menu } from "lucide-react";
 
+import { useBuyer } from "@/components/buyer/buyer-provider";
 import { getDemoDisplayName, useDemoRole } from "@/components/demo-role/demo-role";
 import { AccountMenu } from "@/components/layout/account-menu";
 import { HeaderActions } from "@/components/layout/header-actions";
 import { MobileMenu } from "@/components/layout/mobile-menu";
+import { useSellerActivity } from "@/components/seller/use-seller-activity";
 import { useFavorites } from "@/components/favorites/favorites-provider";
 import { useNotifications } from "@/components/notifications/notifications-provider";
 import { Container } from "@/components/ui/container";
 import { resolveDemoStoreNavSellerId } from "@/lib/demo-role-constants";
-import { getMockUnreadMessagesCount } from "@/lib/messages";
 
 const guestNavLinks = [
   { label: "Главная", href: "/" },
@@ -41,11 +42,26 @@ export function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const mobileMenuTriggerRef = useRef<HTMLButtonElement | null>(null);
   const { role, isHydrated: roleHydrated } = useDemoRole();
-  const unreadCount = getMockUnreadMessagesCount();
+  const effectiveRole = roleHydrated ? role : "all";
+  const buyer = useBuyer();
+  const sellerActivity = useSellerActivity();
   const { favoritesCount, isHydrated: favoritesHydrated } = useFavorites();
   const { unreadCount: notificationsUnreadCount, isHydrated: notificationsHydrated } =
     useNotifications();
-  const effectiveRole = roleHydrated ? role : "all";
+  const unreadCount =
+    effectiveRole === "seller"
+      ? sellerActivity.messagesUnreadCount
+      : effectiveRole === "all"
+        ? buyer.unreadCounts.messages + sellerActivity.messagesUnreadCount
+        : buyer.unreadCounts.messages;
+  const effectiveNotificationsUnreadCount =
+    effectiveRole === "seller"
+      ? sellerActivity.notificationsUnreadCount
+      : effectiveRole === "all"
+        ? notificationsUnreadCount + sellerActivity.notificationsUnreadCount
+        : notificationsUnreadCount;
+  const effectiveNotificationsHydrated =
+    effectiveRole === "seller" ? sellerActivity.isHydrated : notificationsHydrated;
   const primaryNavLinks = navByRole[effectiveRole];
   const isActivityVisible =
     effectiveRole === "buyer" || effectiveRole === "seller" || effectiveRole === "all";
@@ -93,8 +109,8 @@ export function Navbar() {
 
             <HeaderActions
               messagesUnreadCount={unreadCount}
-              notificationsUnreadCount={notificationsUnreadCount}
-              notificationsHydrated={notificationsHydrated}
+              notificationsUnreadCount={effectiveNotificationsUnreadCount}
+              notificationsHydrated={effectiveNotificationsHydrated}
               isVisible={isActivityVisible}
             />
 
@@ -127,8 +143,8 @@ export function Navbar() {
         favoritesCount={favoritesCount}
         favoritesHydrated={favoritesHydrated}
         messagesUnreadCount={unreadCount}
-        notificationsUnreadCount={notificationsUnreadCount}
-        notificationsHydrated={notificationsHydrated}
+        notificationsUnreadCount={effectiveNotificationsUnreadCount}
+        notificationsHydrated={effectiveNotificationsHydrated}
         role={effectiveRole}
         storeNavSellerId={storeNavSellerId}
         triggerRef={mobileMenuTriggerRef}

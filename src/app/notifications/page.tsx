@@ -1,25 +1,33 @@
-import { DemoRoleGuard } from "@/components/demo-role/demo-role";
-import { Navbar } from "@/components/layout/navbar";
-import { NotificationsPageClient } from "@/components/notifications/notifications-page-client";
-import { Container } from "@/components/ui/container";
+"use client";
+
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+
+import { useDemoRole } from "@/components/demo-role/demo-role";
+import { resolveDemoStoreNavSellerId } from "@/lib/demo-role-constants";
 
 export default function NotificationsPage() {
-  return (
-    <div className="min-h-screen bg-slate-50/60">
-      <Navbar />
-      <main className="py-6 sm:py-8">
-        <Container>
-          <DemoRoleGuard
-            allowedRoles={["buyer", "seller", "all"]}
-            title="Уведомления доступны после входа"
-            description="В гостевом режиме отключены персональные уведомления. Переключитесь на buyer или seller."
-            ctaRoles={["buyer", "seller"]}
-          >
-            <NotificationsPageClient />
-          </DemoRoleGuard>
-        </Container>
-      </main>
-    </div>
-  );
+  const router = useRouter();
+  const { role, isHydrated } = useDemoRole();
+
+  useEffect(() => {
+    if (!isHydrated) {
+      return;
+    }
+    if (role === "seller") {
+      const sellerId = resolveDemoStoreNavSellerId(role);
+      if (sellerId) {
+        router.replace(`/dashboard/store?sellerId=${sellerId}&section=notifications`);
+        return;
+      }
+    }
+    if (role === "guest") {
+      router.replace("/");
+      return;
+    }
+    router.replace("/dashboard?tab=notifications");
+  }, [isHydrated, role, router]);
+
+  return null;
 }
 

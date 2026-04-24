@@ -1,105 +1,80 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
+import { useBuyer } from "@/components/buyer/buyer-provider";
 import { ChatHeader } from "@/components/messages/chat-header";
 import { ConversationList } from "@/components/messages/conversation-list";
 import { MessageBubble } from "@/components/messages/message-bubble";
 import { MessageInput } from "@/components/messages/message-input";
 import { allListings } from "@/lib/listings";
-import { Conversation, mockConversations, getConversationListing } from "@/lib/messages";
+import { getConversationListing } from "@/lib/messages";
 
 type MobileView = "list" | "chat";
 
-function getInitialConversations(searchParams: URLSearchParams) {
-  const listingId = searchParams.get("listingId");
-  const sellerName = searchParams.get("sellerName");
-  const listingTitle = searchParams.get("listingTitle");
-
-  const initialConversations = structuredClone(mockConversations) as Conversation[];
-
-  if (!listingId) {
-    return initialConversations;
-  }
-
-  const existingConversation = initialConversations.find((conversation) => conversation.listingId === listingId);
-  if (existingConversation) {
-    return initialConversations;
-  }
-
-  const listing = allListings.find((currentListing) => currentListing.id === listingId);
-  const participantName = sellerName ?? listing?.sellerName;
-
-  if (!participantName) {
-    return initialConversations;
-  }
-
-  initialConversations.unshift({
-    id: `conv-new-${listingId}`,
-    listingId,
-    participantName,
-    participantRole: "Продавец",
-    unreadCount: 0,
-    messages: [
-      {
-        id: `m-system-${listingId}`,
-        author: "other",
-        text: `Здравствуйте! По объявлению "${listingTitle ?? listing?.title ?? "товар"}" на связи.`,
-        sentAtIso: new Date().toISOString(),
-      },
-    ],
-  });
-
-  return initialConversations;
-}
-
-function getInitialActiveConversationId(searchParams: URLSearchParams, conversations: Conversation[]) {
+function getInitialActiveConversationId(searchParams: URLSearchParams, conversationIds: string[], byListingId: Map<string, string>) {
   const requestedConversationId = searchParams.get("conversationId");
-  if (requestedConversationId && conversations.some((conversation) => conversation.id === requestedConversationId)) {
+  if (requestedConversationId && conversationIds.includes(requestedConversationId)) {
     return requestedConversationId;
   }
 
   const requestedListingId = searchParams.get("listingId");
   if (requestedListingId) {
-    const byListing = conversations.find((conversation) => conversation.listingId === requestedListingId);
-    if (byListing) {
-      return byListing.id;
+    const matchedId = byListingId.get(requestedListingId);
+    if (matchedId) {
+      return matchedId;
     }
   }
 
-  return conversations[0]?.id ?? null;
+  return conversationIds[0] ?? null;
 }
 
 export function MessagesPageClient() {
   const searchParams = useSearchParams();
-  const [conversations, setConversations] = useState<Conversation[]>(() => {
-    const initialParams = new URLSearchParams(searchParams.toString());
-    return getInitialConversations(initialParams);
-  });
-  const [activeConversationId, setActiveConversationId] = useState<string | null>(() => {
-    const initialParams = new URLSearchParams(searchParams.toString());
-    const initialConversations = getInitialConversations(initialParams);
-    return getInitialActiveConversationId(initialParams, initialConversations);
-  });
+  const buyer = useBuyer();
+  const conversations = buyer.messages;
+  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [draftMessage, setDraftMessage] = useState("");
   const [mobileView, setMobileView] = useState<MobileView>(() =>
     searchParams.get("conversationId") || searchParams.get("listingId") ? "chat" : "list",
   );
+
+  const activeConversationId = useMemo(() => {
+    if (selectedConversationId) {
+      return selectedConversationId;
+    }
+    const map = new Map(conversations.map((conversation) => [conversation.listingId, conversation.id]));
+    return getInitialActiveConversationId(
+      new URLSearchParams(searchParams.toString()),
+      conversations.map((conversation) => conversation.id),
+      map,
+    );
+  }, [conversations, searchParams, selectedConversationId]);
 
   const activeConversation = useMemo(
     () => conversations.find((conversation) => conversation.id === activeConversationId) ?? null,
     [activeConversationId, conversations],
   );
 
+  useEffect(() => {
+    const listingId = searchParams.get("listingId");
+    if (!listingId) {
+      return;
+    }
+    const listing = allListings.find((item) => item.id === listingId);
+    buyer.ensureConversation({
+      listingId,
+      sellerName: searchParams.get("sellerName") ?? listing?.sellerName,
+      listingTitle: searchParams.get("listingTitle") ?? listing?.title,
+    });
+  }, [buyer, searchParams]);
+
   function selectConversation(conversationId: string) {
-    setActiveConversationId(conversationId);
+    setSelectedConversationId(conversationId);
     setMobileView("chat");
-    setConversations((previous) =>
-      previous.map((conversation) =>
-        conversation.id === conversationId ? { ...conversation, unreadCount: 0 } : conversation,
-      ),
-    );
+    buyer.markConversationRead(conversationId);
   }
 
   function sendMessage() {
@@ -112,35 +87,7 @@ export function MessagesPageClient() {
       return;
     }
 
-    const sentAtIso = new Date().toISOString();
-    const newMessage = {
-      id: `m-${Date.now()}`,
-      author: "me" as const,
-      text: normalizedMessage,
-      sentAtIso,
-    };
-
-    setConversations((previous) => {
-      const updated = previous.map((conversation) =>
-        conversation.id === activeConversationId
-          ? {
-              ...conversation,
-              messages: [...conversation.messages, newMessage],
-              unreadCount: 0,
-            }
-          : conversation,
-      );
-
-      // Most recent activity appears first in dialog list.
-      updated.sort((left, right) => {
-        const leftTime = new Date(left.messages[left.messages.length - 1]?.sentAtIso ?? 0).getTime();
-        const rightTime = new Date(right.messages[right.messages.length - 1]?.sentAtIso ?? 0).getTime();
-        return rightTime - leftTime;
-      });
-
-      return updated;
-    });
-
+    buyer.sendMessage(activeConversationId, normalizedMessage);
     setDraftMessage("");
   }
 
@@ -150,6 +97,12 @@ export function MessagesPageClient() {
   return (
     <section className="grid gap-3 lg:grid-cols-[340px_minmax(0,1fr)]">
       <div className={showConversationList ? "block" : "hidden lg:block"}>
+        <Link
+          href="/dashboard"
+          className="mb-2 inline-flex text-sm font-medium text-slate-600 transition hover:text-slate-900"
+        >
+          ← Назад в кабинет
+        </Link>
         <ConversationList
           conversations={conversations}
           activeConversationId={activeConversationId}
