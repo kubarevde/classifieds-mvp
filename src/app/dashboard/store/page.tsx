@@ -19,6 +19,11 @@ function resolveSellerId(raw: string | string[] | undefined) {
   return storefrontSellers[0]?.id ?? "";
 }
 
+function resolveFromSponsorBoard(raw: string | string[] | undefined) {
+  const value = Array.isArray(raw) ? raw[0] : raw;
+  return value === "sponsor-board";
+}
+
 function resolveMarketingScreen(raw: string | string[] | undefined): MarketingMenuKey | undefined {
   const value = Array.isArray(raw) ? raw[0] : raw;
   const allowed: MarketingMenuKey[] = [
@@ -39,6 +44,7 @@ export default async function StoreDashboardPage({ searchParams }: StoreDashboar
   const params = searchParams ? await searchParams : undefined;
   const sellerId = resolveSellerId(params?.sellerId);
   const initialMarketingScreen = resolveMarketingScreen(params?.marketing);
+  const placementFlowFromSponsorBoard = resolveFromSponsorBoard(params?.from);
   const data = getSellerDashboardData(sellerId);
 
   if (!data) {
@@ -78,6 +84,7 @@ export default async function StoreDashboardPage({ searchParams }: StoreDashboar
               initialPriceAnalytics={data.priceAnalytics}
               initialHeroBoardPlacements={data.heroBoardPlacements}
               initialMarketingScreen={initialMarketingScreen}
+              placementFlowFromSponsorBoard={placementFlowFromSponsorBoard}
             />
           </DemoRoleGuard>
         </Container>

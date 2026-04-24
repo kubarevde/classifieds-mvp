@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { FormEvent, useMemo, useState } from "react";
 import {
   BarChart2,
@@ -45,6 +46,8 @@ type StoreMarketingWorkspaceProps = {
   initialPriceAnalytics: PriceAnalyticsSnapshot[];
   initialHeroBoardPlacements: HeroBannerPlacement[];
   initialScreen?: MarketingMenuKey;
+  /** Переход с витрины /sponsor-board — показать контекст сценария размещения. */
+  placementFlowFromSponsorBoard?: boolean;
   onNotify: (message: string) => void;
   onOpenTariffs: () => void;
 };
@@ -127,8 +130,8 @@ const menuItems: MarketingMenuItem[] = [
   {
     id: "hero_board",
     label: "Герой доски",
-    requiredPlan: "business",
-    lockedHint: "Выделенный герой платформы или мира с mock‑бюджетом и благотворительным отчислением.",
+    requiredPlan: "free",
+    lockedHint: "Премиальный слот на доске Classify: витрина активных размещений на /sponsor-board, в мирах — один слот с ротацией (демо).",
     icon: "hero",
   },
 ];
@@ -216,6 +219,7 @@ export function StoreMarketingWorkspace({
   initialPriceAnalytics,
   initialHeroBoardPlacements,
   initialScreen,
+  placementFlowFromSponsorBoard = false,
   onNotify,
   onOpenTariffs,
 }: StoreMarketingWorkspaceProps) {
@@ -284,6 +288,7 @@ export function StoreMarketingWorkspace({
   const [recentBoosts, setRecentBoosts] = useState<string[]>([]);
   const [lockedNotice, setLockedNotice] = useState<string | null>(null);
   const [heroBoardPlacements, setHeroBoardPlacements] = useState(initialHeroBoardPlacements);
+  const [showSponsorBoardEntryBanner, setShowSponsorBoardEntryBanner] = useState(placementFlowFromSponsorBoard);
   const [heroForm, setHeroForm] = useState({
     scope: "global" as "global" | "world",
     worldId: "electronics" as Exclude<CatalogWorld, "all">,
@@ -1196,6 +1201,27 @@ export function StoreMarketingWorkspace({
 
           {isCurrentScreenAllowed && activeScreen === "hero_board" ? (
             <div className="space-y-3">
+              {showSponsorBoardEntryBanner ? (
+                <div className="flex flex-wrap items-start justify-between gap-2 rounded-lg border border-sky-200 bg-sky-50 p-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-sky-950">Вы перешли из витрины «Герой доски»</p>
+                    <p className="mt-1 text-xs leading-relaxed text-sky-900/90">
+                      Ниже — демо-форма размещения. После активации карточка появится среди активных слотов на странице{" "}
+                      <Link href="/sponsor-board" className="font-semibold underline decoration-sky-300 underline-offset-2">
+                        /sponsor-board
+                      </Link>
+                      ; в тематическом мире ваш баннер попадёт в ротацию одного слота.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowSponsorBoardEntryBanner(false)}
+                    className="shrink-0 rounded-lg border border-sky-300 bg-white px-2 py-1 text-xs font-semibold text-sky-900 transition hover:bg-sky-100"
+                  >
+                    Скрыть
+                  </button>
+                </div>
+              ) : null}
               <article className="rounded-lg border border-slate-200 bg-white p-3">
                 <p className="text-sm font-semibold text-slate-900">Что такое «Герой доски»</p>
                 <p className="mt-1 text-sm text-slate-600">

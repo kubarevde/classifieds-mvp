@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useLayoutEffect, useMemo, useState } from "react";
 
 import { HeroBoardPlacementCard } from "@/components/hero-board/hero-board-placement-card";
 import { DiscoveryFlowModal } from "@/components/agriculture/discovery-flow-modal";
@@ -31,7 +31,12 @@ import {
   resolveDiscoveryListings,
   resolveElectronicsDiscoveryListings,
 } from "@/lib/discovery";
-import { getActiveHeroBannerForWorld } from "@/lib/hero-board";
+import {
+  type HeroBannerPlacement,
+  getActiveHeroBannersForWorld,
+  getHeroBoardSessionRotationToken,
+  pickRotatedWorldHeroPlacement,
+} from "@/lib/hero-board";
 import type { SavedSearchFilters } from "@/lib/saved-searches";
 import { getWorldLucideIcon } from "@/config/icons";
 import { getWorldPresentation } from "@/lib/worlds";
@@ -169,10 +174,33 @@ export function ListingsPageClient({ initialFilters }: ListingsPageClientProps) 
   }, [activeDiscoveryListings, discoveryModeIsActive, visibleListings, world]);
 
   const discoveryPreviewText = activeDiscoveryListings.slice(0, 3).map((item) => item.title).join(" · ");
-  const worldHeroPlacement = useMemo(
-    () => (world === "all" ? null : getActiveHeroBannerForWorld(world)),
+
+  const stableWorldHero = useMemo(
+    () => (world === "all" ? null : (getActiveHeroBannersForWorld(world)[0] ?? null)),
     [world],
   );
+
+  const [worldHeroPick, setWorldHeroPick] = useState<{
+    world: CatalogWorld;
+    placement: HeroBannerPlacement | null;
+  } | null>(null);
+
+  useLayoutEffect(() => {
+    if (world === "all") {
+      setWorldHeroPick({ world: "all", placement: null });
+      return;
+    }
+    const candidates = getActiveHeroBannersForWorld(world);
+    const placement = pickRotatedWorldHeroPlacement(candidates, world, getHeroBoardSessionRotationToken());
+    setWorldHeroPick({ world, placement });
+  }, [world]);
+
+  const worldHeroPlacement =
+    world === "all"
+      ? null
+      : worldHeroPick?.world === world
+        ? worldHeroPick.placement
+        : stableWorldHero;
 
   const railsWithListings = useMemo(() => {
     if (world === "all") {
@@ -338,6 +366,10 @@ export function ListingsPageClient({ initialFilters }: ListingsPageClientProps) 
               Как попасть в этот слот?
             </Link>
           </div>
+          <p className="text-[11px] leading-snug text-slate-500">
+            На странице мира показывается один слот. Если кампаний несколько, они ротируются между сессиями и
+            показами — полный каталог активных размещений см. на «Герой доски».
+          </p>
           <HeroBoardPlacementCard placement={worldHeroPlacement} compact />
         </section>
       ) : null}

@@ -4,7 +4,19 @@ import { DemoRoleGuard } from "@/components/demo-role/demo-role";
 import { Navbar } from "@/components/layout/navbar";
 import { Container } from "@/components/ui/container";
 
-export default function DashboardPage() {
+type DashboardPageProps = {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+export default async function DashboardPage({ searchParams }: DashboardPageProps) {
+  const params = searchParams ? await searchParams : undefined;
+  const raw = params?.from;
+  const fromValue = Array.isArray(raw) ? raw[0] : raw;
+  const fromSponsorBoard = fromValue === "sponsor-board";
+  const intentRaw = params?.intent;
+  const intentValue = Array.isArray(intentRaw) ? intentRaw[0] : intentRaw;
+  const promoteHeroIntent = intentValue === "promote-hero";
+
   return (
     <div className="min-h-screen bg-slate-50/60">
       <Navbar />
@@ -34,7 +46,7 @@ export default function DashboardPage() {
               </Link>
             </header>
 
-            <DashboardPageClient />
+            <DashboardPageClient fromSponsorBoard={fromSponsorBoard} promoteHeroIntent={promoteHeroIntent} />
           </DemoRoleGuard>
         </Container>
       </main>

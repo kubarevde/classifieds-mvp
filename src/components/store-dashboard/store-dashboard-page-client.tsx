@@ -49,6 +49,7 @@ type StoreDashboardPageClientProps = {
   initialPriceAnalytics: PriceAnalyticsSnapshot[];
   initialHeroBoardPlacements: HeroBannerPlacement[];
   initialMarketingScreen?: MarketingMenuKey;
+  placementFlowFromSponsorBoard?: boolean;
 };
 
 type ListingFilter = "all" | "active" | "inactive";
@@ -316,6 +317,7 @@ export function StoreDashboardPageClient({
   initialPriceAnalytics,
   initialHeroBoardPlacements,
   initialMarketingScreen,
+  placementFlowFromSponsorBoard,
 }: StoreDashboardPageClientProps) {
   const [listings, setListings] = useState<SellerDashboardListing[]>(initialListings);
   const [posts, setPosts] = useState<SellerPost[]>(initialPosts);
@@ -1113,7 +1115,10 @@ export function StoreDashboardPageClient({
 
       <div
         id="dashboard-store-marketing"
-        className={getSectionClassName("", "dashboard-store-marketing")}
+        className={getSectionClassName(
+          "relative rounded-2xl pl-3 before:pointer-events-none before:absolute before:left-0 before:top-2 before:bottom-2 before:w-1 before:rounded-full before:bg-gradient-to-b before:from-indigo-400 before:to-violet-500 before:opacity-90",
+          "dashboard-store-marketing",
+        )}
       >
         <StoreMarketingWorkspace
           seller={effectiveSeller}
@@ -1125,6 +1130,7 @@ export function StoreDashboardPageClient({
           initialPriceAnalytics={initialPriceAnalytics}
           initialHeroBoardPlacements={initialHeroBoardPlacements}
           initialScreen={initialMarketingScreen}
+          placementFlowFromSponsorBoard={placementFlowFromSponsorBoard}
           onNotify={showMockMessage}
           onOpenTariffs={() => showMockMessage("Откройте раздел «Подписка магазина», чтобы посмотреть тарифы.")}
         />

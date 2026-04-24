@@ -103,6 +103,21 @@ const heroBannerPlacementsMock: HeroBannerPlacement[] = [
     endsAt: "2026-04-22T00:00:00.000Z",
     mockPrice: 7100,
   },
+  {
+    id: "hb-world-4",
+    sellerId: "marina-tech",
+    scope: "world",
+    worldId: "electronics",
+    period: "week",
+    title: "Marina Select: премиальная техника в мире электроники",
+    subtitle: "Флагманские смартфоны и ноутбуки с расширенной гарантией и trade-in.",
+    ctaLabel: "К витрине Marina",
+    ctaHref: "/sellers/marina-tech",
+    isActive: true,
+    startsAt: "2026-04-20T00:00:00.000Z",
+    endsAt: "2026-05-01T00:00:00.000Z",
+    mockPrice: 9200,
+  },
 ];
 
 export const heroBoardCharityStats: HeroBoardCharityStats = (() => {
@@ -129,11 +144,77 @@ export function getActiveHeroBanner(): HeroBannerPlacement | null {
   return heroBannerPlacementsMock.find((placement) => placement.isActive && placement.scope === "global") ?? null;
 }
 
-export function getActiveHeroBannerForWorld(worldId: HeroBannerWorld): HeroBannerPlacement | null {
-  return (
-    heroBannerPlacementsMock.find(
-      (placement) =>
-        placement.isActive && placement.scope === "world" && placement.worldId === worldId,
-    ) ?? null
+export function getAllActiveHeroBannerPlacements(): HeroBannerPlacement[] {
+  return heroBannerPlacementsMock.filter((placement) => placement.isActive);
+}
+
+export function getActiveHeroBannersForWorld(worldId: HeroBannerWorld): HeroBannerPlacement[] {
+  return heroBannerPlacementsMock.filter(
+    (placement) => placement.isActive && placement.scope === "world" && placement.worldId === worldId,
   );
+}
+
+export function pickRotatedWorldHeroPlacement(
+  candidates: HeroBannerPlacement[],
+  worldId: HeroBannerWorld,
+  rotationToken: string,
+): HeroBannerPlacement | null {
+  if (!candidates.length) {
+    return null;
+  }
+  if (candidates.length === 1) {
+    return candidates[0];
+  }
+  const basis = `${worldId}|${rotationToken}|${candidates
+    .map((placement) => placement.id)
+    .sort()
+    .join(",")}`;
+  let hash = 0;
+  for (let index = 0; index < basis.length; index += 1) {
+    hash = (Math.imul(31, hash) + basis.charCodeAt(index)) | 0;
+  }
+  const pickIndex = Math.abs(hash) % candidates.length;
+  return candidates[pickIndex] ?? null;
+}
+
+export type HeroBoardContributorRow = {
+  sellerId: string;
+  charityRub: number;
+};
+
+export function getActiveHeroBoardTopContributors(limit = 5): HeroBoardContributorRow[] {
+  const totals = new Map<string, number>();
+  for (const placement of heroBannerPlacementsMock) {
+    if (!placement.isActive) {
+      continue;
+    }
+    const charitySlice = Math.round(placement.mockPrice * 0.2);
+    totals.set(placement.sellerId, (totals.get(placement.sellerId) ?? 0) + charitySlice);
+  }
+  return [...totals.entries()]
+    .map(([sellerId, charityRub]) => ({ sellerId, charityRub }))
+    .sort((a, b) => b.charityRub - a.charityRub)
+    .slice(0, limit);
+}
+
+export function getActiveHeroBannerForWorld(worldId: HeroBannerWorld): HeroBannerPlacement | null {
+  return getActiveHeroBannersForWorld(worldId)[0] ?? null;
+}
+
+export const HERO_BOARD_ROTATION_STORAGE_KEY = "classify-hb-rot-v1";
+
+export function getHeroBoardSessionRotationToken(): string {
+  if (typeof window === "undefined") {
+    return "";
+  }
+  try {
+    let token = window.sessionStorage.getItem(HERO_BOARD_ROTATION_STORAGE_KEY);
+    if (!token) {
+      token = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+      window.sessionStorage.setItem(HERO_BOARD_ROTATION_STORAGE_KEY, token);
+    }
+    return token;
+  } catch {
+    return "demo";
+  }
 }

@@ -23,9 +23,20 @@ function updateStatus(
   );
 }
 
-export function DashboardPageClient() {
+type DashboardPageClientProps = {
+  /** Переход с витрины «Герой доски» — подсказка по сценарию продвижения. */
+  fromSponsorBoard?: boolean;
+  /** Явный сценарий «продвинуть героя» с витрины. */
+  promoteHeroIntent?: boolean;
+};
+
+export function DashboardPageClient({
+  fromSponsorBoard = false,
+  promoteHeroIntent = false,
+}: DashboardPageClientProps) {
   const [filter, setFilter] = useState<DashboardFilter>(defaultFilter);
   const [listings, setListings] = useState<DashboardListing[]>(myListingsMock);
+  const [showSponsorBoardHint, setShowSponsorBoardHint] = useState(fromSponsorBoard || promoteHeroIntent);
 
   const counts = useMemo(
     () => ({
@@ -50,6 +61,63 @@ export function DashboardPageClient() {
 
   return (
     <div className="space-y-4 sm:space-y-5">
+      {showSponsorBoardHint ? (
+        <div className="flex flex-wrap items-start justify-between gap-3 rounded-2xl border border-sky-200 bg-sky-50 p-4 shadow-sm">
+          <div className="min-w-0 space-y-2">
+            <p className="text-sm font-semibold text-sky-950">Продвижение в формате «Герой доски»</p>
+            {promoteHeroIntent ? (
+              <>
+                <p className="text-xs leading-relaxed text-sky-900/90">
+                  Короткий путь для частного продавца (демо): сначала объявление, затем размещение в премиальном слоте
+                  через магазин или напрямую из маркетинга.
+                </p>
+                <ol className="list-decimal space-y-1 pl-4 text-xs leading-relaxed text-sky-900/95">
+                  <li>При необходимости подайте или обновите объявление.</li>
+                  <li>Для hero-слота откройте кабинет магазина — там форма «Герой доски».</li>
+                  <li>Активные размещения всегда видны на витрине /sponsor-board.</li>
+                </ol>
+                <div className="flex flex-wrap gap-x-3 gap-y-1">
+                  <Link
+                    href="/create-listing?world=all"
+                    className="text-xs font-semibold text-sky-950 underline decoration-sky-300 underline-offset-2"
+                  >
+                    Подать объявление
+                  </Link>
+                  <Link
+                    href="/dashboard/store?sellerId=marina-tech&marketing=hero_board&from=sponsor-board"
+                    className="text-xs font-semibold text-sky-950 underline decoration-sky-300 underline-offset-2"
+                  >
+                    Форма в кабинете магазина
+                  </Link>
+                  <Link href="/sponsor-board" className="text-xs font-semibold text-sky-950 underline decoration-sky-300 underline-offset-2">
+                    Витрина «Герои в эфире»
+                  </Link>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="text-xs leading-relaxed text-sky-900/90">
+                  Вы открыли кабинет со страницы витрины размещений. Для магазина сценарий настраивается в маркетинге.
+                </p>
+                <Link
+                  href="/dashboard/store?sellerId=marina-tech&marketing=hero_board&from=sponsor-board"
+                  className="inline-flex text-xs font-semibold text-sky-950 underline decoration-sky-300 underline-offset-2"
+                >
+                  Открыть форму размещения в кабинете магазина
+                </Link>
+              </>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowSponsorBoardHint(false)}
+            className="shrink-0 rounded-lg border border-sky-300 bg-white px-2.5 py-1 text-xs font-semibold text-sky-900 transition hover:bg-sky-100"
+          >
+            Скрыть
+          </button>
+        </div>
+      ) : null}
+
       <DashboardSummaryCards
         total={counts.all}
         active={counts.active}
