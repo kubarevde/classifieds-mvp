@@ -12,6 +12,7 @@ import { MessagesPageClient } from "@/components/messages/messages-page-client";
 import { NotificationsPageClient } from "@/components/notifications/notifications-page-client";
 import { ProfilePageClient } from "@/components/profile/profile-page-client";
 import { BuyerPromotionTab } from "@/components/buyer/buyer-promotion-tab";
+import { BuyerSubscriptionTab } from "@/components/buyer/buyer-subscription-tab";
 import { SavedSearchesPageClient } from "@/components/saved-searches/saved-searches-page-client";
 import { resolveDemoStoreNavSellerId } from "@/lib/demo-role-constants";
 
@@ -28,6 +29,7 @@ export function DashboardTabContent({
   const router = useRouter();
   const { role, isHydrated } = useDemoRole();
   const includePromotionTab = role === "buyer" || role === "all";
+  const includeSubscriptionTab = role === "buyer" || role === "all";
   const storeNavSellerId = resolveDemoStoreNavSellerId(role);
 
   useEffect(() => {
@@ -48,11 +50,13 @@ export function DashboardTabContent({
       unreadNotifications={buyer.unreadCounts.notifications}
       hideDesktopSidebar={activeTab === "messages"}
       includePromotionTab={includePromotionTab}
+      includeSubscriptionTab={includeSubscriptionTab}
     >
       {activeTab === "listings" ? (
         <DashboardPageClient fromSponsorBoard={fromSponsorBoard} promoteHeroIntent={promoteHeroIntent} />
       ) : null}
       {activeTab === "promotion" && includePromotionTab ? <BuyerPromotionTab /> : null}
+      {activeTab === "subscription" && includeSubscriptionTab ? <BuyerSubscriptionTab /> : null}
       {activeTab === "favorites" ? <FavoritesPageClient /> : null}
       {activeTab === "saved-searches" ? <SavedSearchesPageClient /> : null}
       {activeTab === "messages" ? <MessagesPageClient /> : null}

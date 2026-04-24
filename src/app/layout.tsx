@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 
 import { BuyerProvider } from "@/components/buyer/buyer-provider";
 import { DemoRoleFloatingControl, DemoRoleProvider } from "@/components/demo-role/demo-role";
+import { SubscriptionProvider } from "@/components/subscription/subscription-provider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -30,10 +31,12 @@ export default function RootLayout({
     <html lang="ru" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
         <DemoRoleProvider>
-          <BuyerProvider>
-            {children}
-            <DemoRoleFloatingControl />
-          </BuyerProvider>
+          <SubscriptionProvider>
+            <BuyerProvider>
+              {children}
+              <DemoRoleFloatingControl />
+            </BuyerProvider>
+          </SubscriptionProvider>
         </DemoRoleProvider>
       </body>
     </html>

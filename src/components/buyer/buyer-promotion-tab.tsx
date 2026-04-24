@@ -83,8 +83,8 @@ export function BuyerPromotionTab() {
             <h2 className="text-lg font-semibold text-slate-900">Продвижение объявления</h2>
             <p className="text-sm text-slate-600">Запустите размещение в формате «Герой доски» для ваших объявлений.</p>
           </div>
-          <Link href="/create-listing">
-            <Button variant="outline">Разместить объявление</Button>
+          <Link href="/create-listing" className="w-full sm:w-auto">
+            <Button className="w-full sm:w-auto" variant="outline">Разместить объявление</Button>
           </Link>
         </div>
       </Card>
@@ -162,7 +162,7 @@ export function BuyerPromotionTab() {
             Стоимость: <span className="font-semibold">{price.toLocaleString("ru-RU")} ₽</span>
           </div>
 
-          <Button type="submit">Продвинуть объявление</Button>
+          <Button className="w-full sm:w-auto" type="submit">Продвинуть объявление</Button>
         </form>
       </Card>
 

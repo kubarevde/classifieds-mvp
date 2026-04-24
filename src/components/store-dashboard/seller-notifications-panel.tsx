@@ -43,9 +43,9 @@ export function SellerNotificationsPanel({
           <h2 className="text-lg font-semibold tracking-tight text-slate-900">Уведомления магазина</h2>
           <p className="text-sm text-slate-600">События по сообщениям, объявлениям и маркетингу витрины.</p>
         </div>
-        <div className="flex flex-col items-end gap-2">
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:items-end">
           <NotificationFilterTabs value={filter} onChange={setFilter} unreadCount={unreadCount} />
-          <Button variant="outline" onClick={markAllAsRead} disabled={unreadCount === 0}>
+          <Button className="w-full sm:w-auto" variant="outline" onClick={markAllAsRead} disabled={unreadCount === 0}>
             Отметить всё прочитанным
           </Button>
         </div>

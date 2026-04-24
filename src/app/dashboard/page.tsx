@@ -21,6 +21,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   const tabValue = Array.isArray(tabRaw) ? tabRaw[0] : tabRaw;
   const activeTab: AccountTab =
     tabValue === "promotion" ||
+    tabValue === "subscription" ||
     tabValue === "favorites" ||
     tabValue === "saved-searches" ||
     tabValue === "messages" ||

@@ -414,7 +414,7 @@ export function StoreMarketingWorkspace({
       </div>
 
       <div className="grid gap-3 xl:grid-cols-[248px_minmax(0,1fr)]">
-        <nav className="space-y-1 rounded-xl border border-slate-200 bg-slate-50 p-2">
+        <nav className="no-scrollbar flex gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-slate-50 p-1.5 xl:block xl:space-y-1 xl:overflow-visible xl:p-2">
           {menuItems.map((menuItem) => {
             const isAllowed = hasPlanAccess(seller.planTier, menuItem.requiredPlan);
             const tierBadge =
@@ -429,7 +429,7 @@ export function StoreMarketingWorkspace({
                 key={menuItem.id}
                 type="button"
                 onClick={() => openScreen(menuItem)}
-                className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium transition ${
+                className={`flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium transition xl:w-full ${
                   activeScreen === menuItem.id
                     ? "bg-slate-900 text-white"
                     : "text-slate-700 hover:bg-white hover:text-slate-900"

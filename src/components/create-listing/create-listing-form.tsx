@@ -28,6 +28,10 @@ import {
 import { catalogWorldLucideIcons } from "@/config/icons";
 import { getWorldPresentation } from "@/lib/worlds";
 import { Button, buttonVariants } from "@/components/ui";
+import { Card } from "@/components/ui/card";
+import { useSubscription } from "@/components/subscription/subscription-provider";
+import { getAiListingSuggestions } from "@/lib/ai-mock";
+import { useDemoRole } from "@/components/demo-role/demo-role";
 
 const contactMethods = [
   { id: "phone", label: "Только звонки" },
@@ -94,6 +98,8 @@ export function CreateListingForm({
   const router = useRouter();
   const buyer = useBuyer();
   const profile = useProfile();
+  const subscription = useSubscription();
+  const { role } = useDemoRole();
   const [formData, setFormData] = useState<CreateListingFormData>({ ...defaultForm, world: initialWorld });
   const [isAuthenticated, setIsAuthenticated] = useState(initialIsAuthenticated);
   const [useProfileContacts, setUseProfileContacts] = useState(initialIsAuthenticated);
@@ -104,6 +110,8 @@ export function CreateListingForm({
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showErrors, setShowErrors] = useState(false);
+  const [isAiPanelOpen, setIsAiPanelOpen] = useState(false);
+  const [showSubscriptionPromo, setShowSubscriptionPromo] = useState(false);
 
   const profileContacts = useMemo(
     () => ({
@@ -125,6 +133,18 @@ export function CreateListingForm({
   );
   const worldPresentation = useMemo(() => getWorldPresentation(formData.world), [formData.world]);
   const worldHeroIcon = catalogWorldLucideIcons[formData.world];
+  const aiSuggestions = useMemo(
+    () =>
+      getAiListingSuggestions({
+        title: formData.title,
+        category: formData.category,
+        price: formData.price,
+      }),
+    [formData.category, formData.price, formData.title],
+  );
+  const hasStoreAiAccess = subscription.storePlan === "business";
+  const hasAiAccess = role === "seller" ? hasStoreAiAccess : subscription.planName === "business" || subscription.isPro;
+  const upgradeHref = role === "seller" ? "/dashboard/store" : "/dashboard?tab=subscription";
 
   function resetForm() {
     images.forEach((image) => URL.revokeObjectURL(image.previewUrl));
@@ -135,6 +155,17 @@ export function CreateListingForm({
     setTouched({});
     setShowErrors(false);
     setIsSubmitted(false);
+    setIsAiPanelOpen(false);
+    setShowSubscriptionPromo(false);
+  }
+
+  function handleAiAssistantClick() {
+    setIsAiPanelOpen(true);
+    if (hasAiAccess) {
+      setShowSubscriptionPromo(false);
+      return;
+    }
+    setShowSubscriptionPromo(true);
   }
 
   function handleUseProfileContactsChange(nextValue: boolean) {
@@ -261,10 +292,11 @@ export function CreateListingForm({
   }
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className={`rounded-2xl border shadow-sm ${formData.world === "all" ? "border-slate-200 bg-white" : worldPresentation.sectionToneClass}`}
-    >
+    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <form
+        onSubmit={handleSubmit}
+        className={`rounded-2xl border shadow-sm ${formData.world === "all" ? "border-slate-200 bg-white" : worldPresentation.sectionToneClass}`}
+      >
       <div className="space-y-8 p-4 sm:p-6">
         <section className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
           <div>
@@ -574,7 +606,56 @@ export function CreateListingForm({
         </section>
       </div>
 
-      <SubmitBar isValid={isValid} isSubmitting={isSubmitting} />
-    </form>
+        <SubmitBar isValid={isValid} isSubmitting={isSubmitting} />
+      </form>
+
+      <aside className="space-y-3">
+        <Card className="p-4">
+          <p className="text-sm font-semibold text-slate-900">AI-помощник</p>
+          <p className="mt-1 text-sm text-slate-600">
+            Ускоряет создание карточки: заголовок, описание и рекомендации по цене.
+          </p>
+          <Button className="mt-3 w-full" type="button" onClick={handleAiAssistantClick}>
+            ✨ AI-помощник
+          </Button>
+        </Card>
+
+        {isAiPanelOpen && showSubscriptionPromo ? (
+          <Card className="p-4">
+            <p className="text-sm font-semibold text-slate-900">
+              {role === "seller"
+                ? "AI-помощник доступен на тарифе Бизнес"
+                : "AI-помощник доступен в Pro-подписке"}
+            </p>
+            <p className="mt-1 text-sm text-slate-600">
+              Получайте готовые заголовки, описания и рекомендации по цене.
+            </p>
+            <Link href={upgradeHref} className={buttonVariants({ className: "mt-3 w-full" })}>
+              {role === "seller" ? "Перейти к тарифам магазина" : "Перейти в подписку"}
+            </Link>
+          </Card>
+        ) : null}
+
+        {isAiPanelOpen && hasAiAccess ? (
+          <Card className="space-y-3 p-4">
+            <p className="text-sm font-semibold text-slate-900">Рекомендации AI</p>
+            <div className="space-y-2 text-sm text-slate-700">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Заголовок</p>
+                <p>{aiSuggestions.titleSuggestion}</p>
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Описание</p>
+                <p>{aiSuggestions.descriptionSuggestion}</p>
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Подсказка по цене</p>
+                <p>{aiSuggestions.priceTip}</p>
+              </div>
+            </div>
+          </Card>
+        ) : null}
+      </aside>
+    </div>
   );
 }

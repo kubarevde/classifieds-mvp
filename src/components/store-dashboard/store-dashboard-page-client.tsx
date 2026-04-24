@@ -15,10 +15,12 @@ import {
 } from "lucide-react";
 
 import { StoreMarketingWorkspace } from "@/components/store-dashboard/store-marketing-workspace";
+import { useSubscription } from "@/components/subscription/subscription-provider";
 import { SellerMessagesPanel } from "@/components/store-dashboard/seller-messages-panel";
 import { SellerNotificationsPanel } from "@/components/store-dashboard/seller-notifications-panel";
 import HeroBoardManager from "@/components/sponsor-board/hero-board-manager";
 import { useSellerActivity } from "@/components/seller/use-seller-activity";
+import { Badge } from "@/components/ui";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { HeroBannerPlacement } from "@/lib/hero-board";
 import { CatalogWorld, ListingWorld } from "@/lib/listings";
@@ -89,7 +91,7 @@ type PlanFeatureRow = {
   oneTime?: boolean;
 };
 
-type StoreSubscriptionTierId = "free" | "pro" | "business";
+type StoreSubscriptionTierId = "basic" | "pro" | "business";
 
 function MetricIcon({ id }: { id: string }) {
   const className = "h-4 w-4";
@@ -197,9 +199,10 @@ const subscriptionTierPresentation: Record<
     rankingHint: string;
     analyticsDepth: string;
     marketingDepth: string;
+    aiAccess: string;
   }
 > = {
-  free: {
+  basic: {
     title: "Базовый",
     subtitle: "Для запуска витрины",
     listingsLimit: "До 12 активных объявлений",
@@ -207,6 +210,7 @@ const subscriptionTierPresentation: Record<
     rankingHint: "Демо-правила видимости: базовый уровень в подборках",
     analyticsDepth: "Базовые KPI",
     marketingDepth: "Купоны и публикации",
+    aiAccess: "Без AI-помощника",
   },
   pro: {
     title: "Про",
@@ -216,6 +220,7 @@ const subscriptionTierPresentation: Record<
     rankingHint: "Демо-правила видимости: расширенный уровень в подборках",
     analyticsDepth: "KPI + источники трафика",
     marketingDepth: "Закрепления и кампании",
+    aiAccess: "Без AI-помощника",
   },
   business: {
     title: "Бизнес",
@@ -225,11 +230,12 @@ const subscriptionTierPresentation: Record<
     rankingHint: "Демо-правила видимости: максимальный уровень в подборках",
     analyticsDepth: "Полная аналитика + growth-рекомендации",
     marketingDepth: "Баннеры, кампании и расширенный промо-слой",
+    aiAccess: "AI-помощник при создании объявлений",
   },
 };
 
 const growthToolAccessRows: { id: string; label: string; minTier: StoreSubscriptionTierId }[] = [
-  { id: "coupon", label: "Акции и купоны", minTier: "free" },
+  { id: "coupon", label: "Акции и купоны", minTier: "basic" },
   { id: "pin", label: "Закреплённые товары", minTier: "pro" },
   { id: "campaign", label: "Кампании продвижения", minTier: "pro" },
   { id: "banner", label: "Баннер витрины", minTier: "business" },
@@ -303,13 +309,20 @@ function toCreateListingWorld(world: ListingWorld): CatalogWorld {
 }
 
 function getNextTier(tier: StoreSubscriptionTierId) {
-  if (tier === "free") {
+  if (tier === "basic") {
     return "pro";
   }
   if (tier === "pro") {
     return "business";
   }
   return null;
+}
+
+function getStoreTierLabel(tier: StoreSubscriptionTierId) {
+  if (tier === "basic") {
+    return "Базовый";
+  }
+  return getSellerPlanTierLabel(tier);
 }
 
 export function StoreDashboardPageClient({
@@ -325,12 +338,12 @@ export function StoreDashboardPageClient({
   initialSection,
 }: StoreDashboardPageClientProps) {
   const sellerActivity = useSellerActivity();
+  const subscription = useSubscription();
   const [listings, setListings] = useState<SellerDashboardListing[]>(initialListings);
   const [posts, setPosts] = useState<SellerPost[]>(initialPosts);
   const [filter, setFilter] = useState<ListingFilter>("all");
   const [message, setMessage] = useState<string | null>(null);
   const [isTariffModalOpen, setIsTariffModalOpen] = useState(false);
-  const [selectedPlanTier, setSelectedPlanTier] = useState<SellerPlanTier>(seller.planTier);
   const [isTourOpen, setIsTourOpen] = useState(() => {
     if (typeof window === "undefined") {
       return false;
@@ -360,12 +373,16 @@ export function StoreDashboardPageClient({
   });
 
   const activeTourStep = onboardingSteps[tourStepIndex] ?? onboardingSteps[0];
-  const currentSubscriptionTier = selectedPlanTier as StoreSubscriptionTierId;
+  const currentSubscriptionTier: StoreSubscriptionTierId = subscription.storePlan;
   const currentTierPresentation = subscriptionTierPresentation[currentSubscriptionTier];
   const nextSubscriptionTier = getNextTier(currentSubscriptionTier);
   const effectiveSeller = useMemo(
-    () => ({ ...seller, planTier: selectedPlanTier }),
-    [seller, selectedPlanTier],
+    () =>
+      ({
+        ...seller,
+        planTier: (currentSubscriptionTier === "basic" ? "free" : currentSubscriptionTier) as SellerPlanTier,
+      }) satisfies SellerStorefront,
+    [currentSubscriptionTier, seller],
   );
 
   const counts = useMemo(
@@ -445,7 +462,7 @@ export function StoreDashboardPageClient({
           ? true
           : currentSubscriptionTier === "pro"
             ? tool.minTier !== "business"
-            : tool.minTier === "free",
+            : tool.minTier === "basic",
       ),
     [currentSubscriptionTier],
   );
@@ -456,7 +473,7 @@ export function StoreDashboardPageClient({
           ? false
           : currentSubscriptionTier === "pro"
             ? tool.minTier === "business"
-            : tool.minTier !== "free",
+            : tool.minTier !== "basic",
       ),
     [currentSubscriptionTier],
   );
@@ -677,11 +694,11 @@ export function StoreDashboardPageClient({
 
   return (
     <div className="space-y-4 sm:space-y-5">
-      <div className="flex justify-end">
+      <div className="flex justify-start sm:justify-end">
         <button
           type="button"
           onClick={launchTour}
-          className="inline-flex h-9 items-center rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+          className="inline-flex h-10 w-full items-center justify-center rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 sm:h-9 sm:w-auto sm:justify-start sm:text-xs"
         >
           <CircleHelp className="mr-1.5 h-4 w-4" strokeWidth={1.5} />
           Как это работает
@@ -712,7 +729,7 @@ export function StoreDashboardPageClient({
                   {seller.storefrontName}
                 </h1>
                 <p className="mt-1 text-sm text-slate-600">
-                  {getSellerTypeLabel(seller.type)} · Тариф: {getSellerPlanTierLabel(selectedPlanTier)}
+                  {getSellerTypeLabel(seller.type)} · Тариф: {getStoreTierLabel(currentSubscriptionTier)}
                 </p>
               </div>
             </div>
@@ -789,7 +806,8 @@ export function StoreDashboardPageClient({
 
         <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50/70 p-3">
           <p className="text-sm text-slate-600">
-            Текущий тариф: <span className="font-semibold text-slate-900">{getSellerPlanTierLabel(selectedPlanTier)}</span>.{" "}
+            Текущий тариф:{" "}
+            <span className="font-semibold text-slate-900">{getStoreTierLabel(currentSubscriptionTier)}</span>.{" "}
             Полная расшифровка и сравнение — в секции «Подписка магазина» ниже.
           </p>
         </div>
@@ -806,13 +824,16 @@ export function StoreDashboardPageClient({
               UI-слой тарифов: влияет на объём витрины, глубину аналитики и доступность growth-инструментов.
             </p>
           </div>
-          <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700">
-            Текущий уровень: {currentTierPresentation.title}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700">
+              Текущий уровень: {currentTierPresentation.title}
+            </span>
+            <Badge>{currentSubscriptionTier === "business" ? "Активен" : "Демо"}</Badge>
+          </div>
         </div>
 
         <div className="grid gap-3 lg:grid-cols-3">
-          {(["free", "pro", "business"] as StoreSubscriptionTierId[]).map((tier) => {
+          {(["basic", "pro", "business"] as StoreSubscriptionTierId[]).map((tier) => {
             const tierData = subscriptionTierPresentation[tier];
             const isCurrent = currentSubscriptionTier === tier;
             return (
@@ -833,6 +854,7 @@ export function StoreDashboardPageClient({
                   <li>{tierData.collectionsLimit}</li>
                   <li>{tierData.analyticsDepth}</li>
                   <li>{tierData.marketingDepth}</li>
+                  <li>{tierData.aiAccess}</li>
                 </ul>
               </article>
             );
@@ -848,20 +870,21 @@ export function StoreDashboardPageClient({
               <li>• {currentTierPresentation.collectionsLimit}</li>
               <li>• {currentTierPresentation.analyticsDepth}</li>
               <li>• {currentTierPresentation.marketingDepth}</li>
+              <li>• {currentTierPresentation.aiAccess}</li>
             </ul>
             <div className="mt-3 flex flex-wrap gap-2">
-              {(["free", "pro", "business"] as SellerPlanTier[]).map((tier) => (
+              {(["basic", "pro", "business"] as StoreSubscriptionTierId[]).map((tier) => (
                 <button
                   key={tier}
                   type="button"
-                  onClick={() => setSelectedPlanTier(tier)}
+                  onClick={() => subscription.setStorePlan(tier)}
                   className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
-                    selectedPlanTier === tier
+                    currentSubscriptionTier === tier
                       ? "border-slate-900 bg-slate-900 text-white"
                       : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
                   }`}
                 >
-                  {getSellerPlanTierLabel(tier)}
+                  {tier === "basic" ? "Базовый" : getSellerPlanTierLabel(tier)}
                 </button>
               ))}
             </div>
@@ -1087,10 +1110,7 @@ export function StoreDashboardPageClient({
 
         <div className="space-y-2">
           {visibleListings.map((listing) => (
-            <article
-              key={listing.id}
-              className="grid gap-3 rounded-xl border border-slate-200 bg-slate-50/60 p-3 md:grid-cols-[minmax(0,1fr)_auto_auto]"
-            >
+            <article key={listing.id} className="grid gap-3 rounded-xl border border-slate-200 bg-slate-50/60 p-3 md:grid-cols-[minmax(0,1fr)_auto_auto]">
               <div className="min-w-0 space-y-1">
                 <p className="truncate text-sm font-semibold text-slate-900">{listing.title}</p>
                 <div className="flex flex-wrap gap-2 text-xs text-slate-600">
@@ -1116,17 +1136,17 @@ export function StoreDashboardPageClient({
                 <p className="rounded-lg border border-slate-200 bg-white px-2 py-1">Отклики: {listing.messages}</p>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2 md:w-72 md:justify-end">
+              <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-2 md:w-72 md:grid-cols-1 md:justify-items-end">
                 <Link
                   href={`/create-listing?world=${toCreateListingWorld(listing.world)}&sellerId=${seller.id}&edit=${listing.id}`}
-                  className="inline-flex h-9 items-center rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+                  className="inline-flex h-9 w-full items-center justify-center rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 md:text-xs"
                 >
                   Редактировать
                 </Link>
                 <button
                   type="button"
                   onClick={() => toggleListingVisibility(listing.id)}
-                  className="inline-flex h-9 items-center rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+                  className="inline-flex h-9 w-full items-center justify-center rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 md:text-xs"
                 >
                   {listing.status === "active" ? "Скрыть" : "Показать"}
                 </button>
@@ -1135,11 +1155,11 @@ export function StoreDashboardPageClient({
                   onClick={() =>
                     showMockMessage("Поднятие объявления доступно в Бизнес-тарифе или как разовая покупка.")
                   }
-                  className="inline-flex h-9 items-center rounded-lg bg-slate-900 px-3 text-xs font-semibold text-white transition hover:bg-slate-700"
+                  className="inline-flex h-9 w-full items-center justify-center rounded-lg bg-slate-900 px-3 text-sm font-semibold text-white transition hover:bg-slate-700 md:text-xs"
                 >
                   Поднять
                 </button>
-                <span className="text-[11px] text-slate-500">
+                <span className="text-xs text-slate-500 sm:col-span-2 md:col-span-1">
                   Поднятие временно перемещает объявление выше в списке (mock).
                 </span>
               </div>

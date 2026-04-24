@@ -9,6 +9,8 @@ import { MessageInput } from "@/components/messages/message-input";
 import { Card } from "@/components/ui";
 import { sellerConversationsMock } from "@/lib/seller-activity-mock";
 
+type MobileView = "list" | "chat";
+
 export function SellerMessagesPanel({
   onUnreadChange,
 }: {
@@ -19,6 +21,7 @@ export function SellerMessagesPanel({
     sellerConversationsMock[0]?.id ?? null,
   );
   const [draftMessage, setDraftMessage] = useState("");
+  const [mobileView, setMobileView] = useState<MobileView>("list");
 
   const activeConversation = useMemo(
     () => conversations.find((item) => item.id === activeConversationId) ?? null,
@@ -31,6 +34,7 @@ export function SellerMessagesPanel({
 
   function selectConversation(conversationId: string) {
     setActiveConversationId(conversationId);
+    setMobileView("chat");
     setConversations((prev) => {
       const next = prev.map((item) =>
         item.id === conversationId ? { ...item, unreadCount: 0 } : item,
@@ -63,6 +67,9 @@ export function SellerMessagesPanel({
     setDraftMessage("");
   }
 
+  const showConversationList = mobileView === "list";
+  const showConversationPanel = mobileView === "chat" || !activeConversation;
+
   return (
     <Card className="p-4 sm:p-5">
       <div className="mb-3">
@@ -72,15 +79,25 @@ export function SellerMessagesPanel({
         </p>
       </div>
       <section className="grid gap-3 lg:grid-cols-[340px_minmax(0,1fr)]">
-        <ConversationList
-          conversations={conversations}
-          activeConversationId={activeConversationId}
-          onSelectConversation={selectConversation}
-        />
-        <article className="flex min-h-[560px] flex-col rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className={showConversationList ? "block" : "hidden lg:block"}>
+          <ConversationList
+            conversations={conversations}
+            activeConversationId={activeConversationId}
+            onSelectConversation={selectConversation}
+          />
+        </div>
+        <article
+          className={`min-h-[560px] flex-col rounded-2xl border border-slate-200 bg-white shadow-sm ${
+            showConversationPanel ? "flex" : "hidden lg:flex"
+          }`}
+        >
           {activeConversation ? (
             <>
-              <ChatHeader conversation={activeConversation} listing={null} />
+              <ChatHeader
+                conversation={activeConversation}
+                listing={null}
+                onBack={() => setMobileView("list")}
+              />
               <div className="flex-1 space-y-3 overflow-y-auto bg-slate-50/50 p-4">
                 {activeConversation.messages.map((message) => (
                   <MessageBubble key={message.id} message={message} />

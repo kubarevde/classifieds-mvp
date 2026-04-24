@@ -95,7 +95,7 @@ export default function HeroBoardManager({ initialPlacements, sellerId, onSave }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
-      <div className="grid gap-3 md:grid-cols-2">
+      <div className="grid gap-3 sm:grid-cols-2">
         <label className="space-y-1 text-sm text-slate-700">
           <span>Заголовок баннера</span>
           <input
@@ -138,7 +138,7 @@ export default function HeroBoardManager({ initialPlacements, sellerId, onSave }
         />
       </label>
 
-      <div className="grid gap-3 md:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
         <label className="space-y-1 text-sm text-slate-700">
           <span>Охват</span>
           <select
@@ -194,7 +194,7 @@ export default function HeroBoardManager({ initialPlacements, sellerId, onSave }
       <div className="flex justify-end">
         <button
           type="submit"
-          className="inline-flex h-10 items-center justify-center rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white transition hover:bg-slate-700"
+          className="inline-flex h-10 w-full items-center justify-center rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white transition hover:bg-slate-700 sm:w-auto"
         >
           Подключить героя доски
         </button>
