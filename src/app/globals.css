@@ -20,3 +20,9 @@ body {
   background: rgb(186 230 253);
   color: rgb(12 74 110);
 }
+
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgb(148 163 184), 0 0 0 4px rgb(248 250 252);
+  border-radius: 0.75rem;
+}

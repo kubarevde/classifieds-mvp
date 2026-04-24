@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { Container } from "@/components/ui/container";
+import { DEMO_STOREFRONT_SELLER_ID } from "@/lib/demo-role-constants";
 
 export function CtaBlock() {
   return (
@@ -32,13 +33,13 @@ export function CtaBlock() {
                 Разместить объявление
               </Link>
               <Link
-                href="/dashboard/store?sellerId=marina-tech"
+                href={`/dashboard/store?sellerId=${DEMO_STOREFRONT_SELLER_ID}`}
                 className="rounded-xl border border-white/20 bg-white/5 px-6 py-3 text-center text-sm font-semibold text-white transition hover:bg-white/10"
               >
                 Открыть кабинет магазина
               </Link>
               <Link
-                href="/sellers/marina-tech"
+                href={`/sellers/${DEMO_STOREFRONT_SELLER_ID}`}
                 className="rounded-xl border border-white/20 bg-white/5 px-6 py-3 text-center text-sm font-semibold text-white transition hover:bg-white/10"
               >
                 Посмотреть пример магазина

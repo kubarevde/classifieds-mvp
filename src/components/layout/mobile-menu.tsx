@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect } from "react";
+import { RefObject, useEffect, useRef } from "react";
 import { X } from "lucide-react";
 
 import { DemoRole } from "@/components/demo-role/demo-role";
@@ -15,6 +15,8 @@ type MobileMenuProps = {
   notificationsUnreadCount: number;
   notificationsHydrated: boolean;
   role: DemoRole;
+  storeNavSellerId: string | null;
+  triggerRef: RefObject<HTMLButtonElement | null>;
 };
 
 function closeOnEscape(event: KeyboardEvent, onClose: () => void) {
@@ -61,7 +63,11 @@ export function MobileMenu({
   notificationsUnreadCount,
   notificationsHydrated,
   role,
+  storeNavSellerId,
+  triggerRef,
 }: MobileMenuProps) {
+  const panelRef = useRef<HTMLDivElement | null>(null);
+
   useEffect(() => {
     if (!isOpen) {
       return;
@@ -69,15 +75,45 @@ export function MobileMenu({
 
     const handler = (event: KeyboardEvent) => closeOnEscape(event, onClose);
     window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [isOpen, onClose]);
+
+    const panel = panelRef.current;
+    const triggerElement = triggerRef.current;
+    const focusable = panel?.querySelectorAll<HTMLElement>(
+      "a[href], button:not([disabled]), [tabindex]:not([tabindex='-1'])",
+    );
+    const first = focusable?.[0];
+    const last = focusable?.[focusable.length - 1];
+
+    first?.focus();
+
+    const trapTab = (event: KeyboardEvent) => {
+      if (event.key !== "Tab" || !first || !last) {
+        return;
+      }
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    window.addEventListener("keydown", trapTab);
+
+    return () => {
+      window.removeEventListener("keydown", trapTab);
+      window.removeEventListener("keydown", handler);
+      triggerElement?.focus();
+    };
+  }, [isOpen, onClose, triggerRef]);
 
   if (!isOpen) {
     return null;
   }
 
   return (
-    <div className="fixed inset-0 z-40 sm:hidden">
+    <div className="fixed inset-0 z-[70] sm:hidden">
       <button
         type="button"
         onClick={onClose}
@@ -85,7 +121,10 @@ export function MobileMenu({
         aria-label="Закрыть меню"
       />
 
-      <div className="absolute right-0 top-0 h-full w-[86vw] max-w-sm overflow-y-auto border-l border-slate-200 bg-white p-4 shadow-xl shadow-slate-900/15">
+      <div
+        ref={panelRef}
+        className="absolute right-0 top-0 z-[71] h-full w-[86vw] max-w-sm overflow-y-auto border-l border-slate-200 bg-white p-4 shadow-xl shadow-slate-900/15"
+      >
         <div className="mb-4 flex items-center justify-between">
           <p className="text-sm font-semibold text-slate-900">Меню</p>
           <button
@@ -105,15 +144,15 @@ export function MobileMenu({
               <MenuListItem href="/" label="Главная" onClose={onClose} />
               <MenuListItem href="/listings" label="Объявления" onClose={onClose} />
               <MenuListItem href="/stores" label="Магазины" onClose={onClose} />
-              {role === "all" ? <MenuListItem href="/#worlds" label="Миры" onClose={onClose} /> : null}
-              {role === "all" ? (
+              {role !== "guest" ? <MenuListItem href="/#worlds" label="Миры" onClose={onClose} /> : null}
+              {role !== "guest" ? (
                 <MenuListItem href="/sponsor-board" label="Герой доски" onClose={onClose} />
               ) : null}
               {role === "guest" ? <MenuListItem href="/profile" label="Войти" onClose={onClose} /> : null}
             </ul>
           </section>
 
-          {role === "buyer" || role === "all" ? (
+          {role === "buyer" || role === "seller" || role === "all" ? (
             <section>
               <p className="px-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Активность</p>
               <ul className="mt-2 space-y-0.5">
@@ -129,13 +168,17 @@ export function MobileMenu({
                   badge={notificationsHydrated ? notificationsUnreadCount : 0}
                   onClose={onClose}
                 />
-                <MenuListItem
-                  href="/favorites"
-                  label="Избранное"
-                  badge={favoritesHydrated ? favoritesCount : 0}
-                  onClose={onClose}
-                />
-                <MenuListItem href="/saved-searches" label="Сохранённые поиски" onClose={onClose} />
+                {role === "buyer" || role === "seller" || role === "all" ? (
+                  <>
+                    <MenuListItem
+                      href="/favorites"
+                      label="Избранное"
+                      badge={favoritesHydrated ? favoritesCount : 0}
+                      onClose={onClose}
+                    />
+                    <MenuListItem href="/saved-searches" label="Сохранённые поиски" onClose={onClose} />
+                  </>
+                ) : null}
               </ul>
             </section>
           ) : null}
@@ -144,8 +187,16 @@ export function MobileMenu({
             <section>
               <p className="px-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Я продавец / бизнес</p>
               <ul className="mt-2 space-y-0.5">
-                <MenuListItem href="/sellers/marina-tech" label="Мой магазин" onClose={onClose} />
-                <MenuListItem href="/dashboard/store?sellerId=marina-tech" label="Кабинет" onClose={onClose} />
+                {storeNavSellerId ? (
+                  <>
+                    <MenuListItem href={`/sellers/${storeNavSellerId}`} label="Мой магазин" onClose={onClose} />
+                    <MenuListItem
+                      href={`/dashboard/store?sellerId=${storeNavSellerId}`}
+                      label="Кабинет"
+                      onClose={onClose}
+                    />
+                  </>
+                ) : null}
               </ul>
             </section>
           ) : null}

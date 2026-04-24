@@ -6,6 +6,7 @@ import { RecommendedStores } from "@/components/stores/recommended-stores";
 import { StoreCard, StoreCatalogItem } from "@/components/stores/store-card";
 import { StoreCatalogHero } from "@/components/stores/store-catalog-hero";
 import { StoreFiltersBar, StoreSortOption } from "@/components/stores/store-filters-bar";
+import { isStorefrontCatalogSellerType } from "@/lib/demo-role-constants";
 import {
   SellerPlanTier,
   SellerStorefront,
@@ -103,7 +104,10 @@ export function StoresPageClient() {
   const [selectedCity, setSelectedCity] = useState("all");
   const [sortBy, setSortBy] = useState<StoreSortOption>("rating_desc");
 
-  const allStores = useMemo(() => storefrontSellers.map(mapToCardModel), []);
+  const allStores = useMemo(
+    () => storefrontSellers.filter((seller) => isStorefrontCatalogSellerType(seller.type)).map(mapToCardModel),
+    [],
+  );
 
   const worldOptions = useMemo(
     () => [

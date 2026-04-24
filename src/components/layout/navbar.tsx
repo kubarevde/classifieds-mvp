@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Menu } from "lucide-react";
 
 import { getDemoDisplayName, useDemoRole } from "@/components/demo-role/demo-role";
@@ -11,23 +11,26 @@ import { MobileMenu } from "@/components/layout/mobile-menu";
 import { useFavorites } from "@/components/favorites/favorites-provider";
 import { useNotifications } from "@/components/notifications/notifications-provider";
 import { Container } from "@/components/ui/container";
+import { resolveDemoStoreNavSellerId } from "@/lib/demo-role-constants";
 import { getMockUnreadMessagesCount } from "@/lib/messages";
 
+const guestNavLinks = [
+  { label: "Главная", href: "/" },
+  { label: "Объявления", href: "/listings" },
+  { label: "Магазины", href: "/stores" },
+] as const;
+
+const authenticatedNavLinks = [
+  ...guestNavLinks,
+  { label: "Миры", href: "/#worlds" },
+  { label: "Герой доски", href: "/sponsor-board" },
+] as const;
+
 const navByRole = {
-  guest: [
-    { label: "Главная", href: "/" },
-    { label: "Объявления", href: "/listings" },
-    { label: "Магазины", href: "/stores" },
-  ],
-  buyer: [{ label: "Главная", href: "/" }, { label: "Объявления", href: "/listings" }, { label: "Магазины", href: "/stores" }],
-  seller: [{ label: "Главная", href: "/" }, { label: "Объявления", href: "/listings" }, { label: "Магазины", href: "/stores" }],
-  all: [
-    { label: "Главная", href: "/" },
-    { label: "Объявления", href: "/listings" },
-    { label: "Магазины", href: "/stores" },
-    { label: "Миры", href: "/#worlds" },
-    { label: "Герой доски", href: "/sponsor-board" },
-  ],
+  guest: guestNavLinks,
+  buyer: authenticatedNavLinks,
+  seller: authenticatedNavLinks,
+  all: authenticatedNavLinks,
 } as const;
 
 function BurgerIcon() {
@@ -36,6 +39,7 @@ function BurgerIcon() {
 
 export function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const mobileMenuTriggerRef = useRef<HTMLButtonElement | null>(null);
   const { role, isHydrated: roleHydrated } = useDemoRole();
   const unreadCount = getMockUnreadMessagesCount();
   const { favoritesCount, isHydrated: favoritesHydrated } = useFavorites();
@@ -43,7 +47,9 @@ export function Navbar() {
     useNotifications();
   const effectiveRole = roleHydrated ? role : "all";
   const primaryNavLinks = navByRole[effectiveRole];
-  const isActivityVisible = effectiveRole === "buyer" || effectiveRole === "all";
+  const isActivityVisible =
+    effectiveRole === "buyer" || effectiveRole === "seller" || effectiveRole === "all";
+  const storeNavSellerId = resolveDemoStoreNavSellerId(effectiveRole);
   const isAccountVisible = effectiveRole !== "guest";
   const displayName = getDemoDisplayName(effectiveRole);
   const accountMode: "buyer" | "seller" | "all" =
@@ -51,7 +57,7 @@ export function Navbar() {
 
   return (
     <>
-      <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/95 backdrop-blur-xl">
+      <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/95 backdrop-blur-xl">
         <Container className="flex h-16 items-center justify-between gap-3">
           <Link href="/" className="flex items-center gap-2.5">
             <div className="grid h-9 w-9 place-items-center rounded-xl bg-slate-900 text-lg font-semibold text-white shadow-sm shadow-slate-200">
@@ -98,13 +104,15 @@ export function Navbar() {
                 favoritesHydrated={favoritesHydrated}
                 displayName={displayName}
                 mode={accountMode}
+                storeNavSellerId={storeNavSellerId}
               />
             ) : null}
 
             <button
+              ref={mobileMenuTriggerRef}
               type="button"
               onClick={() => setIsMobileMenuOpen(true)}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50 sm:hidden"
+              className="relative z-[60] inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50 sm:hidden"
               aria-label="Открыть меню"
             >
               <BurgerIcon />
@@ -122,6 +130,8 @@ export function Navbar() {
         notificationsUnreadCount={notificationsUnreadCount}
         notificationsHydrated={notificationsHydrated}
         role={effectiveRole}
+        storeNavSellerId={storeNavSellerId}
+        triggerRef={mobileMenuTriggerRef}
       />
     </>
   );

@@ -8,6 +8,7 @@ import { DashboardProfileCard } from "@/components/dashboard/dashboard-profile-c
 import { DashboardSummaryCards } from "@/components/dashboard/dashboard-summary-cards";
 import { DashboardFilter, DashboardListing, DashboardListingStatus } from "@/components/dashboard/types";
 import { MyListingsSection } from "@/components/dashboard/my-listings-section";
+import { DEMO_STOREFRONT_SELLER_ID } from "@/lib/demo-role-constants";
 import { sellerProfileMock, myListingsMock } from "@/lib/dashboard-mock-data";
 import { isListingVisibleByFilter } from "@/lib/dashboard";
 
@@ -84,7 +85,7 @@ export function DashboardPageClient({
                     Подать объявление
                   </Link>
                   <Link
-                    href="/dashboard/store?sellerId=marina-tech&marketing=hero_board&from=sponsor-board"
+                    href={`/dashboard/store?sellerId=${DEMO_STOREFRONT_SELLER_ID}&section=hero-board&from=sponsor-board`}
                     className="text-xs font-semibold text-sky-950 underline decoration-sky-300 underline-offset-2"
                   >
                     Форма в кабинете магазина
@@ -100,7 +101,7 @@ export function DashboardPageClient({
                   Вы открыли кабинет со страницы витрины размещений. Для магазина сценарий настраивается в маркетинге.
                 </p>
                 <Link
-                  href="/dashboard/store?sellerId=marina-tech&marketing=hero_board&from=sponsor-board"
+                  href={`/dashboard/store?sellerId=${DEMO_STOREFRONT_SELLER_ID}&section=hero-board&from=sponsor-board`}
                   className="inline-flex text-xs font-semibold text-sky-950 underline decoration-sky-300 underline-offset-2"
                 >
                   Открыть форму размещения в кабинете магазина

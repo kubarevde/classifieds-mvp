@@ -1,9 +1,10 @@
 import Link from "next/link";
 
 import { Container } from "@/components/ui/container";
+import { isStorefrontCatalogSellerType } from "@/lib/demo-role-constants";
 import { storefrontSellers } from "@/lib/sellers";
 
-const showcaseSellers = storefrontSellers.slice(0, 3);
+const showcaseSellers = storefrontSellers.filter((s) => isStorefrontCatalogSellerType(s.type)).slice(0, 3);
 
 export function StoresShowcase() {
   return (

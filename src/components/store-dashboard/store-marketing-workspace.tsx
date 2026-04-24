@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { FormEvent, useMemo, useState } from "react";
 import {
   BarChart2,
@@ -12,11 +11,9 @@ import {
   Mail,
   Megaphone,
   Percent,
-  Sparkles,
 } from "lucide-react";
 
-import { HeroBannerPlacement } from "@/lib/hero-board";
-import { CatalogWorld, getWorldLabel } from "@/lib/listings";
+import { CatalogWorld } from "@/lib/listings";
 import {
   MarketingCampaign,
   MarketingCoupon,
@@ -44,10 +41,7 @@ type StoreMarketingWorkspaceProps = {
   initialPromotionState: ListingPromotionState[];
   initialCampaigns: MarketingCampaign[];
   initialPriceAnalytics: PriceAnalyticsSnapshot[];
-  initialHeroBoardPlacements: HeroBannerPlacement[];
   initialScreen?: MarketingMenuKey;
-  /** Переход с витрины /sponsor-board — показать контекст сценария размещения. */
-  placementFlowFromSponsorBoard?: boolean;
   onNotify: (message: string) => void;
   onOpenTariffs: () => void;
 };
@@ -73,7 +67,7 @@ type MarketingMenuItem = {
   label: string;
   requiredPlan: "free" | "pro" | "business";
   lockedHint?: string;
-  icon: "overview" | "analytics" | "mailing" | "coupon" | "planner" | "video" | "sponsored" | "boost" | "hero";
+  icon: "overview" | "analytics" | "mailing" | "coupon" | "planner" | "video" | "sponsored" | "boost";
 };
 
 const menuItems: MarketingMenuItem[] = [
@@ -127,13 +121,6 @@ const menuItems: MarketingMenuItem[] = [
     lockedHint: "Поднятие объявлений и усиленное выделение карточек в выдаче.",
     icon: "boost",
   },
-  {
-    id: "hero_board",
-    label: "Герой доски",
-    requiredPlan: "free",
-    lockedHint: "Премиальный слот на доске Classify: витрина активных размещений на /sponsor-board, в мирах — один слот с ротацией (демо).",
-    icon: "hero",
-  },
 ];
 
 const relationLabel = {
@@ -158,17 +145,6 @@ function formatDateTime(isoDate: string) {
     minute: "2-digit",
   }).format(new Date(isoDate));
 }
-
-const heroScopeLabel = {
-  global: "Вся платформа",
-  world: "Конкретный мир",
-} as const;
-
-const heroPeriodLabel = {
-  day: "День",
-  week: "Неделя",
-  month: "Месяц",
-} as const;
 
 function hasPlanAccess(plan: SellerPlanTier, requiredPlan: "free" | "pro" | "business") {
   const rank: Record<SellerPlanTier, number> = { free: 0, pro: 1, business: 2 };
@@ -199,9 +175,6 @@ function MenuIcon({ icon }: { icon: MarketingMenuItem["icon"] }) {
   if (icon === "sponsored") {
     return <Megaphone className={baseClassName} strokeWidth={1.5} />;
   }
-  if (icon === "hero") {
-    return <Sparkles className={baseClassName} strokeWidth={1.5} />;
-  }
   return <ChevronsUpDown className={baseClassName} strokeWidth={1.5} />;
 }
 
@@ -217,9 +190,7 @@ export function StoreMarketingWorkspace({
   initialPromotionState,
   initialCampaigns,
   initialPriceAnalytics,
-  initialHeroBoardPlacements,
   initialScreen,
-  placementFlowFromSponsorBoard = false,
   onNotify,
   onOpenTariffs,
 }: StoreMarketingWorkspaceProps) {
@@ -287,35 +258,18 @@ export function StoreMarketingWorkspace({
   const [mailingText, setMailingText] = useState("");
   const [recentBoosts, setRecentBoosts] = useState<string[]>([]);
   const [lockedNotice, setLockedNotice] = useState<string | null>(null);
-  const [heroBoardPlacements, setHeroBoardPlacements] = useState(initialHeroBoardPlacements);
-  const [showSponsorBoardEntryBanner, setShowSponsorBoardEntryBanner] = useState(placementFlowFromSponsorBoard);
-  const [heroForm, setHeroForm] = useState({
-    scope: "global" as "global" | "world",
-    worldId: "electronics" as Exclude<CatalogWorld, "all">,
-    period: "week" as "day" | "week" | "month",
-    title: `${seller.storefrontName}: заметное размещение`,
-    subtitle: seller.shortDescription,
-    imageUrl: "",
-    ctaLabel: "Открыть магазин",
-    ctaHref: `/sellers/${seller.id}`,
-  });
-
   const activeCampaigns = campaigns.filter((campaign) => campaign.status === "active");
   const activeCoupons = coupons.filter((coupon) => coupon.status === "active");
   const activeSuperCount = promotionState.filter((item) => item.isSuper).length;
   const recentBoostCount = promotionState.filter((item) => Boolean(item.lastBoostedAt)).length;
-  const activeHeroBoardCount = heroBoardPlacements.filter((item) => item.isActive).length;
   const activeToolTypes = [
     activeCampaigns.length > 0,
     activeCoupons.length > 0,
     activeSuperCount > 0,
     recentBoostCount > 0,
-    activeHeroBoardCount > 0,
   ].filter(Boolean).length;
   const activeCampaignUnits = activeCampaigns.length + activeSuperCount + recentBoostCount;
-  const extraViewsFromPromotion =
-    activeCampaigns.length * 240 + activeSuperCount * 160 + recentBoostCount * 75 + activeHeroBoardCount * 360;
-  const currentHeroPlacement = heroBoardPlacements.find((item) => item.isActive) ?? null;
+  const extraViewsFromPromotion = activeCampaigns.length * 240 + activeSuperCount * 160 + recentBoostCount * 75;
 
   const snapshotsByWorld = useMemo(
     () => initialPriceAnalytics.filter((snapshot) => snapshot.world === priceWorld),
@@ -451,46 +405,6 @@ export function StoreMarketingWorkspace({
     onNotify("Статус суперобъявления обновлён (mock).");
   }
 
-  function computeHeroMockPrice() {
-    const scopePrice = heroForm.scope === "global" ? 12000 : 6200;
-    const worldMultiplier =
-      heroForm.scope === "world"
-        ? heroForm.worldId === "agriculture"
-          ? 0.92
-          : heroForm.worldId === "autos"
-            ? 1.04
-            : 1
-        : 1;
-    const periodMultiplier = heroForm.period === "day" ? 1 : heroForm.period === "week" ? 3.6 : 10.8;
-    return Math.round(scopePrice * worldMultiplier * periodMultiplier);
-  }
-
-  function activateHeroBoardPlacement() {
-    const mockPrice = computeHeroMockPrice();
-    const now = new Date();
-    const durationDays = heroForm.period === "day" ? 1 : heroForm.period === "week" ? 7 : 30;
-    const endsAt = new Date(now.getTime() + durationDays * 24 * 60 * 60 * 1000);
-
-    const created: HeroBannerPlacement = {
-      id: `hero-local-${Date.now()}`,
-      sellerId: seller.id,
-      scope: heroForm.scope,
-      worldId: heroForm.scope === "world" ? heroForm.worldId : undefined,
-      period: heroForm.period,
-      title: heroForm.title.trim(),
-      subtitle: heroForm.subtitle.trim(),
-      imageUrl: heroForm.imageUrl.trim() || undefined,
-      ctaLabel: heroForm.ctaLabel.trim() || "Открыть",
-      ctaHref: heroForm.ctaHref.trim() || `/sellers/${seller.id}`,
-      startsAt: now.toISOString(),
-      endsAt: endsAt.toISOString(),
-      mockPrice,
-      isActive: true,
-    };
-
-    setHeroBoardPlacements((current) => [created, ...current.map((item) => ({ ...item, isActive: false }))].slice(0, 6));
-    onNotify("Герой доски подключён (mock).");
-  }
 
   return (
     <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
@@ -593,24 +507,6 @@ export function StoreMarketingWorkspace({
               </div>
 
               <div className="rounded-lg border border-slate-200 bg-white p-3">
-                <p className="text-sm font-semibold text-slate-900">Герой доски</p>
-                {currentHeroPlacement ? (
-                  <p className="mt-1 text-sm text-slate-600">
-                    Статус: <span className="font-semibold text-slate-900">активен</span> ·{" "}
-                    {currentHeroPlacement.scope === "global"
-                      ? "вся платформа"
-                      : `мир: ${getWorldLabel(currentHeroPlacement.worldId ?? "all")}`}{" "}
-                    · период: {heroPeriodLabel[currentHeroPlacement.period]}.
-                  </p>
-                ) : (
-                  <p className="mt-1 text-sm text-slate-600">
-                    Статус: <span className="font-semibold text-slate-900">не активен</span>. Запустите баннер в разделе
-                    «Герой доски / Благотворительность».
-                  </p>
-                )}
-              </div>
-
-              <div className="rounded-lg border border-slate-200 bg-white p-3">
                 <p className="text-sm font-semibold text-slate-900">Активные инструменты</p>
                 <div className="mt-2 space-y-2">
                   {[
@@ -618,7 +514,6 @@ export function StoreMarketingWorkspace({
                     { id: "coupons", label: "Купоны", status: activeCoupons.length > 0 ? `${activeCoupons.length} активно` : "не активно", menuKey: "coupons" as MarketingMenuKey },
                     { id: "boosts", label: "Поднятие", status: recentBoostCount > 0 ? `${recentBoostCount} с бустом` : "не активно", menuKey: "boosts" as MarketingMenuKey },
                     { id: "super", label: "Суперобъявления", status: activeSuperCount > 0 ? `${activeSuperCount} активно` : "не активно", menuKey: "boosts" as MarketingMenuKey },
-                    { id: "hero", label: "Герой доски", status: activeHeroBoardCount > 0 ? `${activeHeroBoardCount} активен` : "не подключен", menuKey: "hero_board" as MarketingMenuKey },
                   ].map((tool) => (
                     <div key={tool.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50 p-2">
                       <p className="text-sm text-slate-700">
@@ -1199,195 +1094,6 @@ export function StoreMarketingWorkspace({
             </div>
           ) : null}
 
-          {isCurrentScreenAllowed && activeScreen === "hero_board" ? (
-            <div className="space-y-3">
-              {showSponsorBoardEntryBanner ? (
-                <div className="flex flex-wrap items-start justify-between gap-2 rounded-lg border border-sky-200 bg-sky-50 p-3">
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-sky-950">Вы перешли из витрины «Герой доски»</p>
-                    <p className="mt-1 text-xs leading-relaxed text-sky-900/90">
-                      Ниже — демо-форма размещения. После активации карточка появится среди активных слотов на странице{" "}
-                      <Link href="/sponsor-board" className="font-semibold underline decoration-sky-300 underline-offset-2">
-                        /sponsor-board
-                      </Link>
-                      ; в тематическом мире ваш баннер попадёт в ротацию одного слота.
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setShowSponsorBoardEntryBanner(false)}
-                    className="shrink-0 rounded-lg border border-sky-300 bg-white px-2 py-1 text-xs font-semibold text-sky-900 transition hover:bg-sky-100"
-                  >
-                    Скрыть
-                  </button>
-                </div>
-              ) : null}
-              <article className="rounded-lg border border-slate-200 bg-white p-3">
-                <p className="text-sm font-semibold text-slate-900">Что такое «Герой доски»</p>
-                <p className="mt-1 text-sm text-slate-600">
-                  Это отдельный баннерный рекламный слот платформы, а не усиление конкретного объявления.
-                </p>
-                <ul className="mt-2 space-y-1 text-sm text-slate-600">
-                  <li>• Герой платформы: баннер показывается на главной всем пользователям.</li>
-                  <li>• Герой мира: баннер показывается внутри выбранного тематического мира.</li>
-                  <li>• 20% условной стоимости учитываются как благотворительная часть (демо-механика).</li>
-                </ul>
-              </article>
-
-              <form
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  if (!heroForm.title.trim() || !heroForm.subtitle.trim()) {
-                    onNotify("Заполните заголовок и подзаголовок баннера.");
-                    return;
-                  }
-                  activateHeroBoardPlacement();
-                }}
-                className="grid gap-2 rounded-lg border border-slate-200 bg-white p-3 md:grid-cols-2"
-              >
-                <label className="space-y-1 text-xs">
-                  <span className="text-slate-600">Охват</span>
-                  <select
-                    value={heroForm.scope}
-                    onChange={(event) => setHeroForm((prev) => ({ ...prev, scope: event.target.value as "global" | "world" }))}
-                    className="w-full rounded-lg border border-slate-200 px-2 py-2 text-sm"
-                  >
-                    <option value="global">Вся платформа</option>
-                    <option value="world">Конкретный мир</option>
-                  </select>
-                </label>
-                {heroForm.scope === "world" ? (
-                  <label className="space-y-1 text-xs">
-                    <span className="text-slate-600">Мир</span>
-                    <select
-                      value={heroForm.worldId}
-                      onChange={(event) =>
-                        setHeroForm((prev) => ({
-                          ...prev,
-                          worldId: event.target.value as Exclude<CatalogWorld, "all">,
-                        }))
-                      }
-                      className="w-full rounded-lg border border-slate-200 px-2 py-2 text-sm"
-                    >
-                      <option value="electronics">Электроника</option>
-                      <option value="autos">Автомобили</option>
-                      <option value="agriculture">Сельское хозяйство</option>
-                      <option value="real_estate">Недвижимость</option>
-                      <option value="jobs">Работа</option>
-                      <option value="services">Услуги</option>
-                    </select>
-                  </label>
-                ) : null}
-                <label className="space-y-1 text-xs">
-                  <span className="text-slate-600">Период</span>
-                  <select
-                    value={heroForm.period}
-                    onChange={(event) => setHeroForm((prev) => ({ ...prev, period: event.target.value as "day" | "week" | "month" }))}
-                    className="w-full rounded-lg border border-slate-200 px-2 py-2 text-sm"
-                  >
-                    <option value="day">День</option>
-                    <option value="week">Неделя</option>
-                    <option value="month">Месяц</option>
-                  </select>
-                </label>
-                <label className="space-y-1 text-xs md:col-span-2">
-                  <span className="text-slate-600">Заголовок баннера</span>
-                  <input
-                    value={heroForm.title}
-                    onChange={(event) => setHeroForm((prev) => ({ ...prev, title: event.target.value }))}
-                    className="w-full rounded-lg border border-slate-200 px-2 py-2 text-sm"
-                  />
-                </label>
-                <label className="space-y-1 text-xs md:col-span-2">
-                  <span className="text-slate-600">Подзаголовок</span>
-                  <input
-                    value={heroForm.subtitle}
-                    onChange={(event) => setHeroForm((prev) => ({ ...prev, subtitle: event.target.value }))}
-                    className="w-full rounded-lg border border-slate-200 px-2 py-2 text-sm"
-                  />
-                </label>
-                <label className="space-y-1 text-xs">
-                  <span className="text-slate-600">Image URL (опционально)</span>
-                  <input
-                    value={heroForm.imageUrl}
-                    onChange={(event) => setHeroForm((prev) => ({ ...prev, imageUrl: event.target.value }))}
-                    placeholder="https://..."
-                    className="w-full rounded-lg border border-slate-200 px-2 py-2 text-sm"
-                  />
-                </label>
-                <label className="space-y-1 text-xs">
-                  <span className="text-slate-600">Текст кнопки</span>
-                  <input
-                    value={heroForm.ctaLabel}
-                    onChange={(event) => setHeroForm((prev) => ({ ...prev, ctaLabel: event.target.value }))}
-                    className="w-full rounded-lg border border-slate-200 px-2 py-2 text-sm"
-                  />
-                </label>
-                <label className="space-y-1 text-xs md:col-span-2">
-                  <span className="text-slate-600">Ссылка кнопки</span>
-                  <input
-                    value={heroForm.ctaHref}
-                    onChange={(event) => setHeroForm((prev) => ({ ...prev, ctaHref: event.target.value }))}
-                    className="w-full rounded-lg border border-slate-200 px-2 py-2 text-sm"
-                  />
-                </label>
-
-                <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900 md:col-span-2">
-                  Mock‑стоимость: <span className="font-semibold">{computeHeroMockPrice().toLocaleString("ru-RU")} ₽</span>{" "}
-                  ·{" "}
-                  <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold">
-                    20% идёт на благотворительность (демо)
-                  </span>
-                </div>
-
-                <button
-                  type="submit"
-                  className="inline-flex h-9 items-center justify-center rounded-lg bg-slate-900 px-3 text-sm font-semibold text-white transition hover:bg-slate-700 md:col-span-2"
-                >
-                  Подключить героя доски
-                </button>
-              </form>
-
-              <article className="rounded-lg border border-slate-200 bg-white p-3">
-                <p className="text-sm font-semibold text-slate-900">Текущий герой доски</p>
-                {currentHeroPlacement ? (
-                  <div className="mt-2 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
-                    <p>
-                      Формат: <span className="font-medium">Баннерный слот</span>
-                    </p>
-                    <p>
-                      Охват: <span className="font-medium">{heroScopeLabel[currentHeroPlacement.scope]}</span>
-                      {currentHeroPlacement.worldId ? ` · ${getWorldLabel(currentHeroPlacement.worldId)}` : ""}
-                    </p>
-                    <p>
-                      Период: <span className="font-medium">{heroPeriodLabel[currentHeroPlacement.period]}</span> · до{" "}
-                      <span className="font-medium">{formatDate(currentHeroPlacement.endsAt)}</span>
-                    </p>
-                    <p className="mt-1 text-xs text-slate-500">CTA: {currentHeroPlacement.ctaLabel}</p>
-                  </div>
-                ) : (
-                  <p className="mt-1 text-sm text-slate-600">Активного размещения пока нет.</p>
-                )}
-              </article>
-
-              <article className="rounded-lg border border-slate-200 bg-white p-3">
-                <p className="text-sm font-semibold text-slate-900">История</p>
-                <div className="mt-2 space-y-2">
-                  {heroBoardPlacements.slice(0, 3).map((entry) => (
-                    <div key={entry.id} className="rounded-lg border border-slate-200 bg-slate-50 p-2 text-sm text-slate-700">
-                      <p>
-                        Баннер · {heroScopeLabel[entry.scope]}
-                        {entry.worldId ? ` (${getWorldLabel(entry.worldId)})` : ""}
-                      </p>
-                      <p className="text-xs text-slate-500">
-                        {heroPeriodLabel[entry.period]} · {entry.mockPrice.toLocaleString("ru-RU")} ₽ · {formatDate(entry.startsAt)}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </article>
-            </div>
-          ) : null}
         </div>
       </div>
     </section>

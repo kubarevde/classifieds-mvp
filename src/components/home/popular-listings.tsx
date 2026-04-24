@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { unifiedCatalogListings } from "@/lib/listings";
 import { Container } from "@/components/ui/container";
+import { DEMO_STOREFRONT_SELLER_ID } from "@/lib/demo-role-constants";
 import { ListingCard } from "@/components/home/listing-card";
 
 export function PopularListings() {
@@ -27,7 +28,7 @@ export function PopularListings() {
               Посмотреть пример объявления
             </Link>
             <Link
-              href="/sellers/marina-tech"
+              href={`/sellers/${DEMO_STOREFRONT_SELLER_ID}`}
               className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
             >
               Посмотреть пример магазина

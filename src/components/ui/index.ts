@@ -1,4 +1,5 @@
-export { default as Button, buttonVariants, type ButtonProps } from "./button";
+export { default as Button, type ButtonProps } from "./button";
+export { buttonVariants } from "@/lib/button-styles";
 export { Badge, type BadgeProps } from "./badge";
 export { Card, CardContent, CardFooter, CardHeader } from "./card";
 export { Container } from "./container";

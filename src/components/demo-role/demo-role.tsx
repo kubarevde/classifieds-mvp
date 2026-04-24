@@ -2,7 +2,12 @@
 
 import { createContext, ReactNode, useContext, useEffect, useMemo, useState } from "react";
 
-export type DemoRole = "guest" | "buyer" | "seller" | "all";
+import {
+  resolveDemoCurrentSellerId,
+  type DemoRoleId,
+} from "@/lib/demo-role-constants";
+
+export type DemoRole = DemoRoleId;
 
 type DemoRoleOption = {
   id: DemoRole;
@@ -13,6 +18,8 @@ type DemoRoleOption = {
 type DemoRoleContextValue = {
   role: DemoRole;
   isHydrated: boolean;
+  /** Персона для демо: guest=null, buyer=частник, seller|all=магазин. */
+  currentSellerId: string | null;
   setRole: (nextRole: DemoRole) => void;
 };
 
@@ -78,13 +85,16 @@ export function DemoRoleProvider({ children }: DemoRoleProviderProps) {
     persistRole(nextRole);
   };
 
+  const currentSellerId = useMemo(() => resolveDemoCurrentSellerId(role), [role]);
+
   const value = useMemo(
     () => ({
       role,
       isHydrated,
+      currentSellerId,
       setRole,
     }),
-    [role, isHydrated],
+    [role, isHydrated, currentSellerId],
   );
 
   return <roleContext.Provider value={value}>{children}</roleContext.Provider>;

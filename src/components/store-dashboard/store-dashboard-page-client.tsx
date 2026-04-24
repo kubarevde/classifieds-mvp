@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 
 import { StoreMarketingWorkspace } from "@/components/store-dashboard/store-marketing-workspace";
+import HeroBoardManager from "@/components/sponsor-board/hero-board-manager";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { HeroBannerPlacement } from "@/lib/hero-board";
 import { CatalogWorld, ListingWorld } from "@/lib/listings";
 import {
@@ -49,7 +51,6 @@ type StoreDashboardPageClientProps = {
   initialPriceAnalytics: PriceAnalyticsSnapshot[];
   initialHeroBoardPlacements: HeroBannerPlacement[];
   initialMarketingScreen?: MarketingMenuKey;
-  placementFlowFromSponsorBoard?: boolean;
 };
 
 type ListingFilter = "all" | "active" | "inactive";
@@ -317,7 +318,6 @@ export function StoreDashboardPageClient({
   initialPriceAnalytics,
   initialHeroBoardPlacements,
   initialMarketingScreen,
-  placementFlowFromSponsorBoard,
 }: StoreDashboardPageClientProps) {
   const [listings, setListings] = useState<SellerDashboardListing[]>(initialListings);
   const [posts, setPosts] = useState<SellerPost[]>(initialPosts);
@@ -1128,13 +1128,27 @@ export function StoreDashboardPageClient({
           initialPromotionState={initialPromotionState}
           initialCampaigns={initialCampaigns}
           initialPriceAnalytics={initialPriceAnalytics}
-          initialHeroBoardPlacements={initialHeroBoardPlacements}
           initialScreen={initialMarketingScreen}
-          placementFlowFromSponsorBoard={placementFlowFromSponsorBoard}
           onNotify={showMockMessage}
           onOpenTariffs={() => showMockMessage("Откройте раздел «Подписка магазина», чтобы посмотреть тарифы.")}
         />
       </div>
+
+      <Card>
+        <CardHeader>
+          <h2 className="text-lg font-semibold tracking-tight text-slate-900">Герой доски магазина</h2>
+          <p className="mt-1 text-sm text-slate-600">
+            Отдельный модуль управления hero-баннером магазина без перехода на публичную страницу.
+          </p>
+        </CardHeader>
+        <CardContent>
+          <HeroBoardManager
+            initialPlacements={initialHeroBoardPlacements}
+            sellerId={seller.id}
+            onSave={() => showMockMessage("Параметры «Героя доски» сохранены (mock).")}
+          />
+        </CardContent>
+      </Card>
 
       <section className="grid gap-3 lg:grid-cols-2">
         <article

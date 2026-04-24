@@ -8,6 +8,7 @@ import { HeroBoardPlacementCard } from "@/components/hero-board/hero-board-place
 import { Container } from "@/components/ui/container";
 import type { HeroBoardCharityStats, HeroBoardContributorRow, HeroBannerPlacement } from "@/lib/hero-board";
 import { getWorldLabel } from "@/lib/listings";
+import { DEMO_STOREFRONT_SELLER_ID } from "@/lib/demo-role-constants";
 import { getSellerTypeLabel, getStorefrontSellerById } from "@/lib/sellers";
 
 type CoverageFilter = "all" | "global" | "world";
@@ -18,11 +19,15 @@ type SponsorBoardPageClientProps = {
   charityStats: HeroBoardCharityStats;
 };
 
-const STORE_PLACEMENT_URL = "/dashboard/store?sellerId=marina-tech&marketing=hero_board&from=sponsor-board";
+const STORE_PLACEMENT_URL = `/dashboard/store?sellerId=${DEMO_STOREFRONT_SELLER_ID}&section=hero-board&from=sponsor-board`;
 const USER_PROMOTE_FLOW = "/dashboard?from=sponsor-board&intent=promote-hero";
 const CREATE_LISTING_ENTRY = "/create-listing?world=all";
 
-export function SponsorBoardPageClient({ placements, topContributors, charityStats }: SponsorBoardPageClientProps) {
+export function SponsorBoardPageClient({
+  placements,
+  topContributors,
+  charityStats,
+}: SponsorBoardPageClientProps) {
   const [coverage, setCoverage] = useState<CoverageFilter>("all");
   const [helpOpen, setHelpOpen] = useState(false);
   const helpTitleId = useId();
@@ -90,7 +95,7 @@ export function SponsorBoardPageClient({ placements, topContributors, charitySta
   const showWorldBlock = coverage === "all" || coverage === "world";
 
   return (
-    <main className="py-3 sm:py-5">
+    <div className="py-3 sm:py-5">
       <Container className="space-y-3 sm:space-y-4">
         {/* Hero */}
         <section className="rounded-2xl border border-slate-200/90 bg-white px-3 py-3 shadow-sm sm:px-4 sm:py-3.5">
@@ -401,6 +406,6 @@ export function SponsorBoardPageClient({ placements, topContributors, charitySta
           </div>
         </div>
       ) : null}
-    </main>
+    </div>
   );
 }

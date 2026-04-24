@@ -8,6 +8,7 @@ type AccountMenuProps = {
   favoritesHydrated: boolean;
   displayName: string;
   mode: "buyer" | "seller" | "all";
+  storeNavSellerId: string | null;
 };
 
 function ChevronDownIcon() {
@@ -18,7 +19,13 @@ function UserIcon() {
   return <User className="h-4.5 w-4.5" strokeWidth={1.5} />;
 }
 
-export function AccountMenu({ favoritesCount, favoritesHydrated, displayName, mode }: AccountMenuProps) {
+export function AccountMenu({
+  favoritesCount,
+  favoritesHydrated,
+  displayName,
+  mode,
+  storeNavSellerId,
+}: AccountMenuProps) {
   return (
     <details className="group relative hidden sm:block">
       <summary className="flex h-10 cursor-pointer list-none items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50">
@@ -41,21 +48,27 @@ export function AccountMenu({ favoritesCount, favoritesHydrated, displayName, mo
               </Link>
             </li>
           ) : null}
-          {mode === "seller" || mode === "all" ? (
+          {storeNavSellerId ? (
             <li>
-              <Link href="/sellers/marina-tech" className="flex items-center rounded-lg px-3 py-2 hover:bg-slate-50">
+              <Link
+                href={`/sellers/${storeNavSellerId}`}
+                className="flex items-center rounded-lg px-3 py-2 hover:bg-slate-50"
+              >
                 Мой магазин
               </Link>
             </li>
           ) : null}
-          {mode === "seller" || mode === "all" ? (
+          {storeNavSellerId ? (
             <li>
-              <Link href="/dashboard/store?sellerId=marina-tech" className="flex items-center rounded-lg px-3 py-2 hover:bg-slate-50">
+              <Link
+                href={`/dashboard/store?sellerId=${storeNavSellerId}`}
+                className="flex items-center rounded-lg px-3 py-2 hover:bg-slate-50"
+              >
                 Кабинет
               </Link>
             </li>
           ) : null}
-          {mode === "buyer" || mode === "all" ? (
+          {mode === "buyer" || mode === "seller" || mode === "all" ? (
             <li>
               <Link href="/favorites" className="flex items-center justify-between rounded-lg px-3 py-2 hover:bg-slate-50">
                 <span>Избранное</span>
@@ -67,7 +80,7 @@ export function AccountMenu({ favoritesCount, favoritesHydrated, displayName, mo
               </Link>
             </li>
           ) : null}
-          {mode === "buyer" || mode === "all" ? (
+          {mode === "buyer" || mode === "seller" || mode === "all" ? (
             <li>
               <Link href="/saved-searches" className="flex items-center rounded-lg px-3 py-2 hover:bg-slate-50">
                 Сохранённые поиски

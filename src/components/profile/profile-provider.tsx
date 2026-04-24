@@ -48,6 +48,8 @@ function getInitialProfile(): ProfilePersistedFields {
   return { ...defaultProfileFields };
 }
 
+const SERVER_PROFILE_SNAPSHOT: ProfilePersistedFields = getInitialProfile();
+
 function parseStoredProfile(raw: string | null): ProfilePersistedFields | null {
   if (!raw) {
     return null;
@@ -150,7 +152,7 @@ function subscribeProfile(onStoreChange: () => void) {
 }
 
 function getServerSnapshot(): ProfilePersistedFields {
-  return getInitialProfile();
+  return SERVER_PROFILE_SNAPSHOT;
 }
 
 function getClientSnapshot(): ProfilePersistedFields {

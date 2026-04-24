@@ -1,6 +1,5 @@
-import { CreateListingForm } from "@/components/create-listing/create-listing-form";
+import { CreateListingPageShell } from "@/components/create-listing/create-listing-page-shell";
 import { Navbar } from "@/components/layout/navbar";
-import { Container } from "@/components/ui/container";
 import { CatalogWorld } from "@/lib/listings";
 
 type CreateListingPageProps = {
@@ -37,23 +36,7 @@ export default async function CreateListingPage({ searchParams }: CreateListingP
   return (
     <div className="min-h-screen bg-slate-50/60">
       <Navbar />
-      <main className="py-6 sm:py-8">
-        <Container className="space-y-4">
-          <header className="space-y-2">
-            <p className="inline-flex rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-sky-700">
-              Публикация объявления
-            </p>
-            <h1 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
-              Подать объявление
-            </h1>
-            <p className="max-w-2xl text-sm text-slate-600 sm:text-base">
-              Заполните форму, выберите тематический мир и опубликуйте объявление за пару минут.
-            </p>
-          </header>
-
-          <CreateListingForm initialWorld={initialWorld} initialIsAuthenticated={initialIsAuthenticated} />
-        </Container>
-      </main>
+      <CreateListingPageShell initialWorld={initialWorld} initialIsAuthenticated={initialIsAuthenticated} />
     </div>
   );
 }

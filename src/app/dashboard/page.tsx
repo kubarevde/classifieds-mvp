@@ -1,5 +1,5 @@
 import { DashboardPageClient } from "@/components/dashboard/dashboard-page-client";
-import Link from "next/link";
+import { DashboardStoreCabinetLink } from "@/components/dashboard/dashboard-store-cabinet-link";
 import { DemoRoleGuard } from "@/components/demo-role/demo-role";
 import { Navbar } from "@/components/layout/navbar";
 import { Container } from "@/components/ui/container";
@@ -38,12 +38,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
               <p className="max-w-2xl text-sm text-slate-600 sm:text-base">
                 Здесь вы можете видеть свои объявления, менять их статус и управлять публикациями.
               </p>
-              <Link
-                href="/dashboard/store?sellerId=marina-tech"
-                className="inline-flex rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
-              >
-                Перейти в кабинет магазина
-              </Link>
+              <DashboardStoreCabinetLink />
             </header>
 
             <DashboardPageClient fromSponsorBoard={fromSponsorBoard} promoteHeroIntent={promoteHeroIntent} />

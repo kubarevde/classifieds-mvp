@@ -1,9 +1,9 @@
 import Link from "next/link";
 
-import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/components/ui/cn";
+import { buttonVariants } from "@/lib/button-styles";
 import { SellerStorefront, getSellerTypeLabel } from "@/lib/sellers";
 
 type SellerCardProps = {

@@ -538,7 +538,7 @@ export default function Home() {
                 href="/create-listing"
                 className="inline-flex items-center justify-center rounded-xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white transition-all duration-200 hover:bg-blue-700"
               >
-                Создать магазин
+                Разместить объявление
               </Link>
               <Link
                 href="/stores"
