@@ -33,6 +33,7 @@ import {
 } from "@/lib/discovery";
 import { getActiveHeroBannerForWorld } from "@/lib/hero-board";
 import type { SavedSearchFilters } from "@/lib/saved-searches";
+import { getWorldLucideIcon } from "@/config/icons";
 import { getWorldPresentation } from "@/lib/worlds";
 
 type ListingsPageClientProps = {
@@ -53,6 +54,7 @@ export function ListingsPageClient({ initialFilters }: ListingsPageClientProps) 
     useState<ElectronicsDiscoveryAnswers | null>(null);
 
   const worldPresentation = useMemo(() => getWorldPresentation(world), [world]);
+  const WorldHeroIcon = getWorldLucideIcon(world);
   const worldScopedListings = useMemo(() => getWorldScopedListings(world), [world]);
   const categoryOptions = useMemo(() => getCategoryOptionsForWorld(world), [world]);
   const quickFilters = useMemo(() => worldQuickFilters[world], [world]);
@@ -217,7 +219,9 @@ export function ListingsPageClient({ initialFilters }: ListingsPageClientProps) 
             <div className="space-y-2">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] opacity-80">Immersive world mode</p>
               <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-                <span className="mr-2">{worldPresentation.heroIcon}</span>
+                <span className="mr-2 inline-flex shrink-0 align-middle" aria-hidden>
+                  <WorldHeroIcon className="h-7 w-7 sm:h-8 sm:w-8" strokeWidth={1.5} />
+                </span>
                 {worldPresentation.title}
               </h2>
               <p className="text-sm opacity-90 sm:max-w-2xl sm:text-base">{worldPresentation.heroDescription}</p>

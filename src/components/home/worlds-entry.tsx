@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { Container } from "@/components/ui/container";
+import { getWorldLucideIcon } from "@/config/icons";
 import { getWorldPresentation } from "@/lib/worlds";
 
 const worldCards = [
@@ -24,7 +25,9 @@ export function WorldsEntry() {
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {worldCards.map((world) => (
+          {worldCards.map((world) => {
+            const WorldCardIcon = getWorldLucideIcon(world.world);
+            return (
             <article
               key={world.world}
               className={`relative overflow-hidden rounded-3xl border p-5 shadow-sm ${world.homeCardToneClass}`}
@@ -33,7 +36,9 @@ export function WorldsEntry() {
               <div className="relative flex items-start justify-between gap-3">
                 <div>
                   <p className={`text-sm font-semibold ${world.homeCardAccentClass}`}>
-                    <span className="mr-1">{world.heroIcon}</span>
+                    <span className="mr-1 inline-flex shrink-0 align-middle" aria-hidden>
+                      <WorldCardIcon className="h-4 w-4" strokeWidth={1.5} />
+                    </span>
                     {world.title}
                   </p>
                   <p className={`mt-2 text-sm ${world.world === "electronics" ? "text-slate-100/90" : "text-slate-600"}`}>
@@ -71,7 +76,8 @@ export function WorldsEntry() {
                 </Link>
               </div>
             </article>
-          ))}
+            );
+          })}
         </div>
       </Container>
     </section>

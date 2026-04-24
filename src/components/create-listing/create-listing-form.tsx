@@ -23,6 +23,7 @@ import {
   getWorldLabel,
   worldOptions,
 } from "@/lib/listings";
+import { getWorldLucideIcon } from "@/config/icons";
 import { defaultProfileFields } from "@/lib/profile-mock";
 import { getWorldPresentation } from "@/lib/worlds";
 
@@ -119,6 +120,7 @@ export function CreateListingForm({
     [formData.world, formData.category],
   );
   const worldPresentation = useMemo(() => getWorldPresentation(formData.world), [formData.world]);
+  const WorldHeroIcon = getWorldLucideIcon(formData.world);
 
   function resetForm() {
     images.forEach((image) => URL.revokeObjectURL(image.previewUrl));
@@ -288,7 +290,9 @@ export function CreateListingForm({
           <div className="relative space-y-2">
             <p className="text-xs font-semibold uppercase tracking-wide opacity-80">Контекст публикации</p>
             <h3 className="text-lg font-semibold tracking-tight">
-              <span className="mr-1">{worldPresentation.heroIcon}</span>
+              <span className="mr-1 inline-flex shrink-0 align-middle" aria-hidden>
+                <WorldHeroIcon className="h-5 w-5" strokeWidth={1.5} />
+              </span>
               {worldPresentation.title}
             </h3>
             <p className="text-sm opacity-90">{worldPresentation.subtitle}</p>

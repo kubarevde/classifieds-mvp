@@ -1,3 +1,4 @@
+import type { LucideIcon } from "lucide-react";
 import {
   BarChart2,
   Bell,
@@ -36,6 +37,14 @@ export const WORLD_ICONS = {
   services: Wrench,
   jobs: Briefcase,
 } as const;
+
+export function getWorldLucideIcon(worldId: string): LucideIcon {
+  if (worldId === "all") {
+    return Globe;
+  }
+  const Icon = WORLD_ICONS[worldId as keyof typeof WORLD_ICONS];
+  return Icon ?? Zap;
+}
 
 export const STATUS_ICONS = {
   available: CheckCircle2,
