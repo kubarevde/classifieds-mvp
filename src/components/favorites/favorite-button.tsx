@@ -4,6 +4,8 @@ import { MouseEvent } from "react";
 import { Heart } from "lucide-react";
 
 import { useFavorites } from "@/components/favorites/favorites-provider";
+import Button from "@/components/ui/button";
+import { cn } from "@/components/ui/cn";
 
 type FavoriteButtonProps = {
   listingId: string;
@@ -32,32 +34,47 @@ export function FavoriteButton({
     toggleFavorite(listingId);
   };
 
-  const sizeClass = size === "sm" ? "h-8 w-8" : "h-9 w-9";
   const iconSizeClass = size === "sm" ? "h-4 w-4" : "h-5 w-5";
+  const iconSlot = (
+    <Heart
+      className={iconSizeClass}
+      fill={favorite ? "currentColor" : "none"}
+      strokeWidth={1.5}
+      aria-hidden="true"
+    />
+  );
+
+  const buttonSize = showLabel
+    ? size === "sm"
+      ? "sm"
+      : "md"
+    : size === "sm"
+      ? "iconSm"
+      : "iconMd";
 
   return (
-    <button
+    <Button
       type="button"
+      variant="ghost"
+      size={buttonSize}
       onClick={handleClick}
       aria-pressed={favorite}
       aria-label={favorite ? "Убрать из избранного" : "Добавить в избранное"}
-      className={`inline-flex items-center justify-center rounded-full border transition ${
+      leftIcon={iconSlot}
+      className={cn(
+        "rounded-full border",
         favorite
           ? "border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100"
-          : "border-slate-200 bg-white/90 text-slate-600 hover:border-slate-300 hover:bg-white hover:text-slate-900"
-      } ${sizeClass} ${className}`}
+          : "border-slate-200 bg-white/90 text-slate-600 hover:border-slate-300 hover:bg-white hover:text-slate-900",
+        showLabel ? "w-auto gap-2 px-3" : "",
+        className,
+      )}
     >
-      <Heart
-        className={iconSizeClass}
-        fill={favorite ? "currentColor" : "none"}
-        strokeWidth={1.5}
-        aria-hidden="true"
-      />
       {showLabel ? (
-        <span className="ml-2 text-sm font-medium">
+        <span className="text-sm font-medium">
           {isHydrated ? (favorite ? "В избранном" : "В избранное") : "В избранное"}
         </span>
       ) : null}
-    </button>
+    </Button>
   );
 }

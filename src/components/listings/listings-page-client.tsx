@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useLayoutEffect, useMemo, useState } from "react";
+import { createElement, useMemo, useState } from "react";
 
 import { HeroBoardPlacementCard } from "@/components/hero-board/hero-board-placement-card";
 import { DiscoveryFlowModal } from "@/components/agriculture/discovery-flow-modal";
@@ -31,14 +31,9 @@ import {
   resolveDiscoveryListings,
   resolveElectronicsDiscoveryListings,
 } from "@/lib/discovery";
-import {
-  type HeroBannerPlacement,
-  getActiveHeroBannersForWorld,
-  getHeroBoardSessionRotationToken,
-  pickRotatedWorldHeroPlacement,
-} from "@/lib/hero-board";
+import { getActiveHeroBannersForWorld, pickRotatedWorldHeroPlacement } from "@/lib/hero-board";
 import type { SavedSearchFilters } from "@/lib/saved-searches";
-import { getWorldLucideIcon } from "@/config/icons";
+import { catalogWorldLucideIcons } from "@/config/icons";
 import { getWorldPresentation } from "@/lib/worlds";
 
 type ListingsPageClientProps = {
@@ -59,7 +54,7 @@ export function ListingsPageClient({ initialFilters }: ListingsPageClientProps) 
     useState<ElectronicsDiscoveryAnswers | null>(null);
 
   const worldPresentation = useMemo(() => getWorldPresentation(world), [world]);
-  const WorldHeroIcon = getWorldLucideIcon(world);
+  const worldHeroIcon = catalogWorldLucideIcons[world];
   const worldScopedListings = useMemo(() => getWorldScopedListings(world), [world]);
   const categoryOptions = useMemo(() => getCategoryOptionsForWorld(world), [world]);
   const quickFilters = useMemo(() => worldQuickFilters[world], [world]);
@@ -175,32 +170,13 @@ export function ListingsPageClient({ initialFilters }: ListingsPageClientProps) 
 
   const discoveryPreviewText = activeDiscoveryListings.slice(0, 3).map((item) => item.title).join(" · ");
 
-  const stableWorldHero = useMemo(
-    () => (world === "all" ? null : (getActiveHeroBannersForWorld(world)[0] ?? null)),
-    [world],
-  );
-
-  const [worldHeroPick, setWorldHeroPick] = useState<{
-    world: CatalogWorld;
-    placement: HeroBannerPlacement | null;
-  } | null>(null);
-
-  useLayoutEffect(() => {
+  const worldHeroPlacement = useMemo(() => {
     if (world === "all") {
-      setWorldHeroPick({ world: "all", placement: null });
-      return;
+      return null;
     }
     const candidates = getActiveHeroBannersForWorld(world);
-    const placement = pickRotatedWorldHeroPlacement(candidates, world, getHeroBoardSessionRotationToken());
-    setWorldHeroPick({ world, placement });
+    return pickRotatedWorldHeroPlacement(candidates, world, "");
   }, [world]);
-
-  const worldHeroPlacement =
-    world === "all"
-      ? null
-      : worldHeroPick?.world === world
-        ? worldHeroPick.placement
-        : stableWorldHero;
 
   const railsWithListings = useMemo(() => {
     if (world === "all") {
@@ -248,7 +224,10 @@ export function ListingsPageClient({ initialFilters }: ListingsPageClientProps) 
               <p className="text-xs font-semibold uppercase tracking-[0.2em] opacity-80">Immersive world mode</p>
               <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
                 <span className="mr-2 inline-flex shrink-0 align-middle" aria-hidden>
-                  <WorldHeroIcon className="h-7 w-7 sm:h-8 sm:w-8" strokeWidth={1.5} />
+                  {createElement(worldHeroIcon, {
+                    className: "h-7 w-7 sm:h-8 sm:w-8",
+                    strokeWidth: 1.5,
+                  })}
                 </span>
                 {worldPresentation.title}
               </h2>

@@ -1,5 +1,9 @@
 import Link from "next/link";
 
+import { buttonVariants } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { cn } from "@/components/ui/cn";
 import { SellerStorefront, getSellerTypeLabel } from "@/lib/sellers";
 
 type SellerCardProps = {
@@ -9,13 +13,6 @@ type SellerCardProps = {
   listingTitle: string;
   storefront?: SellerStorefront | null;
 };
-
-const primaryButtonClassName =
-  "block w-full rounded-xl bg-slate-900 px-4 py-3 text-center text-sm font-semibold text-white transition hover:bg-slate-700 active:scale-[0.99]";
-const secondaryButtonClassName =
-  "block w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-center text-sm font-semibold text-slate-700 transition hover:bg-slate-50 active:scale-[0.99]";
-const neutralButtonClassName =
-  "block w-full rounded-xl bg-slate-100 px-4 py-3 text-center text-sm font-semibold text-slate-900 transition hover:bg-slate-200 active:scale-[0.99]";
 
 export function SellerCard({
   sellerName,
@@ -30,13 +27,13 @@ export function SellerCard({
   const storeHref = storefront ? `/sellers/${storefront.id}` : "/listings";
 
   return (
-    <aside className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <Card className="overflow-hidden">
       <div
         className={`h-20 bg-gradient-to-br ${
           storefront?.heroGradientClass ?? "from-slate-900 via-slate-700 to-slate-500"
         }`}
       />
-      <div className="space-y-4 p-4">
+      <CardContent className="space-y-4 p-4">
         <section className="space-y-3">
           <div className="flex items-start gap-3">
             <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-slate-900 text-sm font-semibold text-white">
@@ -61,12 +58,9 @@ export function SellerCard({
           {trustSignals.length ? (
             <div className="flex flex-wrap gap-1.5">
               {trustSignals.map((signal) => (
-                <span
-                  key={signal.id}
-                  className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-medium text-slate-700"
-                >
+                <Badge key={signal.id} variant="secondary" size="sm" className="font-medium text-slate-700">
                   {signal.label}
-                </span>
+                </Badge>
               ))}
             </div>
           ) : null}
@@ -82,20 +76,32 @@ export function SellerCard({
                 listingTitle,
               },
             }}
-            className={primaryButtonClassName}
+            className={cn(buttonVariants({ variant: "primary", size: "md" }), "w-full text-center")}
           >
             Написать продавцу
           </Link>
-          <button type="button" className={secondaryButtonClassName}>
+          <button
+            type="button"
+            className={cn(buttonVariants({ variant: "secondary", size: "md" }), "w-full")}
+          >
             Показать телефон: {sellerPhone}
           </button>
         </section>
 
         <section className="space-y-2 border-t border-slate-100 pt-4">
-          <Link href={allListingsHref} className={secondaryButtonClassName}>
+          <Link
+            href={allListingsHref}
+            className={cn(buttonVariants({ variant: "secondary", size: "md" }), "w-full text-center")}
+          >
             Все объявления продавца
           </Link>
-          <Link href={storeHref} className={neutralButtonClassName}>
+          <Link
+            href={storeHref}
+            className={cn(
+              buttonVariants({ variant: "ghost", size: "md" }),
+              "w-full bg-slate-100 text-center text-slate-900 hover:bg-slate-200",
+            )}
+          >
             Открыть магазин
           </Link>
         </section>
@@ -108,7 +114,7 @@ export function SellerCard({
             </Link>
           </p>
         ) : null}
-      </div>
-    </aside>
+      </CardContent>
+    </Card>
   );
 }

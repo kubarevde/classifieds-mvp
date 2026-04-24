@@ -1,7 +1,8 @@
 import Link from "next/link";
+import { createElement } from "react";
 
 import { Container } from "@/components/ui/container";
-import { getWorldLucideIcon } from "@/config/icons";
+import { catalogWorldLucideIcons } from "@/config/icons";
 import { getWorldPresentation } from "@/lib/worlds";
 
 const worldCards = [
@@ -26,7 +27,7 @@ export function WorldsEntry() {
 
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {worldCards.map((world) => {
-            const WorldCardIcon = getWorldLucideIcon(world.world);
+            const worldCardIcon = catalogWorldLucideIcons[world.world];
             return (
             <article
               key={world.world}
@@ -37,7 +38,7 @@ export function WorldsEntry() {
                 <div>
                   <p className={`text-sm font-semibold ${world.homeCardAccentClass}`}>
                     <span className="mr-1 inline-flex shrink-0 align-middle" aria-hidden>
-                      <WorldCardIcon className="h-4 w-4" strokeWidth={1.5} />
+                      {createElement(worldCardIcon, { className: "h-4 w-4", strokeWidth: 1.5 })}
                     </span>
                     {world.title}
                   </p>

@@ -66,9 +66,11 @@ export function DemoRoleProvider({ children }: DemoRoleProviderProps) {
   const [isHydrated, setIsHydrated] = useState(false);
 
   useEffect(() => {
-    const saved = normalizeRole(window.localStorage.getItem(STORAGE_KEY));
-    setRoleState(saved);
-    setIsHydrated(true);
+    void Promise.resolve().then(() => {
+      const saved = normalizeRole(window.localStorage.getItem(STORAGE_KEY));
+      setRoleState(saved);
+      setIsHydrated(true);
+    });
   }, []);
 
   const setRole = (nextRole: DemoRole) => {

@@ -1,6 +1,8 @@
 import Link from "next/link";
 
 import { FavoriteButton } from "@/components/favorites/favorite-button";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/components/ui/cn";
 import { getListingBadges, ListingsView, UnifiedCatalogListing } from "@/lib/listings";
 import { getListingMarketingBadgeData } from "@/lib/sellers";
 
@@ -20,7 +22,7 @@ export function ListingPreviewCard({ listing, view }: ListingPreviewCardProps) {
     marketing.isSuper ? "Суперобъявление" : null,
     marketing.isSponsored ? "Продвижение" : null,
   ].filter((badge): badge is string => Boolean(badge));
-  const badgeToneClass = (tone: "agriculture" | "electronics") =>
+  const catalogBadgeClass = (tone: "agriculture" | "electronics") =>
     tone === "agriculture"
       ? "border-emerald-200 bg-emerald-50 text-emerald-800"
       : "border-slate-300 bg-[linear-gradient(to_bottom,#ffffff,#eef3fa)] text-slate-700 shadow-sm";
@@ -55,24 +57,23 @@ export function ListingPreviewCard({ listing, view }: ListingPreviewCardProps) {
             {badges.length ? (
               <div className="flex flex-wrap gap-1.5">
                 {badges.map((badge) => (
-                  <span
+                  <Badge
                     key={badge.id}
-                    className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${badgeToneClass(badge.tone)}`}
+                    variant="outline"
+                    size="sm"
+                    className={cn("font-medium", catalogBadgeClass(badge.tone))}
                   >
                     {badge.label}
-                  </span>
+                  </Badge>
                 ))}
               </div>
             ) : null}
             {promotionBadges.length ? (
               <div className="flex flex-wrap gap-1.5">
                 {promotionBadges.map((badge) => (
-                  <span
-                    key={badge}
-                    className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-medium text-slate-700"
-                  >
+                  <Badge key={badge} variant="outline" size="sm" className="font-medium text-slate-700">
                     {badge}
-                  </span>
+                  </Badge>
                 ))}
               </div>
             ) : null}
@@ -101,24 +102,23 @@ export function ListingPreviewCard({ listing, view }: ListingPreviewCardProps) {
           {badges.length ? (
             <div className="flex flex-wrap gap-1.5">
               {badges.map((badge) => (
-                <span
+                <Badge
                   key={badge.id}
-                  className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${badgeToneClass(badge.tone)}`}
+                  variant="outline"
+                  size="sm"
+                  className={cn("font-medium", catalogBadgeClass(badge.tone))}
                 >
                   {badge.label}
-                </span>
+                </Badge>
               ))}
             </div>
           ) : null}
           {promotionBadges.length ? (
             <div className="flex flex-wrap gap-1.5">
               {promotionBadges.map((badge) => (
-                <span
-                  key={badge}
-                  className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-medium text-slate-700"
-                >
+                <Badge key={badge} variant="outline" size="sm" className="font-medium text-slate-700">
                   {badge}
-                </span>
+                </Badge>
               ))}
             </div>
           ) : null}
@@ -154,24 +154,23 @@ export function ListingPreviewCard({ listing, view }: ListingPreviewCardProps) {
           {badges.length ? (
             <div className="flex flex-wrap gap-1.5">
               {badges.map((badge) => (
-                <span
+                <Badge
                   key={badge.id}
-                  className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${badgeToneClass(badge.tone)}`}
+                  variant="outline"
+                  size="sm"
+                  className={cn("font-medium", catalogBadgeClass(badge.tone))}
                 >
                   {badge.label}
-                </span>
+                </Badge>
               ))}
             </div>
           ) : null}
           {promotionBadges.length ? (
             <div className="flex flex-wrap gap-1.5">
               {promotionBadges.map((badge) => (
-                <span
-                  key={badge}
-                  className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-medium text-slate-700"
-                >
+                <Badge key={badge} variant="outline" size="sm" className="font-medium text-slate-700">
                   {badge}
-                </span>
+                </Badge>
               ))}
             </div>
           ) : null}
@@ -201,24 +200,23 @@ export function ListingPreviewCard({ listing, view }: ListingPreviewCardProps) {
         {badges.length ? (
           <div className="flex flex-wrap gap-1.5">
             {badges.map((badge) => (
-              <span
+              <Badge
                 key={badge.id}
-                className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${badgeToneClass(badge.tone)}`}
+                variant="outline"
+                size="sm"
+                className={cn("font-medium", catalogBadgeClass(badge.tone))}
               >
                 {badge.label}
-              </span>
+              </Badge>
             ))}
           </div>
         ) : null}
         {promotionBadges.length ? (
           <div className="flex flex-wrap gap-1.5">
             {promotionBadges.map((badge) => (
-              <span
-                key={badge}
-                className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-medium text-slate-700"
-              >
+              <Badge key={badge} variant="outline" size="sm" className="font-medium text-slate-700">
                 {badge}
-              </span>
+              </Badge>
             ))}
           </div>
         ) : null}

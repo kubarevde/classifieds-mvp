@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChangeEvent, FormEvent, useMemo, useState } from "react";
+import { ChangeEvent, createElement, FormEvent, useMemo, useState } from "react";
 import { CheckCircle2 } from "lucide-react";
 
 import { FormField } from "@/components/create-listing/form-field";
@@ -23,7 +23,7 @@ import {
   getWorldLabel,
   worldOptions,
 } from "@/lib/listings";
-import { getWorldLucideIcon } from "@/config/icons";
+import { catalogWorldLucideIcons } from "@/config/icons";
 import { defaultProfileFields } from "@/lib/profile-mock";
 import { getWorldPresentation } from "@/lib/worlds";
 
@@ -120,7 +120,7 @@ export function CreateListingForm({
     [formData.world, formData.category],
   );
   const worldPresentation = useMemo(() => getWorldPresentation(formData.world), [formData.world]);
-  const WorldHeroIcon = getWorldLucideIcon(formData.world);
+  const worldHeroIcon = catalogWorldLucideIcons[formData.world];
 
   function resetForm() {
     images.forEach((image) => URL.revokeObjectURL(image.previewUrl));
@@ -291,7 +291,7 @@ export function CreateListingForm({
             <p className="text-xs font-semibold uppercase tracking-wide opacity-80">Контекст публикации</p>
             <h3 className="text-lg font-semibold tracking-tight">
               <span className="mr-1 inline-flex shrink-0 align-middle" aria-hidden>
-                <WorldHeroIcon className="h-5 w-5" strokeWidth={1.5} />
+                {createElement(worldHeroIcon, { className: "h-5 w-5", strokeWidth: 1.5 })}
               </span>
               {worldPresentation.title}
             </h3>
