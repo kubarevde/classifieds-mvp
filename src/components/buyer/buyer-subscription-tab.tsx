@@ -70,6 +70,7 @@ export function BuyerSubscriptionTab() {
         <h3 className="text-base font-semibold text-slate-900">Преимущества Pro</h3>
         <ul className="mt-2 space-y-1 text-sm text-slate-600">
           <li>Полный доступ к AI-помощнику в форме объявления.</li>
+          <li>Создание аукционов для частных пользователей (Pro и выше).</li>
           <li>Интеллектуальные рекомендации по заполнению карточки.</li>
           <li>Умные подсказки по улучшению качества объявления.</li>
           <li>Приоритетная поддержка и будущие premium-функции.</li>

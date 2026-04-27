@@ -91,6 +91,7 @@ export const worldCategoryCatalog: Record<Exclude<CatalogWorld, "all">, UnifiedC
 
 const baseCatalogListings: UnifiedCatalogListing[] = allListings.map((listing) => ({
   id: listing.id,
+  listingSaleMode: listing.listingSaleMode ?? "fixed",
   title: listing.title,
   price: listing.price,
   priceValue: listing.priceValue,
@@ -111,6 +112,7 @@ const baseCatalogListings: UnifiedCatalogListing[] = allListings.map((listing) =
 
 const agricultureCatalogListingsBase: UnifiedCatalogListing[] = agricultureListings.map((listing) => ({
   id: listing.id,
+  listingSaleMode: "fixed",
   title: listing.title,
   price: listing.price,
   priceValue: listing.priceValue,
@@ -132,6 +134,7 @@ const electronicsCatalogListingsBase: UnifiedCatalogListing[] = electronicsListi
   const mapped = mapElectronicsCategoryToWorldCategory(listing.categoryId);
   return {
     id: listing.id,
+    listingSaleMode: "fixed",
     title: listing.title,
     price: listing.price,
     priceValue: listing.priceValue,
@@ -202,6 +205,7 @@ export const servicesCatalogListings: UnifiedCatalogListing[] = baseCatalogListi
 export const jobsCatalogListings: UnifiedCatalogListing[] = [
   {
     id: "jobs-1",
+    listingSaleMode: "fixed",
     title: "Менеджер по продажам в магазин электроники",
     price: "от 90 000 ₽ / мес",
     priceValue: 90000,
@@ -220,6 +224,7 @@ export const jobsCatalogListings: UnifiedCatalogListing[] = [
   },
   {
     id: "jobs-2",
+    listingSaleMode: "fixed",
     title: "Резюме: Специалист по digital-продвижению",
     price: "ожидание 110 000 ₽ / мес",
     priceValue: 110000,

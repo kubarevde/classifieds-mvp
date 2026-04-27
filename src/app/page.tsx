@@ -3,16 +3,25 @@ import Link from "next/link";
 
 import { WORLD_ICONS } from "@/config/icons";
 import { Navbar } from "@/components/layout/navbar";
+import { PageShell } from "@/components/platform";
 import { CatalogWorld, worldOptions } from "@/lib/listings";
+import { WorldCard } from "@/components/worlds/world-identity";
+import { getWorldAudienceChips, getWorldOnlineStats } from "@/lib/worlds.community";
+import { mockListingsService } from "@/services/listings";
 
-const quickFilters = ["Новые сегодня", "С доставкой", "До 50 000 ₽", "Рядом"];
+const quickFilters: { label: string; href: string }[] = [
+  { label: "Новые сегодня", href: "/listings?sort=newest" },
+  { label: "С доставкой", href: "/listings?q=доставка" },
+  { label: "До 50 000 ₽", href: "/listings?sort=price_asc&q=50000" },
+  { label: "Только аукционы", href: "/listings?saleMode=auction" },
+];
 
 const quickCategories = worldOptions
   .filter((world): world is (typeof worldOptions)[number] & { id: Exclude<CatalogWorld, "all"> } => world.id !== "all")
   .map((world) => ({
     id: world.id,
     label: world.label,
-    href: `/listings?world=${world.id}`,
+    href: `/worlds/${world.id}`,
   }));
 
 const heroCards = [
@@ -54,33 +63,6 @@ const stats = [
   { value: "850+", label: "магазинов" },
   { value: "120", label: "городов" },
 ];
-
-const worldTones: Record<Exclude<CatalogWorld, "all">, { gradient: string; tint: string }> = {
-  electronics: {
-    gradient: "from-blue-600 to-indigo-600",
-    tint: "bg-blue-50 text-blue-700 ring-1 ring-blue-200",
-  },
-  autos: {
-    gradient: "from-orange-500 to-red-500",
-    tint: "bg-orange-50 text-orange-700 ring-1 ring-orange-200",
-  },
-  agriculture: {
-    gradient: "from-emerald-600 to-green-600",
-    tint: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200",
-  },
-  real_estate: {
-    gradient: "from-violet-600 to-purple-600",
-    tint: "bg-violet-50 text-violet-700 ring-1 ring-violet-200",
-  },
-  services: {
-    gradient: "from-cyan-600 to-sky-600",
-    tint: "bg-cyan-50 text-cyan-700 ring-1 ring-cyan-200",
-  },
-  jobs: {
-    gradient: "from-slate-700 to-blue-700",
-    tint: "bg-slate-100 text-slate-700 ring-1 ring-slate-200",
-  },
-};
 
 const stores = [
   {
@@ -145,74 +127,23 @@ const stores = [
   },
 ];
 
-const listings = [
-  {
-    title: "iPhone 15 Pro 256GB",
-    price: "75 000 ₽",
-    meta: "Воронеж, 2 часа назад",
-    category: "Электроника",
-    href: "/listings",
-    visual: "from-blue-500 to-indigo-500",
-  },
-  {
-    title: "Toyota Camry 2020",
-    price: "2 100 000 ₽",
-    meta: "Москва, 5 часов назад",
-    category: "Авто",
-    href: "/listings",
-    visual: "from-orange-500 to-red-500",
-  },
-  {
-    title: "Трактор МТЗ-82",
-    price: "450 000 ₽",
-    meta: "Краснодар, вчера",
-    category: "Агро",
-    href: "/listings?world=agriculture",
-    visual: "from-emerald-500 to-green-500",
-  },
-  {
-    title: "Квартира 3к, центр",
-    price: "4 500 000 ₽",
-    meta: "Воронеж, 3 часа назад",
-    category: "Недвижимость",
-    href: "/listings?world=real_estate",
-    visual: "from-fuchsia-500 to-pink-500",
-  },
-  {
-    title: "MacBook Pro M3",
-    price: "120 000 ₽",
-    meta: "СПб, 1 час назад",
-    category: "Электроника",
-    href: "/listings?world=electronics",
-    visual: "from-sky-500 to-blue-500",
-  },
-  {
-    title: "Семена томатов (опт)",
-    price: "3 500 ₽",
-    meta: "Ростов, 6 часов назад",
-    category: "Агро",
-    href: "/listings?world=agriculture",
-    visual: "from-lime-500 to-emerald-500",
-  },
-  {
-    title: "Ремонт квартир под ключ",
-    price: "от 3 000 ₽/м²",
-    meta: "Воронеж, сегодня",
-    category: "Услуги",
-    href: "/listings?world=services",
-    visual: "from-cyan-500 to-blue-500",
-  },
-  {
-    title: "Шины Michelin 205/55 R16",
-    price: "12 000 ₽",
-    meta: "Казань, 4 часа назад",
-    category: "Авто",
-    href: "/listings?world=autos",
-    visual: "from-amber-500 to-orange-500",
-  },
-];
+const listingVisuals = [
+  "from-blue-500 to-indigo-500",
+  "from-orange-500 to-red-500",
+  "from-emerald-500 to-green-500",
+  "from-fuchsia-500 to-pink-500",
+  "from-sky-500 to-blue-500",
+  "from-lime-500 to-emerald-500",
+  "from-cyan-500 to-blue-500",
+  "from-amber-500 to-orange-500",
+] as const;
 
-export default function Home() {
+export default async function Home() {
+  const catalogListings = await mockListingsService.getAll();
+  const latestListings = [...catalogListings]
+    .sort((a, b) => new Date(b.postedAtIso).getTime() - new Date(a.postedAtIso).getTime())
+    .slice(0, 8);
+
   return (
     <div className="min-h-screen overflow-x-hidden bg-slate-50 text-slate-950">
       <Navbar />
@@ -266,11 +197,11 @@ export default function Home() {
                 <div className="flex flex-wrap gap-2">
                   {quickFilters.map((filter) => (
                     <Link
-                      key={filter}
-                      href={`/listings?filter=${encodeURIComponent(filter)}`}
+                      key={filter.label}
+                      href={filter.href}
                       className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700 transition-all duration-200 hover:border-slate-300 hover:bg-white"
                     >
-                      {filter}
+                      {filter.label}
                     </Link>
                   ))}
                 </div>
@@ -325,7 +256,7 @@ export default function Home() {
         </section>
 
         <section className="bg-slate-900 py-16 text-white">
-          <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+          <PageShell as="div" containerOnly>
             <div className="grid gap-6 md:grid-cols-4 md:divide-x md:divide-white/15">
               {stats.map((stat) => (
                 <div key={stat.label} className="space-y-1 text-center">
@@ -334,67 +265,55 @@ export default function Home() {
                 </div>
               ))}
             </div>
-          </div>
+          </PageShell>
         </section>
 
-        <section id="worlds" className="py-16">
-          <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="mb-8 space-y-2">
-              <h2 className="text-3xl font-black tracking-tight text-slate-950">
-                Выбери свой мир
-              </h2>
-              <p className="text-slate-600">Все миры проекта с актуальными ссылками на существующий каталог</p>
-            </div>
-            <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
+        <PageShell
+          id="worlds"
+          className="py-16"
+          title="Выбери свой мир"
+          subtitle="Все миры проекта с актуальными ссылками на существующий каталог"
+          titleClassName="text-3xl font-black tracking-tight text-slate-950"
+          subtitleClassName="text-slate-600"
+        >
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
               {quickCategories.map((world) => {
-                const worldMeta = worldOptions.find((item) => item.id === world.id);
-                if (!worldMeta) {
-                  return null;
-                }
-                const Icon = WORLD_ICONS[world.id];
-                const tone = worldTones[world.id];
+                const listingsCount = catalogListings.filter(
+                  (listing) => listing.world === world.id,
+                ).length;
+                const online = getWorldOnlineStats(world.id);
+                const chips = getWorldAudienceChips(world.id);
                 return (
-                  <Link
+                  <WorldCard
                     key={world.id}
+                    worldId={world.id}
+                    listingsCount={listingsCount}
+                    usersOnline={online.usersOnline}
+                    shopsOnline={online.shopsOnline}
+                    chips={chips}
                     href={world.href}
-                    className="group rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-xl"
-                  >
-                    <div className="space-y-4">
-                      <span className={`inline-flex rounded-full p-2 ${tone.tint}`}>
-                        <Icon className="h-7 w-7" strokeWidth={1.5} />
-                      </span>
-                      <div aria-hidden className={`h-1.5 rounded-full bg-gradient-to-r ${tone.gradient}`} />
-                      <div className="space-y-1">
-                        <h3 className="text-base font-bold text-slate-900">{worldMeta.label}</h3>
-                        <p className="text-sm text-slate-600">{worldMeta.description}</p>
-                        <p className="pt-2 text-sm font-semibold text-slate-900">Войти →</p>
-                      </div>
-                    </div>
-                  </Link>
+                    ctaLabel="Войти в мир"
+                  />
                 );
               })}
             </div>
-          </div>
-        </section>
+        </PageShell>
 
-        <section className="py-16">
-          <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="mb-5 flex items-end justify-between">
-              <div>
-                <h2 className="text-2xl font-semibold tracking-tight text-slate-900">
-                  Проверенные магазины
-                </h2>
-                <p className="mt-1 text-sm text-slate-600">
-                  Продавцы с витриной, рейтингом и постоянными покупателями
-                </p>
-              </div>
-              <Link
-                href="/stores"
-                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-              >
-                Смотреть все <ChevronRight className="ml-1 inline h-4 w-4" strokeWidth={1.5} />
-              </Link>
-            </div>
+        <PageShell
+          className="py-16"
+          title="Проверенные магазины"
+          subtitle="Продавцы с витриной, рейтингом и постоянными покупателями"
+          titleClassName="text-2xl font-semibold tracking-tight text-slate-900"
+          subtitleClassName="text-sm text-slate-600"
+          actions={
+            <Link
+              href="/stores"
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+            >
+              Смотреть все <ChevronRight className="ml-1 inline h-4 w-4" strokeWidth={1.5} />
+            </Link>
+          }
+        >
             <div className="flex gap-4 overflow-x-auto pb-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
               {stores.map((store) => (
                 <article
@@ -431,40 +350,37 @@ export default function Home() {
                 </article>
               ))}
             </div>
-          </div>
-        </section>
+        </PageShell>
 
-        <section className="py-16">
-          <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="mb-8 flex flex-wrap items-end justify-between gap-3">
-              <div className="space-y-2">
-                <h2 className="text-3xl font-black tracking-tight text-slate-950">
-                  Свежие объявления
-                </h2>
-              </div>
-              <Link
-                href="/listings"
-                className="text-sm font-semibold text-blue-700 transition-all duration-200 hover:text-blue-800"
-              >
-                Смотреть все →
-              </Link>
-            </div>
+        <PageShell
+          className="py-16"
+          title="Свежие объявления"
+          titleClassName="text-3xl font-black tracking-tight text-slate-950"
+          actions={
+            <Link
+              href="/listings"
+              className="text-sm font-semibold text-blue-700 transition-all duration-200 hover:text-blue-800"
+            >
+              Смотреть все →
+            </Link>
+          }
+        >
             <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-              {listings.map((listing) => (
+              {latestListings.map((listing, index) => (
                 <Link
-                  key={listing.title}
-                  href={listing.href}
+                  key={listing.id}
+                  href={listing.detailsHref ?? "/listings"}
                   className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-xl"
                 >
                   <div className="relative h-48 overflow-hidden">
                     <div
                       aria-hidden
-                      className={`h-full w-full bg-gradient-to-br ${listing.visual}`}
+                      className={`h-full w-full bg-gradient-to-br ${listingVisuals[index % listingVisuals.length]}`}
                     >
                       <div className="h-full w-full bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.32),transparent_45%),radial-gradient(circle_at_80%_70%,rgba(255,255,255,0.22),transparent_45%)]" />
                     </div>
                     <span className="absolute left-3 top-3 rounded-full bg-white/90 px-2.5 py-1 text-xs font-medium text-slate-700">
-                      {listing.category}
+                      {listing.categoryLabel}
                     </span>
                     <span className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-slate-700 transition-all duration-200">
                       <Heart className="h-4 w-4" strokeWidth={1.5} />
@@ -475,16 +391,15 @@ export default function Home() {
                       {listing.title}
                     </h3>
                     <p className="text-lg font-bold text-slate-950">{listing.price}</p>
-                    <p className="text-sm text-slate-500">{listing.meta}</p>
+                    <p className="text-sm text-slate-500">{listing.location}, {listing.publishedAt}</p>
                   </div>
                 </Link>
               ))}
             </div>
-          </div>
-        </section>
+        </PageShell>
 
         <section className="py-16">
-          <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+          <PageShell as="div" containerOnly>
             <div className="overflow-hidden rounded-3xl bg-gradient-to-r from-slate-950 via-slate-900 to-blue-950 p-8 text-white shadow-2xl sm:p-10">
               <div className="grid gap-8 lg:grid-cols-[1.4fr_1fr] lg:items-center">
                 <div className="space-y-4">
@@ -519,11 +434,11 @@ export default function Home() {
                 </div>
               </div>
             </div>
-          </div>
+          </PageShell>
         </section>
 
         <section className="bg-slate-100 py-16">
-          <div className="mx-auto w-full max-w-4xl px-4 text-center sm:px-6 lg:px-8">
+          <PageShell as="div" containerOnly maxWidthClassName="max-w-4xl" className="text-center">
             <div className="space-y-4">
               <h2 className="text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">
                 Готов продавать?
@@ -558,7 +473,7 @@ export default function Home() {
                 <CheckCircle2 className="mr-1 inline h-4 w-4 text-emerald-500" strokeWidth={1.5} /> Поддержка 24/7
               </span>
             </div>
-          </div>
+          </PageShell>
         </section>
       </main>
     </div>

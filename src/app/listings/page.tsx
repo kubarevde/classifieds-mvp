@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { ListingsPageRoot } from "@/components/listings/listings-page-root";
 import { Navbar } from "@/components/layout/navbar";
 import { Container } from "@/components/ui/container";
-import { CatalogWorld } from "@/lib/listings";
+import { CatalogWorld, getCategoryOptionsForWorld, getWorldLabel } from "@/lib/listings";
 import { getWorldPresentation } from "@/lib/worlds";
 
 type ListingsPageProps = {
@@ -39,15 +39,39 @@ function resolveWorld(raw: string | string[] | undefined): CatalogWorld {
 export default async function ListingsPage({ searchParams }: ListingsPageProps) {
   const params = searchParams ? await searchParams : undefined;
   const world = resolveWorld(params?.world);
+  const category = Array.isArray(params?.category) ? params?.category[0] : params?.category;
   const worldPresentation = getWorldPresentation(world);
   const pageTone = worldPresentation.pageToneClass;
   const createHref = world === "all" ? "/create-listing" : `/create-listing?world=${world}`;
+  const categoryLabel =
+    category && category !== "all"
+      ? getCategoryOptionsForWorld(world).find((item) => item.id === category)?.label
+      : null;
 
   return (
     <div className={`min-h-screen ${pageTone}`}>
       <Navbar />
       <main className="py-6 sm:py-8">
         <Container className="space-y-4">
+          <nav className="flex flex-wrap items-center gap-1 text-xs text-slate-500" aria-label="Breadcrumbs">
+            <Link href="/listings" className="font-medium text-slate-600 hover:text-slate-900">
+              Каталог
+            </Link>
+            {world !== "all" ? (
+              <>
+                <span className="text-slate-300">/</span>
+                <Link href={`/worlds/${world}`} className="font-medium text-slate-600 hover:text-slate-900">
+                  {getWorldLabel(world)}
+                </Link>
+              </>
+            ) : null}
+            {categoryLabel ? (
+              <>
+                <span className="text-slate-300">/</span>
+                <span className="font-medium text-slate-700">{categoryLabel}</span>
+              </>
+            ) : null}
+          </nav>
           <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div className="space-y-1">
               <h1 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">

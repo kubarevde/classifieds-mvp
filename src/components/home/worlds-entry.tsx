@@ -64,10 +64,10 @@ export function WorldsEntry() {
               </div>
               <div className="mt-4 flex flex-wrap gap-2">
                 <Link
-                  href={`/listings?world=${world.world}`}
+                  href={`/worlds/${world.world}`}
                   className="rounded-xl bg-slate-900 px-3.5 py-2 text-sm font-semibold text-white transition hover:bg-slate-700"
                 >
-                  Перейти в мир {world.title.toLowerCase()}
+                  Открыть мир {world.title.toLowerCase()}
                 </Link>
                 <Link
                   href={`/create-listing?world=${world.world}`}

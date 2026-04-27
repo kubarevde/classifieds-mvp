@@ -34,6 +34,7 @@ export const categories: Category[] = [
 export const popularListings: Listing[] = [
   {
     id: "1",
+    listingSaleMode: "auction",
     title: "Toyota Camry 2020, 2.5 AT, один владелец",
     price: "2 490 000 ₽",
     priceValue: 2490000,
@@ -50,6 +51,7 @@ export const popularListings: Listing[] = [
   },
   {
     id: "2",
+    listingSaleMode: "auction",
     title: "iPhone 15 Pro 256GB, Natural Titanium",
     price: "94 500 ₽",
     priceValue: 94500,
@@ -98,6 +100,7 @@ export const popularListings: Listing[] = [
   },
   {
     id: "5",
+    listingSaleMode: "auction",
     title: "MacBook Air M2, 16/512, гарантия до 2027",
     price: "129 000 ₽",
     priceValue: 129000,
@@ -130,6 +133,7 @@ export const popularListings: Listing[] = [
   },
   {
     id: "7",
+    listingSaleMode: "auction",
     title: "Volkswagen Tiguan 2019, полный привод",
     price: "2 150 000 ₽",
     priceValue: 2150000,
@@ -146,6 +150,7 @@ export const popularListings: Listing[] = [
   },
   {
     id: "8",
+    listingSaleMode: "auction",
     title: "PlayStation 5 Slim + 2 геймпада",
     price: "54 000 ₽",
     priceValue: 54000,
@@ -178,6 +183,7 @@ export const popularListings: Listing[] = [
   },
   {
     id: "10",
+    listingSaleMode: "auction",
     title: "3-к квартира, 82 м², парк через дорогу",
     price: "16 400 000 ₽",
     priceValue: 16400000,

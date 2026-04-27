@@ -144,7 +144,7 @@ export function MobileMenu({
               <MenuListItem href="/" label="Главная" onClose={onClose} />
               <MenuListItem href="/listings" label="Объявления" onClose={onClose} />
               <MenuListItem href="/stores" label="Магазины" onClose={onClose} />
-              {role !== "guest" ? <MenuListItem href="/#worlds" label="Миры" onClose={onClose} /> : null}
+              {role !== "guest" ? <MenuListItem href="/worlds" label="Миры" onClose={onClose} /> : null}
               {role !== "guest" ? (
                 <MenuListItem href="/sponsor-board" label="Герой доски" onClose={onClose} />
               ) : null}

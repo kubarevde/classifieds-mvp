@@ -156,6 +156,7 @@ describe("parseFiltersFromSearchParams", () => {
       query: "ноут",
       category: "laptops",
       location: "Москва",
+      saleMode: "all",
       sortBy: "price_asc",
       view: "list",
     });
@@ -168,6 +169,7 @@ describe("parseFiltersFromSearchParams", () => {
       query: "test",
       category: "all",
       location: "all",
+      saleMode: "all",
       sortBy: defaultSavedSearchFilters.sortBy,
       view: defaultSavedSearchFilters.view,
     });

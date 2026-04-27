@@ -2,6 +2,7 @@ import { agricultureCategories } from "@/lib/agriculture";
 import { electronicsCategories } from "@/lib/electronics";
 import { categories } from "@/lib/mock-data";
 import type { Listing, ListingCategory } from "@/lib/types";
+import type { AuctionSaleMode } from "@/entities/auction/model";
 
 import {
   agricultureCatalogListings,
@@ -30,12 +31,14 @@ type FilterSortFields = {
   priceValue: number;
   postedAtIso: string;
   location: string;
+  listingSaleMode?: AuctionSaleMode;
 };
 
 type CatalogFilterInput = {
   query: string;
   category: "all" | string;
   location: "all" | string;
+  saleMode?: AuctionSaleMode;
   sortBy: SortOption;
 };
 
@@ -67,7 +70,9 @@ function filterAndSortCatalog<T extends FilterSortFields>(
     const matchesQuery = normalizedQuery === "" || options.textMatchesQuery(listing, normalizedQuery);
     const matchesCategory = options.categoryMatches(listing, filters.category);
     const matchesLocation = filters.location === "all" || listing.location === filters.location;
-    return matchesQuery && matchesCategory && matchesLocation;
+    const matchesSaleMode =
+      !filters.saleMode || filters.saleMode === "all" || listing.listingSaleMode === filters.saleMode;
+    return matchesQuery && matchesCategory && matchesLocation && matchesSaleMode;
   });
 
   return sortByPriceAndDate(filtered, filters.sortBy);
@@ -215,6 +220,7 @@ export function getUniqueLocationsForUnified(listings: UnifiedCatalogListing[]) 
 export function toUnifiedCatalogListing(listing: Listing): UnifiedCatalogListing {
   return {
     id: listing.id,
+    listingSaleMode: listing.listingSaleMode ?? "fixed",
     title: listing.title,
     price: listing.price,
     priceValue: listing.priceValue,

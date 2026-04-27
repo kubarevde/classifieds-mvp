@@ -6,6 +6,7 @@ import { useState } from "react";
 import { useNotifications } from "@/components/notifications/notifications-provider";
 import { useSavedSearches } from "@/components/saved-searches/saved-searches-provider";
 import { AlertsToggle } from "@/components/saved-searches/alerts-toggle";
+import { useFeatureGate } from "@/hooks/useFeatureGate";
 import {
   SavedSearch,
   buildListingsHref,
@@ -20,6 +21,7 @@ type SavedSearchCardProps = {
 export function SavedSearchCard({ search }: SavedSearchCardProps) {
   const { removeSearch, renameSearch, setAlertsEnabled } = useSavedSearches();
   const { addNotification } = useNotifications();
+  const alertsGate = useFeatureGate("saved_searches_alerts");
   const [isEditingName, setIsEditingName] = useState(false);
   const [draftName, setDraftName] = useState(search.name);
 
@@ -32,6 +34,16 @@ export function SavedSearchCard({ search }: SavedSearchCardProps) {
   };
 
   const handleAlertsChange = (next: boolean) => {
+    if (next && !alertsGate.allowed) {
+      addNotification({
+        type: "tip",
+        title: "Функция недоступна",
+        body: "Alerts по сохранённым поискам доступны в Pro и Business.",
+        createdAtIso: new Date().toISOString(),
+        isRead: false,
+      });
+      return;
+    }
     setAlertsEnabled(search.id, next);
     if (next) {
       addNotification({
@@ -128,6 +140,9 @@ export function SavedSearchCard({ search }: SavedSearchCardProps) {
 
       <div className="mt-4">
         <AlertsToggle id={search.id} enabled={search.alertsEnabled} onChange={handleAlertsChange} />
+        {!alertsGate.allowed ? (
+          <p className="mt-1 text-xs text-amber-700">Уведомления по поискам доступны в Pro и Business.</p>
+        ) : null}
       </div>
     </article>
   );

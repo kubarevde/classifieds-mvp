@@ -1,5 +1,3 @@
-import { allListings } from "@/lib/listings";
-
 export type MessageAuthor = "me" | "other";
 
 export type Message = {
@@ -101,10 +99,6 @@ export const mockConversations: Conversation[] = [
     ],
   },
 ];
-
-export function getConversationListing(listingId: string) {
-  return allListings.find((listing) => listing.id === listingId);
-}
 
 export function getConversationLastMessage(conversation: Conversation) {
   return conversation.messages[conversation.messages.length - 1] ?? null;

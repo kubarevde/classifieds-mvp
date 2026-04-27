@@ -2,114 +2,85 @@
 
 import { createContext, ReactNode, useContext, useMemo, useState } from "react";
 
-import type { DashboardListing } from "@/components/dashboard/types";
 import { useDemoRole } from "@/components/demo-role/demo-role";
-import type { ProfilePersistedFields } from "@/components/profile/types";
-import { myListingsMock } from "@/lib/dashboard-mock-data";
-import type { HeroBannerPeriod, HeroBannerPlacement, HeroBannerScope, HeroBannerWorld } from "@/lib/hero-board";
-import { mockConversations, type Conversation } from "@/lib/messages";
-import { getDefaultMockNotifications, type Notification } from "@/lib/notifications";
-import { defaultProfileFields, profileAccountMock } from "@/lib/profile-mock";
-import { buildAutoSearchLabel, defaultSavedSearchFilters, type SavedSearch, type SavedSearchFilters } from "@/lib/saved-searches";
-import type { ListingCategory } from "@/lib/types";
-
-type FavoriteEntry = { id: string; addedAt: string };
-
-type BuyerState = {
-  myListings: DashboardListing[];
-  favorites: FavoriteEntry[];
-  savedSearches: SavedSearch[];
-  messages: Conversation[];
-  notifications: Notification[];
-  profile: ProfilePersistedFields;
-  promotions: Array<HeroBannerPlacement & { listingId: string; listingTitle: string }>;
-};
+import { useSubscription } from "@/components/subscription/subscription-provider";
+import { profileAccountMock } from "@/lib/profile-mock";
+import { createMockFeatureGateService } from "@/services/feature-gate/mock";
+import type { BuyerService } from "@/services/buyer/contracts";
+import { createMockBuyerService, makeInitialBuyerState } from "@/services/buyer/mock";
+import type { BuyerState } from "@/services/buyer/types";
 
 type BuyerContextValue = BuyerState & {
   unreadCounts: { messages: number; notifications: number };
-  addListing: (input: Omit<DashboardListing, "id" | "publishedAt" | "views" | "category"> & { category: string }) => void;
-  updateListingStatus: (id: string, status: DashboardListing["status"]) => void;
-  removeListing: (id: string) => void;
-  addToFavorites: (id: string) => void;
-  removeFromFavorites: (id: string) => void;
-  toggleFavorite: (id: string) => void;
+  addListing: BuyerService["addListing"];
+  updateListingStatus: BuyerService["updateListingStatus"];
+  removeListing: BuyerService["removeListing"];
+  addToFavorites: BuyerService["addToFavorites"];
+  removeFromFavorites: BuyerService["removeFromFavorites"];
+  toggleFavorite: BuyerService["toggleFavorite"];
   getFavoriteAddedAt: (id: string) => string | null;
-  addSavedSearch: (filters: SavedSearchFilters, options?: { name?: string; alertsEnabled?: boolean }) => SavedSearch;
-  removeSavedSearch: (id: string) => void;
-  renameSavedSearch: (id: string, name: string) => void;
-  setSavedSearchAlerts: (id: string, enabled: boolean) => void;
-  markConversationRead: (id: string) => void;
-  ensureConversation: (input: { listingId: string; sellerName?: string | null; listingTitle?: string | null }) => string | null;
-  sendMessage: (conversationId: string, text: string) => void;
-  markNotificationRead: (id: string) => void;
-  markAllNotificationsRead: () => void;
-  addNotification: (notification: Omit<Notification, "id">) => void;
-  saveProfile: (next: ProfilePersistedFields) => void;
-  promoteListing: (input: {
-    listingId: string;
-    listingTitle: string;
-    scope: HeroBannerScope;
-    period: HeroBannerPeriod;
-    worldId?: HeroBannerWorld;
-    mockPrice: number;
-  }) => void;
+  addSavedSearch: BuyerService["addSavedSearch"];
+  removeSavedSearch: BuyerService["removeSavedSearch"];
+  renameSavedSearch: BuyerService["renameSavedSearch"];
+  setSavedSearchAlerts: BuyerService["setSavedSearchAlerts"];
+  markConversationRead: BuyerService["markConversationRead"];
+  ensureConversation: BuyerService["ensureConversation"];
+  sendMessage: BuyerService["sendMessage"];
+  markNotificationRead: BuyerService["markNotificationRead"];
+  markAllNotificationsRead: BuyerService["markAllNotificationsRead"];
+  addNotification: BuyerService["addNotification"];
+  saveProfile: BuyerService["saveProfile"];
+  promoteListing: BuyerService["promoteListing"];
 };
 
 const BuyerContext = createContext<BuyerContextValue | null>(null);
-
-function uid(prefix: string): string {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return `${prefix}-${crypto.randomUUID()}`;
-  }
-  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-}
-
-function formatPublishedAtLabel() {
-  return new Intl.DateTimeFormat("ru-RU", { day: "2-digit", month: "short", year: "numeric" }).format(new Date());
-}
-
-function toDashboardCategory(category: string): ListingCategory {
-  if (category === "auto" || category === "electronics" || category === "real_estate" || category === "services") {
-    return category;
-  }
-  return "services";
-}
-
-function makeInitialState(isBuyerRole: boolean): BuyerState {
-  return {
-    myListings: isBuyerRole ? [...myListingsMock] : [],
-    favorites: isBuyerRole ? [{ id: "2", addedAt: new Date().toISOString() }] : [],
-    savedSearches: isBuyerRole
-      ? [
-          {
-            id: uid("ss"),
-            name: "Смартфоны до 100 000",
-            createdAtIso: new Date().toISOString(),
-            alertsEnabled: true,
-            filters: { ...defaultSavedSearchFilters, category: "electronics", query: "iPhone", location: "Москва" },
-          },
-        ]
-      : [],
-    messages: isBuyerRole ? structuredClone(mockConversations) : [],
-    notifications: isBuyerRole ? getDefaultMockNotifications() : [],
-    profile: { ...defaultProfileFields },
-    promotions: [],
-  };
-}
+const BuyerServiceContext = createContext<BuyerService | null>(null);
 
 export function BuyerProvider({ children }: { children: ReactNode }) {
   const { role, currentSellerId } = useDemoRole();
+  const subscription = useSubscription();
   const isBuyerRole = role === "buyer" || role === "all";
-  const sessionKey = `${role}:${currentSellerId ?? "none"}:${isBuyerRole ? "buyer" : "other"}`;
+  const sessionKey = `${role}:${currentSellerId ?? "none"}:${isBuyerRole ? "buyer" : "other"}:${subscription.planName}:${subscription.storePlan}`;
   return (
-    <BuyerStateProvider key={sessionKey} isBuyerRole={isBuyerRole}>
+    <BuyerStateProvider
+      key={sessionKey}
+      isBuyerRole={isBuyerRole}
+      role={role}
+      subscriptionSnapshot={{
+        isPro: subscription.isPro,
+        planName: subscription.planName,
+        storePlan: subscription.storePlan,
+      }}
+    >
       {children}
     </BuyerStateProvider>
   );
 }
 
-function BuyerStateProvider({ children, isBuyerRole }: { children: ReactNode; isBuyerRole: boolean }) {
-  const [state, setState] = useState<BuyerState>(() => makeInitialState(isBuyerRole));
+function BuyerStateProvider({
+  children,
+  isBuyerRole,
+  role,
+  subscriptionSnapshot,
+}: {
+  children: ReactNode;
+  isBuyerRole: boolean;
+  role: ReturnType<typeof useDemoRole>["role"];
+  subscriptionSnapshot: {
+    isPro: boolean;
+    planName: ReturnType<typeof useSubscription>["planName"];
+    storePlan: ReturnType<typeof useSubscription>["storePlan"];
+  };
+}) {
+  const [state, setState] = useState<BuyerState>(() => makeInitialBuyerState(isBuyerRole));
+
+  const buyerService = useMemo(() => {
+    const gate = createMockFeatureGateService(subscriptionSnapshot, role);
+    return createMockBuyerService(setState, {
+      canUseFeature: (feature) => gate.canUse(feature),
+    });
+  }, [role, subscriptionSnapshot]);
+
   const value = useMemo<BuyerContextValue>(() => {
     const unreadCounts = {
       messages: state.messages.reduce((sum, conversation) => sum + conversation.unreadCount, 0),
@@ -119,176 +90,33 @@ function BuyerStateProvider({ children, isBuyerRole }: { children: ReactNode; is
     return {
       ...state,
       unreadCounts,
-      addListing: (input) =>
-        setState((prev) => ({
-          ...prev,
-          myListings: [
-            {
-              id: uid("my"),
-              publishedAt: formatPublishedAtLabel(),
-              views: 0,
-              ...input,
-              category: toDashboardCategory(input.category),
-            },
-            ...prev.myListings,
-          ],
-        })),
-      updateListingStatus: (id, status) =>
-        setState((prev) => ({
-          ...prev,
-          myListings: prev.myListings.map((item) => (item.id === id ? { ...item, status } : item)),
-        })),
-      removeListing: (id) =>
-        setState((prev) => ({ ...prev, myListings: prev.myListings.filter((item) => item.id !== id) })),
-      addToFavorites: (id) =>
-        setState((prev) => {
-          if (prev.favorites.some((item) => item.id === id)) {
-            return prev;
-          }
-          return { ...prev, favorites: [...prev.favorites, { id, addedAt: new Date().toISOString() }] };
-        }),
-      removeFromFavorites: (id) =>
-        setState((prev) => ({ ...prev, favorites: prev.favorites.filter((item) => item.id !== id) })),
-      toggleFavorite: (id) =>
-        setState((prev) => {
-          if (prev.favorites.some((item) => item.id === id)) {
-            return { ...prev, favorites: prev.favorites.filter((item) => item.id !== id) };
-          }
-          return { ...prev, favorites: [...prev.favorites, { id, addedAt: new Date().toISOString() }] };
-        }),
+      addListing: (input) => buyerService.addListing(input),
+      updateListingStatus: (id, status) => buyerService.updateListingStatus(id, status),
+      removeListing: (id) => buyerService.removeListing(id),
+      addToFavorites: (id) => buyerService.addToFavorites(id),
+      removeFromFavorites: (id) => buyerService.removeFromFavorites(id),
+      toggleFavorite: (id) => buyerService.toggleFavorite(id),
       getFavoriteAddedAt: (id) => state.favorites.find((item) => item.id === id)?.addedAt ?? null,
-      addSavedSearch: (filters, options) => {
-        const entry: SavedSearch = {
-          id: uid("ss"),
-          name: (options?.name?.trim() || buildAutoSearchLabel(filters)).slice(0, 120),
-          createdAtIso: new Date().toISOString(),
-          alertsEnabled: options?.alertsEnabled ?? false,
-          filters: { ...defaultSavedSearchFilters, ...filters },
-        };
-        setState((prev) => ({ ...prev, savedSearches: [entry, ...prev.savedSearches] }));
-        return entry;
-      },
-      removeSavedSearch: (id) =>
-        setState((prev) => ({ ...prev, savedSearches: prev.savedSearches.filter((item) => item.id !== id) })),
-      renameSavedSearch: (id, name) =>
-        setState((prev) => ({
-          ...prev,
-          savedSearches: prev.savedSearches.map((item) =>
-            item.id === id ? { ...item, name: name.trim().slice(0, 120) || item.name } : item,
-          ),
-        })),
-      setSavedSearchAlerts: (id, enabled) =>
-        setState((prev) => ({
-          ...prev,
-          savedSearches: prev.savedSearches.map((item) => (item.id === id ? { ...item, alertsEnabled: enabled } : item)),
-        })),
-      markConversationRead: (id) =>
-        setState((prev) => ({
-          ...prev,
-          messages: prev.messages.map((conversation) =>
-            conversation.id === id ? { ...conversation, unreadCount: 0 } : conversation,
-          ),
-        })),
-      ensureConversation: ({ listingId, sellerName, listingTitle }) => {
-        const existing = state.messages.find((item) => item.listingId === listingId);
-        if (existing) {
-          return existing.id;
-        }
-        if (!sellerName && !listingTitle) {
-          return null;
-        }
-        const id = uid("conv");
-        setState((prev) => ({
-          ...prev,
-          messages: [
-            {
-              id,
-              listingId,
-              participantName: sellerName ?? "Пользователь",
-              participantRole: "Продавец",
-              unreadCount: 0,
-              messages: [
-                {
-                  id: uid("m"),
-                  author: "other",
-                  text: `Здравствуйте! По объявлению "${listingTitle ?? "товар"}" на связи.`,
-                  sentAtIso: new Date().toISOString(),
-                },
-              ],
-            },
-            ...prev.messages,
-          ],
-        }));
-        return id;
-      },
-      sendMessage: (conversationId, text) =>
-        setState((prev) => ({
-          ...prev,
-          messages: [...prev.messages]
-            .map((conversation) =>
-              conversation.id === conversationId
-                ? {
-                    ...conversation,
-                    unreadCount: 0,
-                    messages: [
-                      ...conversation.messages,
-                      { id: uid("m"), author: "me" as const, text: text.trim(), sentAtIso: new Date().toISOString() },
-                    ],
-                  }
-                : conversation,
-            )
-            .sort((left, right) => {
-              const leftTime = new Date(left.messages[left.messages.length - 1]?.sentAtIso ?? 0).getTime();
-              const rightTime = new Date(right.messages[right.messages.length - 1]?.sentAtIso ?? 0).getTime();
-              return rightTime - leftTime;
-            }),
-        })),
-      markNotificationRead: (id) =>
-        setState((prev) => ({
-          ...prev,
-          notifications: prev.notifications.map((item) => (item.id === id ? { ...item, isRead: true } : item)),
-        })),
-      markAllNotificationsRead: () =>
-        setState((prev) => ({ ...prev, notifications: prev.notifications.map((item) => ({ ...item, isRead: true })) })),
-      addNotification: (notification) =>
-        setState((prev) => ({
-          ...prev,
-          notifications: [{ ...notification, id: uid("n") }, ...prev.notifications],
-        })),
-      saveProfile: (next) => setState((prev) => ({ ...prev, profile: { ...next } })),
-      promoteListing: (input) => {
-        const now = new Date();
-        setState((prev) => ({
-          ...prev,
-          promotions: [
-            {
-              id: uid("promo"),
-              sellerId: "alexey-drive",
-              scope: input.scope,
-              worldId: input.scope === "world" ? input.worldId : undefined,
-              period: input.period,
-              title: `Продвижение: ${input.listingTitle}`,
-              subtitle: "Герой доски частника",
-              ctaLabel: "Открыть кабинет",
-              ctaHref: "/dashboard",
-              isActive: true,
-              startsAt: now.toISOString(),
-              endsAt: new Date(
-                now.getTime() +
-                  (input.period === "day" ? 1 : input.period === "week" ? 7 : 30) * 24 * 60 * 60 * 1000,
-              ).toISOString(),
-              mockPrice: input.mockPrice,
-              listingId: input.listingId,
-              listingTitle: input.listingTitle,
-            },
-            ...prev.promotions.map((item) => ({ ...item, isActive: false })),
-          ],
-        }));
-      },
+      addSavedSearch: (filters, options) => buyerService.addSavedSearch(filters, options),
+      removeSavedSearch: (id) => buyerService.removeSavedSearch(id),
+      renameSavedSearch: (id, name) => buyerService.renameSavedSearch(id, name),
+      setSavedSearchAlerts: (id, enabled) => buyerService.setSavedSearchAlerts(id, enabled),
+      markConversationRead: (id) => buyerService.markConversationRead(id),
+      ensureConversation: (input) => buyerService.ensureConversation(input),
+      sendMessage: (conversationId, text) => buyerService.sendMessage(conversationId, text),
+      markNotificationRead: (id) => buyerService.markNotificationRead(id),
+      markAllNotificationsRead: () => buyerService.markAllNotificationsRead(),
+      addNotification: (notification) => buyerService.addNotification(notification),
+      saveProfile: (next) => buyerService.saveProfile(next),
+      promoteListing: (input) => buyerService.promoteListing(input),
     };
-  }, [state]);
+  }, [state, buyerService]);
 
-  return <BuyerContext.Provider value={value}>{children}</BuyerContext.Provider>;
+  return (
+    <BuyerServiceContext.Provider value={buyerService}>
+      <BuyerContext.Provider value={value}>{children}</BuyerContext.Provider>
+    </BuyerServiceContext.Provider>
+  );
 }
 
 export function useBuyer() {
@@ -297,6 +125,14 @@ export function useBuyer() {
     throw new Error("useBuyer must be used within BuyerProvider");
   }
   return context;
+}
+
+export function useBuyerService(): BuyerService {
+  const service = useContext(BuyerServiceContext);
+  if (!service) {
+    throw new Error("useBuyerService must be used within BuyerProvider");
+  }
+  return service;
 }
 
 export function useBuyerProfileMeta() {

@@ -6,6 +6,7 @@ import { DEMO_STOREFRONT_SELLER_ID } from "@/lib/demo-role-constants";
 import { ListingCard } from "@/components/home/listing-card";
 
 export function PopularListings() {
+  // Demo showcase block: intentionally fixed seed examples, not a live catalog feed.
   const showcaseListing = unifiedCatalogListings[0];
 
   return (

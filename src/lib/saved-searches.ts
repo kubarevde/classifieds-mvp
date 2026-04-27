@@ -1,11 +1,13 @@
 import { CatalogWorld, categoryLabels, getWorldLabel, ListingsView, SortOption } from "@/lib/listings";
 import { ListingCategory } from "@/lib/types";
+import type { AuctionSaleMode } from "@/entities/auction/model";
 
 export type SavedSearchFilters = {
   world: CatalogWorld;
   query: string;
   category: "all" | string;
   location: "all" | string;
+  saleMode: AuctionSaleMode;
   sortBy: SortOption;
   view: ListingsView;
 };
@@ -29,6 +31,7 @@ export const defaultSavedSearchFilters: SavedSearchFilters = {
   query: "",
   category: "all",
   location: "all",
+  saleMode: "all",
   sortBy: "newest",
   view: "grid",
 };
@@ -53,7 +56,11 @@ function isListingsView(value: string): value is ListingsView {
   return VIEWS.includes(value as ListingsView);
 }
 
-const URL_KEYS = ["world", "q", "category", "location", "sort", "view"] as const;
+const URL_KEYS = ["world", "q", "category", "location", "saleMode", "sort", "view"] as const;
+
+function isSaleMode(value: string): value is AuctionSaleMode {
+  return value === "all" || value === "fixed" || value === "auction" || value === "free";
+}
 
 export function hasSavedSearchUrlParams(searchParams: URLSearchParams) {
   return URL_KEYS.some((key) => searchParams.has(key));
@@ -85,6 +92,8 @@ export function parseFiltersFromSearchParams(searchParams: URLSearchParams): Sav
 
   const sortRaw = searchParams.get("sort");
   const sortBy = sortRaw && isSortOption(sortRaw) ? sortRaw : defaultSavedSearchFilters.sortBy;
+  const saleModeRaw = searchParams.get("saleMode");
+  const saleMode = saleModeRaw && isSaleMode(saleModeRaw) ? saleModeRaw : defaultSavedSearchFilters.saleMode;
 
   const viewRaw = searchParams.get("view");
   const view = viewRaw && isListingsView(viewRaw) ? viewRaw : defaultSavedSearchFilters.view;
@@ -94,6 +103,7 @@ export function parseFiltersFromSearchParams(searchParams: URLSearchParams): Sav
     query,
     category: category === "all" ? "all" : category,
     location: location === "all" ? "all" : location,
+    saleMode,
     sortBy,
     view,
   };
@@ -116,6 +126,9 @@ export function serializeFiltersToSearchParams(filters: SavedSearchFilters) {
 
   if (filters.location !== "all") {
     params.set("location", encodeURIComponent(filters.location));
+  }
+  if (filters.saleMode !== defaultSavedSearchFilters.saleMode) {
+    params.set("saleMode", filters.saleMode);
   }
 
   if (filters.sortBy !== defaultSavedSearchFilters.sortBy) {
@@ -172,6 +185,15 @@ export function buildSearchSummary(filters: SavedSearchFilters) {
   );
 
   lines.push(filters.location === "all" ? "Город: все" : `Город: ${filters.location}`);
+  lines.push(
+    filters.saleMode === "all"
+      ? "Режим: все"
+      : filters.saleMode === "auction"
+        ? "Режим: аукцион"
+        : filters.saleMode === "fixed"
+          ? "Режим: продажа"
+          : "Режим: бесплатно",
+  );
 
   const sortLabels: Record<SortOption, string> = {
     newest: "Сначала новые",

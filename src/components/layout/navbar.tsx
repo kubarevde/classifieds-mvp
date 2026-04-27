@@ -23,7 +23,7 @@ const guestNavLinks = [
 
 const authenticatedNavLinks = [
   ...guestNavLinks,
-  { label: "Миры", href: "/#worlds" },
+  { label: "Миры", href: "/worlds" },
   { label: "Герой доски", href: "/sponsor-board" },
 ] as const;
 

@@ -1,5 +1,6 @@
 import { ReactNode } from "react";
 
+import type { AuctionSaleMode } from "@/entities/auction/model";
 import { ListingsView, SortOption, UnifiedCategoryOption } from "@/lib/listings";
 import { SortSelect } from "@/components/listings/sort-select";
 
@@ -12,6 +13,8 @@ type FiltersBarProps = {
   location: "all" | string;
   onLocationChange: (value: "all" | string) => void;
   locations: string[];
+  saleMode: AuctionSaleMode;
+  onSaleModeChange: (value: AuctionSaleMode) => void;
   sortBy: SortOption;
   onSortChange: (value: SortOption) => void;
   view: ListingsView;
@@ -29,6 +32,8 @@ export function FiltersBar({
   location,
   onLocationChange,
   locations,
+  saleMode,
+  onSaleModeChange,
   sortBy,
   onSortChange,
   view,
@@ -37,14 +42,14 @@ export function FiltersBar({
   className = "",
 }: FiltersBarProps) {
   return (
-    <section className={`space-y-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm ${className}`}>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    <section className={`space-y-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5 ${className}`}>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
         <input
           type="search"
           value={query}
           onChange={(event) => onQueryChange(event.target.value)}
           placeholder="Поиск по названию"
-          className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-slate-400"
+          className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-slate-400 lg:col-span-2 xl:col-span-1"
         />
 
         <select
@@ -58,6 +63,17 @@ export function FiltersBar({
               {option.label}
             </option>
           ))}
+        </select>
+
+        <select
+          value={saleMode}
+          onChange={(event) => onSaleModeChange(event.target.value as AuctionSaleMode)}
+          className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-slate-400"
+        >
+          <option value="all">Все режимы</option>
+          <option value="fixed">Продажа</option>
+          <option value="auction">Аукцион</option>
+          <option value="free">Бесплатно</option>
         </select>
 
         <select

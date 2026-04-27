@@ -131,7 +131,7 @@ export function ListingPreviewCard({ listing, view }: ListingPreviewCardProps) {
     return (
       <Link
         href={listing.detailsHref}
-        className={`group overflow-hidden rounded-2xl border shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-lg ${cardToneClass}`}
+        className={`group flex h-full flex-col overflow-hidden rounded-2xl border shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-lg ${cardToneClass}`}
       >
         <div className={`relative h-44 bg-gradient-to-br ${listing.image} p-4`}>
           <div className="flex items-start justify-between gap-2">
@@ -141,13 +141,13 @@ export function ListingPreviewCard({ listing, view }: ListingPreviewCardProps) {
             <FavoriteButton listingId={listing.id} stopPropagation />
           </div>
         </div>
-        <div className="space-y-2.5 p-4">
+        <div className="flex flex-1 flex-col gap-2.5 p-4">
           <p className="text-xl font-bold tracking-tight text-slate-900">{listing.price}</p>
           <h3 className="line-clamp-2 min-h-[3rem] text-base font-semibold leading-6 text-slate-900 transition group-hover:text-slate-700">
             {listing.title}
           </h3>
-          <p className="line-clamp-1 text-sm text-slate-600">{listing.condition}</p>
-          <div className="flex items-center justify-between text-xs text-slate-500">
+          <p className="line-clamp-1 min-h-5 text-sm text-slate-600">{listing.condition}</p>
+          <div className="mt-auto flex items-center justify-between text-xs text-slate-500">
             <span>{listing.location}</span>
             <span>{listing.publishedAt}</span>
           </div>
@@ -180,7 +180,7 @@ export function ListingPreviewCard({ listing, view }: ListingPreviewCardProps) {
   }
 
   return (
-    <article className={`group overflow-hidden rounded-2xl border shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-lg ${cardToneClass}`}>
+    <article className={`group flex h-full flex-col overflow-hidden rounded-2xl border shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-lg ${cardToneClass}`}>
       <div className={`relative h-44 bg-gradient-to-br ${listing.image} p-4`}>
         <div className="flex items-start justify-between gap-2">
           <span className="inline-flex rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-slate-700">
@@ -189,11 +189,11 @@ export function ListingPreviewCard({ listing, view }: ListingPreviewCardProps) {
           <FavoriteButton listingId={listing.id} />
         </div>
       </div>
-      <div className="space-y-2.5 p-4">
+      <div className="flex flex-1 flex-col gap-2.5 p-4">
         <p className="text-xl font-bold tracking-tight text-slate-900">{listing.price}</p>
         <h3 className="line-clamp-2 min-h-[3rem] text-base font-semibold leading-6 text-slate-900">{listing.title}</h3>
-        <p className="line-clamp-1 text-sm text-slate-600">{listing.condition}</p>
-        <div className="flex items-center justify-between text-xs text-slate-500">
+        <p className="line-clamp-1 min-h-5 text-sm text-slate-600">{listing.condition}</p>
+        <div className="mt-auto flex items-center justify-between text-xs text-slate-500">
           <span>{listing.location}</span>
           <span>{listing.publishedAt}</span>
         </div>

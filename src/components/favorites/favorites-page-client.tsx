@@ -1,13 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { EmptyFavoritesState } from "@/components/favorites/empty-favorites-state";
 import { FavoritesGrid } from "@/components/favorites/favorites-grid";
 import { useFavorites } from "@/components/favorites/favorites-provider";
 import { Card } from "@/components/ui";
-import { allListings } from "@/lib/listings";
-import { Listing } from "@/lib/types";
+import { UnifiedCatalogListing } from "@/lib/listings";
+import { Listing, ListingCategory } from "@/lib/types";
+import { mockListingsService } from "@/services/listings";
 
 type FavoritesSortOption = "recently_added" | "price_asc" | "price_desc";
 
@@ -29,7 +30,7 @@ function getSavedAtLabel(addedAtIso: string | null) {
 }
 
 function sortFavorites(
-  listings: Listing[],
+  listings: UnifiedCatalogListing[],
   sortBy: FavoritesSortOption,
   getAddedAt: (listingId: string) => string | null,
 ) {
@@ -51,15 +52,44 @@ function sortFavorites(
 export function FavoritesPageClient() {
   const { favoriteIds, favoritesCount, getAddedAt, isHydrated } = useFavorites();
   const [sortBy, setSortBy] = useState<FavoritesSortOption>("recently_added");
+  const [catalogListings, setCatalogListings] = useState<UnifiedCatalogListing[]>([]);
 
-  const savedListings = useMemo(() => {
+  useEffect(() => {
+    let isActive = true;
+    void mockListingsService.getAll().then((listings) => {
+      if (isActive) {
+        setCatalogListings(listings);
+      }
+    });
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
+  const savedListings = useMemo<Listing[]>(() => {
     if (favoriteIds.length === 0) {
       return [];
     }
 
-    const saved = allListings.filter((listing) => favoriteIds.includes(listing.id));
-    return sortFavorites(saved, sortBy, getAddedAt);
-  }, [favoriteIds, getAddedAt, sortBy]);
+    const saved = catalogListings.filter((listing) => favoriteIds.includes(listing.id));
+    const sorted = sortFavorites(saved, sortBy, getAddedAt);
+    return sorted.map((listing) => ({
+      id: listing.id,
+      title: listing.title,
+      price: listing.price,
+      priceValue: listing.priceValue,
+      location: listing.location,
+      publishedAt: listing.publishedAt,
+      postedAtIso: listing.postedAtIso,
+      image: listing.image,
+      condition: listing.condition,
+      category: listing.categoryId as ListingCategory,
+      description: listing.description,
+      sellerName: listing.sellerName,
+      sellerPhone: listing.sellerPhone,
+      listingSaleMode: listing.listingSaleMode,
+    }));
+  }, [catalogListings, favoriteIds, getAddedAt, sortBy]);
 
   if (isHydrated && favoritesCount === 0) {
     return <EmptyFavoritesState />;

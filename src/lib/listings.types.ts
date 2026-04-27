@@ -19,6 +19,7 @@ export type ListingWorld =
 
 export type UnifiedCatalogListing = {
   id: string;
+  listingSaleMode?: "fixed" | "auction" | "free";
   title: string;
   price: string;
   priceValue: number;

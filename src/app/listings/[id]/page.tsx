@@ -1,13 +1,7 @@
-import Link from "next/link";
-import { notFound } from "next/navigation";
-
-import { ListingDetails } from "@/components/listings/listing-details";
-import { ListingPreviewCard } from "@/components/listings/listing-preview-card";
-import { SellerCard } from "@/components/listings/seller-card";
+import { ListingDetailsPageClient } from "@/components/listings/listing-details-page-client";
 import { Navbar } from "@/components/layout/navbar";
-import { Container } from "@/components/ui/container";
-import { allListings, getRelatedUnifiedListings } from "@/lib/listings";
-import { getStorefrontSellerByListingId } from "@/lib/sellers";
+import type { Listing, ListingCategory } from "@/lib/types";
+import { mockListingsService } from "@/services/listings";
 
 type ListingDetailsPageProps = {
   params: Promise<{ id: string }>;
@@ -15,45 +9,30 @@ type ListingDetailsPageProps = {
 
 export default async function ListingDetailsPage({ params }: ListingDetailsPageProps) {
   const { id } = await params;
-  const listing = allListings.find((currentListing) => currentListing.id === id);
-
-  if (!listing) {
-    notFound();
-  }
-
-  const relatedListings = getRelatedUnifiedListings(listing, 4);
-  const storefrontSeller = getStorefrontSellerByListingId(listing.id);
+  const source = await mockListingsService.getById(id);
+  const staticListing: Listing | null = source
+    ? {
+        id: source.id,
+        title: source.title,
+        price: source.price,
+        priceValue: source.priceValue,
+        location: source.location,
+        publishedAt: source.publishedAt,
+        postedAtIso: source.postedAtIso,
+        image: source.image,
+        condition: source.condition,
+        category: source.categoryId as ListingCategory,
+        description: source.description,
+        sellerName: source.sellerName,
+        sellerPhone: source.sellerPhone,
+        listingSaleMode: source.listingSaleMode,
+      }
+    : null;
 
   return (
     <div className="min-h-screen bg-slate-50/60">
       <Navbar />
-      <main className="py-6 sm:py-8">
-        <Container className="space-y-4">
-          <Link href="/listings" className="inline-flex text-sm font-medium text-slate-600 hover:text-slate-900">
-            ← Вернуться в каталог
-          </Link>
-
-          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
-            <ListingDetails listing={listing} />
-            <SellerCard
-              sellerName={listing.sellerName}
-              sellerPhone={listing.sellerPhone}
-              listingId={listing.id}
-              listingTitle={listing.title}
-              storefront={storefrontSeller}
-            />
-          </div>
-
-          <section className="space-y-3">
-            <h2 className="text-xl font-semibold tracking-tight text-slate-900">Похожие объявления</h2>
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              {relatedListings.map((relatedListing) => (
-                <ListingPreviewCard key={relatedListing.id} listing={relatedListing} view="grid" />
-              ))}
-            </div>
-          </section>
-        </Container>
-      </main>
+      <ListingDetailsPageClient id={id} staticListing={staticListing} />
     </div>
   );
 }

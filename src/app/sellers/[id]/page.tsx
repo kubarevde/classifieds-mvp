@@ -12,9 +12,10 @@ import {
   getSellerPromotionState,
   getSellerPosts,
   getSellerTypeLabel,
-  getStorefrontListingsBySellerId,
   getStorefrontSellerById,
+  type StorefrontListing,
 } from "@/lib/sellers";
+import { mockListingsService } from "@/services/listings";
 
 type SellerStorefrontPageProps = {
   params: Promise<{ id: string }>;
@@ -28,7 +29,16 @@ export default async function SellerStorefrontPage({ params }: SellerStorefrontP
     notFound();
   }
 
-  const listings = getStorefrontListingsBySellerId(seller.id);
+  const catalogListings = await mockListingsService.getAll();
+  const listings = seller.listingRefs
+    .map((reference) => {
+      const listing = catalogListings.find((item) => item.id === reference.listingId);
+      if (!listing) {
+        return null;
+      }
+      return { ...listing, status: reference.status };
+    })
+    .filter((listing): listing is StorefrontListing => listing !== null);
   const posts = getSellerPosts(seller.id);
   const pinnedPost = getSellerPinnedPost(seller.id);
   const coupons = getSellerCoupons(seller.id);

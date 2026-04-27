@@ -10,7 +10,7 @@ const homeCategoryLinks = [
     ...category,
     href:
       category.id === "electronics"
-        ? "/listings?world=electronics&category=smartphones"
+        ? "/listings?world=electronics&category=phones"
         : `/listings?world=all&category=${category.id}`,
   })),
   {

@@ -15,6 +15,7 @@ import {
   getSellerTypeLabel,
 } from "@/lib/sellers";
 import { ListingsView, ListingWorld } from "@/lib/listings";
+import { withReturnTo } from "@/lib/navigation/return-to";
 
 type StorefrontPageClientProps = {
   seller: SellerStorefront;
@@ -80,6 +81,7 @@ export function StorefrontPageClient({
   promotionState,
   campaigns,
 }: StorefrontPageClientProps) {
+  const storefrontReturnTo = `/sellers/${seller.id}#seller-listings`;
   const [scope, setScope] = useState<ListingScope>("all");
   const [world, setWorld] = useState<"all" | ListingWorld>("all");
   const [view, setView] = useState<ListingsView>("grid");
@@ -108,6 +110,14 @@ export function StorefrontPageClient({
         return matchesScope && matchesWorld;
       }),
     [listings, scope, world],
+  );
+  const visibleListingsWithReturnTo = useMemo(
+    () =>
+      visibleListings.map((listing) => ({
+        ...listing,
+        detailsHref: withReturnTo(listing.detailsHref, storefrontReturnTo),
+      })),
+    [storefrontReturnTo, visibleListings],
   );
 
   const firstListing = visibleListings[0] ?? listings[0];
@@ -148,6 +158,14 @@ export function StorefrontPageClient({
     }
     return rows;
   }, [featuredListings, listings]);
+  const vitrinePopularWithReturnTo = useMemo(
+    () =>
+      vitrinePopular.map((listing) => ({
+        ...listing,
+        detailsHref: withReturnTo(listing.detailsHref, storefrontReturnTo),
+      })),
+    [storefrontReturnTo, vitrinePopular],
+  );
 
   const vitrineNew = useMemo(
     () =>
@@ -156,6 +174,14 @@ export function StorefrontPageClient({
         .sort((a, b) => new Date(b.postedAtIso).getTime() - new Date(a.postedAtIso).getTime())
         .slice(0, 4),
     [listings],
+  );
+  const vitrineNewWithReturnTo = useMemo(
+    () =>
+      vitrineNew.map((listing) => ({
+        ...listing,
+        detailsHref: withReturnTo(listing.detailsHref, storefrontReturnTo),
+      })),
+    [storefrontReturnTo, vitrineNew],
   );
 
   const vitrineBudgetCap = useMemo(() => {
@@ -179,6 +205,14 @@ export function StorefrontPageClient({
       .sort((a, b) => a.priceValue - b.priceValue)
       .slice(0, 4);
   }, [listings, vitrineBudgetCap]);
+  const vitrineBudgetWithReturnTo = useMemo(
+    () =>
+      vitrineBudget.map((listing) => ({
+        ...listing,
+        detailsHref: withReturnTo(listing.detailsHref, storefrontReturnTo),
+      })),
+    [storefrontReturnTo, vitrineBudget],
+  );
 
   const pinnedPromoListings = useMemo(() => {
     const orderedIds: string[] = [];
@@ -209,6 +243,14 @@ export function StorefrontPageClient({
     }
     return out;
   }, [featuredListings, listings, promotionState]);
+  const pinnedPromoListingsWithReturnTo = useMemo(
+    () =>
+      pinnedPromoListings.map((listing) => ({
+        ...listing,
+        detailsHref: withReturnTo(listing.detailsHref, storefrontReturnTo),
+      })),
+    [pinnedPromoListings, storefrontReturnTo],
+  );
 
   const primaryCoupon = activeCoupons[0] ?? null;
   function toggleSubscription() {
@@ -374,7 +416,7 @@ export function StorefrontPageClient({
             </a>
           </div>
           <ListingsGrid
-            listings={vitrinePopular}
+            listings={vitrinePopularWithReturnTo}
             view="grid"
             emptyMessage="Пока нет позиций для подборки «Лучшее»."
             emptyStateClassName="bg-slate-50"
@@ -399,7 +441,7 @@ export function StorefrontPageClient({
             </a>
           </div>
           <ListingsGrid
-            listings={vitrineNew}
+            listings={vitrineNewWithReturnTo}
             view="grid"
             emptyMessage="Новых активных объявлений пока нет."
             emptyStateClassName="bg-slate-50"
@@ -428,7 +470,7 @@ export function StorefrontPageClient({
             </a>
           </div>
           <ListingsGrid
-            listings={vitrineBudget}
+            listings={vitrineBudgetWithReturnTo}
             view="grid"
             emptyMessage="В этой ценовой витрине пока пусто."
             emptyStateClassName="bg-slate-50"
@@ -516,7 +558,7 @@ export function StorefrontPageClient({
       </section>
 
       <ListingsGrid
-        listings={visibleListings}
+        listings={visibleListingsWithReturnTo}
         view={view}
         emptyMessage="По выбранным фильтрам у продавца пока нет объявлений."
       />
@@ -536,7 +578,7 @@ export function StorefrontPageClient({
           <div>
             <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Закреплённые товары</p>
             <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-1 pt-0.5 [scrollbar-width:thin]">
-              {pinnedPromoListings.map((listing) => (
+              {pinnedPromoListingsWithReturnTo.map((listing) => (
                 <div key={listing.id} className="w-[min(100%,18rem)] shrink-0">
                   <ListingPreviewCard listing={listing} view="grid" />
                 </div>

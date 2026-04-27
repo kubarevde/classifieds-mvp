@@ -14,8 +14,8 @@ type SubscriptionStoredState = {
   buyerExpiryDate: string | null;
 };
 
-type EffectivePlan = "demo" | "pro" | "business";
-type StorePlan = "basic" | "pro" | "business";
+export type EffectivePlan = "demo" | "pro" | "business";
+export type StorePlan = "basic" | "pro" | "business";
 
 type SubscriptionContextValue = {
   isPro: boolean;

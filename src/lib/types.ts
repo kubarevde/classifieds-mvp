@@ -6,6 +6,7 @@ export type ListingCategory =
 
 export type Listing = {
   id: string;
+  listingSaleMode?: "fixed" | "auction" | "free";
   title: string;
   price: string;
   priceValue: number;

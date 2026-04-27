@@ -24,6 +24,7 @@ import {
   SellerPost,
   SellerStorefront,
 } from "@/lib/sellers";
+import { isStoreFeatureAllowed, storeFeatureMinTier } from "@/services/entitlements/config";
 
 type ListingPromotionState = {
   sellerId: string;
@@ -70,12 +71,16 @@ type MarketingMenuItem = {
   icon: "overview" | "analytics" | "mailing" | "coupon" | "planner" | "video" | "sponsored" | "boost";
 };
 
+function toMarketingRequiredPlan(minTier: "basic" | "pro" | "business"): "pro" | "business" {
+  return minTier === "business" ? "business" : "pro";
+}
+
 const menuItems: MarketingMenuItem[] = [
   { id: "overview", label: "Обзор", requiredPlan: "free", icon: "overview" },
   {
     id: "price_analytics",
     label: "Аналитика цен",
-    requiredPlan: "pro",
+    requiredPlan: toMarketingRequiredPlan(storeFeatureMinTier.price_analytics),
     lockedHint: "Сравнение с рынком и ценовые рекомендации по вашим категориям.",
     icon: "analytics",
   },
@@ -89,7 +94,7 @@ const menuItems: MarketingMenuItem[] = [
   {
     id: "coupons",
     label: "Купоны и скидки",
-    requiredPlan: "pro",
+    requiredPlan: toMarketingRequiredPlan(storeFeatureMinTier.coupons),
     lockedHint: "Запуск купонов, скидок и промо‑бейджей на карточках объявлений.",
     icon: "coupon",
   },
@@ -117,7 +122,7 @@ const menuItems: MarketingMenuItem[] = [
   {
     id: "boosts",
     label: "Поднятие / Супер",
-    requiredPlan: "pro",
+    requiredPlan: toMarketingRequiredPlan(storeFeatureMinTier.boosts),
     lockedHint: "Поднятие объявлений и усиленное выделение карточек в выдаче.",
     icon: "boost",
   },
@@ -147,8 +152,11 @@ function formatDateTime(isoDate: string) {
 }
 
 function hasPlanAccess(plan: SellerPlanTier, requiredPlan: "free" | "pro" | "business") {
-  const rank: Record<SellerPlanTier, number> = { free: 0, pro: 1, business: 2 };
-  return rank[plan] >= rank[requiredPlan];
+  const normalized = plan === "free" ? "basic" : plan;
+  if (requiredPlan === "free") {
+    return true;
+  }
+  return isStoreFeatureAllowed(normalized, requiredPlan === "pro" ? "pro" : "business");
 }
 
 function MenuIcon({ icon }: { icon: MarketingMenuItem["icon"] }) {

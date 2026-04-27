@@ -9,8 +9,9 @@ import { ChatHeader } from "@/components/messages/chat-header";
 import { ConversationList } from "@/components/messages/conversation-list";
 import { MessageBubble } from "@/components/messages/message-bubble";
 import { MessageInput } from "@/components/messages/message-input";
-import { allListings } from "@/lib/listings";
-import { getConversationListing } from "@/lib/messages";
+import { UnifiedCatalogListing } from "@/lib/listings";
+import { Listing, ListingCategory } from "@/lib/types";
+import { mockListingsService } from "@/services/listings";
 
 type MobileView = "list" | "chat";
 
@@ -37,9 +38,22 @@ export function MessagesPageClient() {
   const conversations = buyer.messages;
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [draftMessage, setDraftMessage] = useState("");
+  const [catalogListings, setCatalogListings] = useState<UnifiedCatalogListing[]>([]);
   const [mobileView, setMobileView] = useState<MobileView>(() =>
     searchParams.get("conversationId") || searchParams.get("listingId") ? "chat" : "list",
   );
+
+  useEffect(() => {
+    let isActive = true;
+    void mockListingsService.getAll().then((listings) => {
+      if (isActive) {
+        setCatalogListings(listings);
+      }
+    });
+    return () => {
+      isActive = false;
+    };
+  }, []);
 
   const activeConversationId = useMemo(() => {
     if (selectedConversationId) {
@@ -57,19 +71,44 @@ export function MessagesPageClient() {
     () => conversations.find((conversation) => conversation.id === activeConversationId) ?? null,
     [activeConversationId, conversations],
   );
+  const activeConversationListing = useMemo<Listing | null>(() => {
+    if (!activeConversation) {
+      return null;
+    }
+    const listing = catalogListings.find((item) => item.id === activeConversation.listingId);
+    if (!listing) {
+      return null;
+    }
+    return {
+      id: listing.id,
+      title: listing.title,
+      price: listing.price,
+      priceValue: listing.priceValue,
+      location: listing.location,
+      publishedAt: listing.publishedAt,
+      postedAtIso: listing.postedAtIso,
+      image: listing.image,
+      condition: listing.condition,
+      category: listing.categoryId as ListingCategory,
+      description: listing.description,
+      sellerName: listing.sellerName,
+      sellerPhone: listing.sellerPhone,
+      listingSaleMode: listing.listingSaleMode,
+    };
+  }, [activeConversation, catalogListings]);
 
   useEffect(() => {
     const listingId = searchParams.get("listingId");
     if (!listingId) {
       return;
     }
-    const listing = allListings.find((item) => item.id === listingId);
+    const listing = catalogListings.find((item) => item.id === listingId);
     buyer.ensureConversation({
       listingId,
       sellerName: searchParams.get("sellerName") ?? listing?.sellerName,
       listingTitle: searchParams.get("listingTitle") ?? listing?.title,
     });
-  }, [buyer, searchParams]);
+  }, [buyer, catalogListings, searchParams]);
 
   function selectConversation(conversationId: string) {
     setSelectedConversationId(conversationId);
@@ -99,7 +138,7 @@ export function MessagesPageClient() {
       <div className={showConversationList ? "block" : "hidden lg:block"}>
         <Link
           href="/dashboard"
-          className="mb-2 inline-flex text-sm font-medium text-slate-600 transition hover:text-slate-900"
+          className="mb-3 inline-flex text-sm font-medium text-slate-600 transition hover:text-slate-900"
         >
           ← Назад в кабинет
         </Link>
@@ -111,12 +150,12 @@ export function MessagesPageClient() {
       </div>
 
       <div className={showConversationPanel ? "block" : "hidden lg:block"}>
-        <article className="flex min-h-[580px] flex-col rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <article className="flex min-h-[520px] flex-col rounded-2xl border border-slate-200 bg-white shadow-sm lg:min-h-[580px]">
           {activeConversation ? (
             <>
               <ChatHeader
                 conversation={activeConversation}
-                listing={getConversationListing(activeConversation.listingId) ?? null}
+                listing={activeConversationListing}
                 onBack={() => setMobileView("list")}
               />
 

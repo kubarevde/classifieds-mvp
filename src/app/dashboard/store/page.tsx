@@ -4,8 +4,9 @@ import { DemoRoleGuard } from "@/components/demo-role/demo-role";
 import { StoreDashboardPageClient } from "@/components/store-dashboard/store-dashboard-page-client";
 import { Navbar } from "@/components/layout/navbar";
 import { Container } from "@/components/ui/container";
-import { MarketingMenuKey } from "@/lib/sellers";
+import { MarketingMenuKey, type SellerDashboardListing } from "@/lib/sellers";
 import { getSellerDashboardData, storefrontSellers } from "@/lib/sellers";
+import { mockListingsService } from "@/services/listings";
 
 type StoreDashboardPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -49,10 +50,33 @@ export default async function StoreDashboardPage({ searchParams }: StoreDashboar
   const initialMarketingScreen = resolveMarketingScreen(params?.marketing);
   const initialSection = resolveSection(params?.section);
   const data = getSellerDashboardData(sellerId);
+  const catalogListings = await mockListingsService.getAll();
 
   if (!data) {
     notFound();
   }
+  const listings: SellerDashboardListing[] = data.seller.listingRefs
+    .map((reference, index) => {
+      const listing = catalogListings.find((item) => item.id === reference.listingId);
+      if (!listing) {
+        return null;
+      }
+      const createdAtIso = listing.postedAtIso;
+      const updatedAtIso = new Date(
+        new Date(createdAtIso).getTime() + Math.max(1, (index + 1) * 2) * 24 * 60 * 60 * 1000,
+      ).toISOString();
+      const views = 70 + index * 38 + data.seller.id.length * 5;
+      const messages = Math.max(1, Math.round(views / 16));
+      return {
+        ...listing,
+        status: reference.status,
+        createdAtIso,
+        updatedAtIso,
+        views,
+        messages,
+      };
+    })
+    .filter((listing): listing is SellerDashboardListing => listing !== null);
 
   return (
     <div className="min-h-screen bg-slate-50/60">
@@ -79,7 +103,6 @@ export default async function StoreDashboardPage({ searchParams }: StoreDashboar
 
             <StoreDashboardPageClient
               seller={data.seller}
-              initialListings={data.listings}
               initialPosts={data.posts}
               initialCoupons={data.coupons}
               initialPromotionState={data.promotionState}
@@ -88,6 +111,7 @@ export default async function StoreDashboardPage({ searchParams }: StoreDashboar
               initialHeroBoardPlacements={data.heroBoardPlacements}
               initialMarketingScreen={initialMarketingScreen}
               initialSection={initialSection}
+              initialListings={listings}
             />
           </DemoRoleGuard>
         </Container>

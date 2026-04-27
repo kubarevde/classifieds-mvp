@@ -15,10 +15,10 @@ export function FavoritesGrid({ listings, getSavedAtLabel }: FavoritesGridProps)
       {listings.map((listing) => (
         <article
           key={listing.id}
-          className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm transition hover:border-slate-300 hover:shadow-md"
+          className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm transition hover:border-slate-300 hover:shadow-md sm:p-4"
         >
           <div className="flex gap-3 sm:gap-4">
-            <Link href={`/listings/${listing.id}`} className={`h-24 w-24 shrink-0 rounded-xl bg-gradient-to-br ${listing.image}`} />
+            <Link href={`/listings/${listing.id}`} className={`h-20 w-20 shrink-0 rounded-xl bg-gradient-to-br sm:h-24 sm:w-24 ${listing.image}`} />
             <div className="min-w-0 flex-1 space-y-1.5">
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <p className="text-lg font-bold tracking-tight text-slate-900">{listing.price}</p>

@@ -1,4 +1,4 @@
-import { Conversation, getConversationLastMessage, getConversationListing } from "@/lib/messages";
+import { Conversation, getConversationLastMessage } from "@/lib/messages";
 
 type ConversationItemProps = {
   conversation: Conversation;
@@ -14,7 +14,6 @@ function formatTime(isoDate: string) {
 }
 
 export function ConversationItem({ conversation, isActive, onSelect }: ConversationItemProps) {
-  const listing = getConversationListing(conversation.listingId);
   const lastMessage = getConversationLastMessage(conversation);
 
   return (
@@ -32,7 +31,6 @@ export function ConversationItem({ conversation, isActive, onSelect }: Conversat
           <p className="truncate text-sm font-semibold text-slate-900">{conversation.participantName}</p>
           <p className="truncate text-xs text-slate-500">
             {conversation.participantRole}
-            {listing ? ` · ${listing.title}` : ""}
           </p>
         </div>
         {lastMessage ? (
