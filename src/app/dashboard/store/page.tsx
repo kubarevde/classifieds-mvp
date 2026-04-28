@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { DemoRoleGuard } from "@/components/demo-role/demo-role";
@@ -10,6 +11,14 @@ import { mockListingsService } from "@/services/listings";
 
 type StoreDashboardPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+export const metadata: Metadata = {
+  title: "Кабинет магазина - Classify",
+  robots: {
+    index: false,
+    follow: false,
+  },
 };
 
 function resolveSellerId(raw: string | string[] | undefined) {

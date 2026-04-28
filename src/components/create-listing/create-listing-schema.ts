@@ -48,6 +48,8 @@ export const wizardCoreSchema = z.object({
   auctionDurationHours: z.union([z.literal(12), z.literal(24), z.literal(72), z.literal(168)]),
   auctionAntiSnipingEnabled: z.boolean(),
   auctionMinBidIncrement: z.string(),
+  /** Ключевые слова / теги (через запятую); подсказки ИИ дополняют, пользователь правит. */
+  keywords: z.string().max(500),
 });
 
 export type WizardCoreValues = z.infer<typeof wizardCoreSchema>;

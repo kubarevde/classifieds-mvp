@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { FormEvent, useState } from "react";
 import { CircleHelp } from "lucide-react";
 
@@ -10,10 +11,9 @@ import { useFeatureGate } from "@/hooks/useFeatureGate";
 import { SellerMessagesPanel } from "@/components/store-dashboard/seller-messages-panel";
 import { SellerNotificationsPanel } from "@/components/store-dashboard/seller-notifications-panel";
 import { useSellerActivity } from "@/components/seller/use-seller-activity";
-import { StoreAnalyticsSection } from "@/components/store-dashboard/sections/analytics/StoreAnalyticsSection";
 import { StoreListingsSection } from "@/components/store-dashboard/sections/listings/StoreListingsSection";
-import { StoreMarketingSection } from "@/components/store-dashboard/sections/marketing/StoreMarketingSection";
 import { StoreOverviewSection } from "@/components/store-dashboard/sections/overview/StoreOverviewSection";
+import { ErrorBoundary } from "@/components/platform";
 import { StoreSettingsSection } from "@/components/store-dashboard/sections/settings/StoreSettingsSection";
 import {
   onboardingSteps,
@@ -26,6 +26,21 @@ import { useStoreDashboardModals } from "@/components/store-dashboard/useStoreDa
 import type { SellerPost } from "@/lib/sellers";
 
 export type { StoreDashboardPageClientProps } from "@/components/store-dashboard/store-dashboard-shared";
+
+const StoreAnalyticsSection = dynamic(
+  () => import("@/components/store-dashboard/sections/analytics/StoreAnalyticsSection").then((mod) => mod.StoreAnalyticsSection),
+  { loading: () => <div className="h-72 animate-pulse rounded-2xl bg-slate-200" /> },
+);
+
+const StoreMarketingSection = dynamic(
+  () => import("@/components/store-dashboard/sections/marketing/StoreMarketingSection").then((mod) => mod.StoreMarketingSection),
+  { loading: () => <div className="h-72 animate-pulse rounded-2xl bg-slate-200" /> },
+);
+
+const StoreReputationSection = dynamic(
+  () => import("@/components/store-dashboard/sections/reputation/StoreReputationSection").then((mod) => mod.StoreReputationSection),
+  { loading: () => <div className="h-72 animate-pulse rounded-2xl bg-slate-200" /> },
+);
 
 export function StoreDashboardPageClient({
   seller,
@@ -189,12 +204,9 @@ export function StoreDashboardPageClient({
         subscription={subscription}
       />
 
-      <StoreAnalyticsSection
-        seller={seller}
-        listings={listings}
-        initialCoupons={initialCoupons}
-        currentSubscriptionTier={currentSubscriptionTier}
-      />
+      <ErrorBoundary context="store-analytics-section" fallback={<div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-600">Раздел аналитики временно недоступен.</div>}>
+        <StoreAnalyticsSection seller={seller} listings={listings} />
+      </ErrorBoundary>
 
       <StoreListingsSection
         seller={seller}
@@ -207,21 +219,27 @@ export function StoreDashboardPageClient({
         listingSoftLimit={getLimit("listing_create")}
       />
 
-      <StoreMarketingSection
-        seller={seller}
-        currentSubscriptionTier={currentSubscriptionTier}
-        getSectionClassName={getSectionClassName}
-        listings={listings}
-        posts={posts}
-        initialCoupons={initialCoupons}
-        initialPromotionState={initialPromotionState}
-        initialCampaigns={initialCampaigns}
-        initialPriceAnalytics={initialPriceAnalytics}
-        initialMarketingScreen={initialMarketingScreen}
-        initialHeroBoardPlacements={initialHeroBoardPlacements}
-        onNotify={showMockMessage}
-        onOpenTariffsMessage={() => showMockMessage("Откройте раздел «Подписка магазина», чтобы посмотреть тарифы.")}
-      />
+      <ErrorBoundary context="store-marketing-section" fallback={<div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-600">Маркетинговый блок временно недоступен.</div>}>
+        <StoreMarketingSection
+          seller={seller}
+          currentSubscriptionTier={currentSubscriptionTier}
+          getSectionClassName={getSectionClassName}
+          listings={listings}
+          posts={posts}
+          initialCoupons={initialCoupons}
+          initialPromotionState={initialPromotionState}
+          initialCampaigns={initialCampaigns}
+          initialPriceAnalytics={initialPriceAnalytics}
+          initialMarketingScreen={initialMarketingScreen}
+          initialHeroBoardPlacements={initialHeroBoardPlacements}
+          onNotify={showMockMessage}
+          onOpenTariffsMessage={() => showMockMessage("Откройте раздел «Подписка магазина», чтобы посмотреть тарифы.")}
+        />
+      </ErrorBoundary>
+
+      <ErrorBoundary context="store-reputation-section" fallback={<div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-600">Репутационный блок временно недоступен.</div>}>
+        <StoreReputationSection sellerId={seller.id} />
+      </ErrorBoundary>
 
       <StoreSettingsSection
         getSectionClassName={getSectionClassName}

@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from "react";
 
+import { UnifiedSearchShell } from "@/components/search/unified-search-shell";
+import { SaveSearchButton } from "@/components/saved-searches/save-search-button";
 import { RecommendedStores } from "@/components/stores/recommended-stores";
 import { StoreCard, StoreCatalogItem } from "@/components/stores/store-card";
 import { StoreCatalogHero } from "@/components/stores/store-catalog-hero";
@@ -10,12 +12,13 @@ import { isStorefrontCatalogSellerType } from "@/lib/demo-role-constants";
 import {
   SellerPlanTier,
   SellerStorefront,
-  SellerType,
+  type SellerType,
   getSellerTypeLabel,
   getStorefrontListingsBySellerId,
   storefrontSellers,
 } from "@/lib/sellers";
 import { CatalogWorld, getWorldLabel } from "@/lib/listings";
+import { createStoreSearchIntentFromFilters } from "@/lib/saved-searches";
 
 type StoreCatalogViewModel = StoreCatalogItem & {
   worldHint: CatalogWorld;
@@ -119,14 +122,18 @@ export function StoresPageClient() {
     [allStores],
   );
 
+  const storeTypeScopeOptions = useMemo(() => {
+    const types = Array.from(new Set(allStores.map((store) => store.type)));
+    types.sort((a, b) => getSellerTypeLabel(a).localeCompare(getSellerTypeLabel(b), "ru"));
+    return types;
+  }, [allStores]);
+
   const typeOptions = useMemo(
     () => [
       { value: "all", label: "Все категории" },
-      ...Array.from(new Set(allStores.map((store) => store.type)))
-        .sort((a, b) => getSellerTypeLabel(a).localeCompare(getSellerTypeLabel(b), "ru"))
-        .map((type) => ({ value: type, label: getSellerTypeLabel(type) })),
+      ...storeTypeScopeOptions.map((type) => ({ value: type, label: getSellerTypeLabel(type) })),
     ],
-    [allStores],
+    [storeTypeScopeOptions],
   );
 
   const ratingOptions = [
@@ -188,13 +195,69 @@ export function StoresPageClient() {
     setSortBy("rating_desc");
   }
 
+  const storeIntent = useMemo(
+    () =>
+      createStoreSearchIntentFromFilters({
+        query,
+        location: selectedCity,
+        specialization: "all",
+        verifiedOnly: selectedRating !== "all",
+        storeType: selectedType,
+        sortBy,
+      }),
+    [query, selectedCity, selectedType, selectedRating, sortBy],
+  );
+
   return (
     <div className="space-y-4">
-      <StoreCatalogHero query={query} onQueryChange={setQuery} totalStores={allStores.length} />
+      <UnifiedSearchShell
+        target="store"
+        onTargetChange={() => {}}
+        showVerticalTabs={false}
+        photoSearch="never"
+        query={query}
+        onQueryChange={setQuery}
+        onQuerySubmit={() => {}}
+        placeholder="Название магазина, город или описание"
+        extraControls={<SaveSearchButton intent={storeIntent} />}
+      />
+      <StoreCatalogHero totalStores={allStores.length} />
 
       <RecommendedStores stores={recommendedStores} />
 
+      <div className="space-y-1.5">
+        <p className="px-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">Тип магазина</p>
+        <div className="no-scrollbar -mx-1 flex items-center gap-2 overflow-x-auto px-1 pb-0.5">
+          <button
+            type="button"
+            onClick={() => setSelectedType("all")}
+            className={`whitespace-nowrap rounded-full border px-3 py-1.5 text-xs font-medium transition ${
+              selectedType === "all"
+                ? "border-slate-400 bg-slate-900 text-white"
+                : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+            }`}
+          >
+            Все типы
+          </button>
+          {storeTypeScopeOptions.map((typeId) => (
+            <button
+              key={typeId}
+              type="button"
+              onClick={() => setSelectedType(typeId)}
+              className={`whitespace-nowrap rounded-full border px-3 py-1.5 text-xs font-medium transition ${
+                selectedType === typeId
+                  ? "border-slate-400 bg-slate-900 text-white"
+                  : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+              }`}
+            >
+              {getSellerTypeLabel(typeId as SellerType)}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <StoreFiltersBar
+        hideStoreType
         world={selectedWorld}
         onWorldChange={setSelectedWorld}
         worldOptions={worldOptions}

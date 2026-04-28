@@ -3,59 +3,33 @@
 import Link from "next/link";
 import { useState } from "react";
 
-import { useNotifications } from "@/components/notifications/notifications-provider";
 import { useSavedSearches } from "@/components/saved-searches/saved-searches-provider";
-import { AlertsToggle } from "@/components/saved-searches/alerts-toggle";
+import { FeatureGate } from "@/components/platform";
 import { useFeatureGate } from "@/hooks/useFeatureGate";
-import {
-  SavedSearch,
-  buildListingsHref,
-  buildSearchSummary,
-  formatSavedSearchCreatedAt,
-} from "@/lib/saved-searches";
+import type { SavedSearch } from "@/entities/search/model";
+import { buildSearchHrefFromIntent, formatSavedSearchCreatedAt } from "@/lib/saved-searches";
+import { buildCreateRequestHrefFromIntent } from "@/services/requests/intent-adapter";
 
 type SavedSearchCardProps = {
   search: SavedSearch;
 };
 
 export function SavedSearchCard({ search }: SavedSearchCardProps) {
-  const { removeSearch, renameSearch, setAlertsEnabled } = useSavedSearches();
-  const { addNotification } = useNotifications();
-  const alertsGate = useFeatureGate("saved_searches_alerts");
+  const { removeSearch, updateSearch, updateAlertPreference, getNewMatchesCount } = useSavedSearches();
+  const alertsGate = useFeatureGate();
   const [isEditingName, setIsEditingName] = useState(false);
-  const [draftName, setDraftName] = useState(search.name);
+  const [draftName, setDraftName] = useState(search.title ?? search.intent.autoTitle);
 
-  const href = buildListingsHref(search.filters);
-  const summary = buildSearchSummary(search.filters);
+  const href = buildSearchHrefFromIntent(search.intent);
+  const requestHref = buildCreateRequestHrefFromIntent(search.intent);
+  const summary = search.intent.chips.map((chip) => `${chip.label}: ${chip.value ?? "—"}`).join(" · ");
+  const modeLabel =
+    search.intent.mode === "natural_language" ? "AI" : search.intent.mode === "image" ? "photo" : "keyword";
+  const newMatches = getNewMatchesCount(search.id);
 
   const commitRename = () => {
-    renameSearch(search.id, draftName);
+    updateSearch(search.id, { title: draftName });
     setIsEditingName(false);
-  };
-
-  const handleAlertsChange = (next: boolean) => {
-    if (next && !alertsGate.allowed) {
-      addNotification({
-        type: "tip",
-        title: "Функция недоступна",
-        body: "Alerts по сохранённым поискам доступны в Pro и Business.",
-        createdAtIso: new Date().toISOString(),
-        isRead: false,
-      });
-      return;
-    }
-    setAlertsEnabled(search.id, next);
-    if (next) {
-      addNotification({
-        type: "search_alert",
-        title: "Новые объявления по поиску",
-        body: `Появились новые объявления по вашему поиску «${search.name}». Это демо-уведомление для MVP.`,
-        createdAtIso: new Date().toISOString(),
-        isRead: false,
-        link: { href, label: "Открыть в каталоге" },
-        metadata: { savedSearchId: search.id },
-      });
-    }
   };
 
   return (
@@ -81,7 +55,7 @@ export function SavedSearchCard({ search }: SavedSearchCardProps) {
                 <button
                   type="button"
                   onClick={() => {
-                    setDraftName(search.name);
+                    setDraftName(search.title ?? search.intent.autoTitle);
                     setIsEditingName(false);
                   }}
                   className="inline-flex h-9 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
@@ -92,20 +66,28 @@ export function SavedSearchCard({ search }: SavedSearchCardProps) {
             </div>
           ) : (
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-base font-semibold tracking-tight text-slate-900 sm:text-lg">{search.name}</h2>
+              <h2 className="text-base font-semibold tracking-tight text-slate-900 sm:text-lg">
+                {search.title ?? search.intent.autoTitle}
+              </h2>
+              <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-700">
+                {modeLabel}
+              </span>
+              <span className="inline-flex items-center rounded-full bg-sky-50 px-2 py-0.5 text-[11px] font-semibold text-sky-700">
+                +{newMatches} новых
+              </span>
               <span
                 className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ${
-                  search.alertsEnabled
+                  search.alertPreference.enabled
                     ? "bg-emerald-50 text-emerald-800 ring-emerald-100"
                     : "bg-slate-50 text-slate-600 ring-slate-100"
                 }`}
               >
-                {search.alertsEnabled ? "Alerts вкл." : "Alerts выкл."}
+                {search.alertPreference.enabled ? `Alerts: ${search.alertPreference.channel}` : "Alerts выкл."}
               </span>
             </div>
           )}
 
-          <p className="text-xs text-slate-500">Создано {formatSavedSearchCreatedAt(search.createdAtIso)}</p>
+          <p className="text-xs text-slate-500">Создано {formatSavedSearchCreatedAt(search.createdAt)}</p>
           <p className="text-sm text-slate-600">{summary}</p>
         </div>
 
@@ -117,15 +99,21 @@ export function SavedSearchCard({ search }: SavedSearchCardProps) {
             >
               Открыть
             </Link>
+            <Link
+              href={requestHref}
+              className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-3.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+            >
+              Разместить запрос о покупке
+            </Link>
             <button
               type="button"
               onClick={() => {
-                setDraftName(search.name);
+                setDraftName(search.title ?? search.intent.autoTitle);
                 setIsEditingName(true);
               }}
               className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-3.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
             >
-              Переименовать
+                Редактировать
             </button>
             <button
               type="button"
@@ -138,11 +126,37 @@ export function SavedSearchCard({ search }: SavedSearchCardProps) {
         ) : null}
       </div>
 
-      <div className="mt-4">
-        <AlertsToggle id={search.id} enabled={search.alertsEnabled} onChange={handleAlertsChange} />
-        {!alertsGate.allowed ? (
-          <p className="mt-1 text-xs text-amber-700">Уведомления по поискам доступны в Pro и Business.</p>
-        ) : null}
+      <div className="mt-4 flex flex-wrap gap-2 text-xs">
+        <button
+          type="button"
+          onClick={() => updateAlertPreference(search.id, { channel: "off", enabled: false })}
+          className="rounded-lg border border-slate-200 px-2 py-1"
+        >
+          Alerts off
+        </button>
+        <button
+          type="button"
+          onClick={() => updateAlertPreference(search.id, { channel: "push", enabled: true })}
+          className="rounded-lg border border-slate-200 px-2 py-1"
+        >
+          Push
+        </button>
+        {alertsGate.canUse("saved_searches_alerts") ? (
+          <button
+            type="button"
+            onClick={() => updateAlertPreference(search.id, { channel: "email", enabled: true })}
+            className="rounded-lg border border-slate-200 px-2 py-1"
+          >
+            Email
+          </button>
+        ) : (
+          <FeatureGate
+            feature="saved_searches_alerts"
+            fallback={<p className="rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-amber-700">Email alerts доступны на Pro+</p>}
+          >
+            <span />
+          </FeatureGate>
+        )}
       </div>
     </article>
   );

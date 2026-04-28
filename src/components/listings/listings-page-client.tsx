@@ -2,12 +2,16 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { createElement, useEffect, useMemo, useState } from "react";
+import { createElement, useEffect, useMemo, useRef, useState } from "react";
 
 import { catalogWorldLucideIcons } from "@/config/icons";
 import { FiltersBar } from "@/components/listings/filters-bar";
 import { ListingsGrid } from "@/components/listings/listings-grid";
+import { CatalogCategoryScope } from "@/components/search/catalog-category-scope";
+import { UnifiedSearchShell } from "@/components/search/unified-search-shell";
 import { SaveSearchButton } from "@/components/saved-searches/save-search-button";
+import type { SearchIntent } from "@/entities/search/model";
+import { StoreCard, type StoreCatalogItem } from "@/components/stores/store-card";
 import { WorldIdentityStrip } from "@/components/worlds/world-identity";
 import {
   CatalogWorld,
@@ -21,22 +25,32 @@ import {
   SortOption,
 } from "@/lib/listings";
 import type { SavedSearchFilters } from "@/lib/saved-searches";
-import { serializeFiltersToSearchParams } from "@/lib/saved-searches";
+import {
+  createSearchIntentFromFilters,
+  createStoreSearchIntentFromFilters,
+  serializeFiltersToSearchParams,
+  serializeStoreFiltersToSearchParams,
+  type StoreSearchFilters,
+} from "@/lib/saved-searches";
 import { getWorldAudienceChips, getWorldOnlineStats } from "@/lib/worlds.community";
 import { getWorldPresentation } from "@/lib/worlds";
 import { buildReturnTo, withReturnTo } from "@/lib/navigation/return-to";
+import { getSellerTypeLabel, storefrontSellers } from "@/lib/sellers";
 import { mockAuctionService } from "@/services/auctions";
 import { mockListingsService } from "@/services/listings";
+import { mockSearchIntentService } from "@/services/search-intent";
 
 type ListingsPageClientProps = {
   initialFilters: SavedSearchFilters;
+  initialIntent?: SearchIntent | null;
 };
 
-export function ListingsPageClient({ initialFilters }: ListingsPageClientProps) {
+export function ListingsPageClient({ initialFilters, initialIntent }: ListingsPageClientProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [world] = useState<CatalogWorld>(initialFilters.world);
-  const [query, setQuery] = useState(initialFilters.query);
+  const [draftQuery, setDraftQuery] = useState(initialFilters.query);
+  const [committedQuery, setCommittedQuery] = useState(initialFilters.query);
   const [category, setCategory] = useState<"all" | string>(initialFilters.category);
   const [location, setLocation] = useState<"all" | string>(initialFilters.location);
   const [saleMode, setSaleMode] = useState(initialFilters.saleMode);
@@ -44,6 +58,32 @@ export function ListingsPageClient({ initialFilters }: ListingsPageClientProps) 
   const [view, setView] = useState<ListingsView>(initialFilters.view);
   const [allWorldListings, setAllWorldListings] = useState(() => getWorldScopedListings(world));
   const [auctionsByListingId, setAuctionsByListingId] = useState<Record<string, Awaited<ReturnType<typeof mockAuctionService.getAll>>[number]>>({});
+  const [searchMode, setSearchMode] = useState<SearchIntent["mode"]>(initialIntent?.mode ?? "keyword");
+  const [target, setTarget] = useState<SearchIntent["target"]>(initialIntent?.target ?? "listing");
+  const [storeDraftQuery, setStoreDraftQuery] = useState(
+    initialIntent?.target === "store" ? initialIntent.filters.query ?? "" : "",
+  );
+  const [storeFilters, setStoreFilters] = useState<StoreSearchFilters>({
+    query: initialIntent?.target === "store" ? initialIntent.filters.query ?? "" : "",
+    location: initialIntent?.target === "store" ? initialIntent.filters.location ?? "all" : "all",
+    specialization:
+      initialIntent?.target === "store" && typeof initialIntent.filters.attributes?.specialization === "string"
+        ? (initialIntent.filters.attributes.specialization as string)
+        : "all",
+    verifiedOnly: initialIntent?.target === "store" && initialIntent.filters.attributes?.verifiedOnly === "1",
+    storeType:
+      initialIntent?.target === "store" && typeof initialIntent.filters.attributes?.storeType === "string"
+        ? (initialIntent.filters.attributes.storeType as string)
+        : "all",
+    sortBy:
+      initialIntent?.target === "store" &&
+      (initialIntent.sort === "rating_desc" ||
+        initialIntent.sort === "listings_desc" ||
+        initialIntent.sort === "newest_desc")
+        ? (initialIntent.sort as StoreSearchFilters["sortBy"])
+        : "rating_desc",
+  });
+  const lastSyncedUrlRef = useRef<string>("");
 
   const worldPresentation = useMemo(() => getWorldPresentation(world), [world]);
   const worldHeroIcon = catalogWorldLucideIcons[world];
@@ -52,6 +92,11 @@ export function ListingsPageClient({ initialFilters }: ListingsPageClientProps) 
   const locations = useMemo(() => getUniqueLocationsForUnified(worldScopedListings), [worldScopedListings]);
   const worldOnlineStats = useMemo(() => (world === "all" ? null : getWorldOnlineStats(world)), [world]);
   const worldAudienceChips = useMemo(() => (world === "all" ? [] : getWorldAudienceChips(world)), [world]);
+  const storeTypeScopeOptions = useMemo(() => {
+    const types = Array.from(new Set(storefrontSellers.map((seller) => seller.type)));
+    types.sort((a, b) => getSellerTypeLabel(a).localeCompare(getSellerTypeLabel(b), "ru"));
+    return types;
+  }, []);
 
   const hasSelectedCategory = useMemo(
     () => categoryOptions.some((option) => option.id === category),
@@ -62,19 +107,25 @@ export function ListingsPageClient({ initialFilters }: ListingsPageClientProps) 
   const catalogListings = useMemo(
     () =>
       filterAndSortUnifiedListings(worldScopedListings, {
-        query,
+        query: committedQuery,
         category: resolvedCategory,
         location,
         saleMode,
         sortBy,
       }),
-    [query, resolvedCategory, location, saleMode, sortBy, worldScopedListings],
+    [committedQuery, resolvedCategory, location, saleMode, sortBy, worldScopedListings],
   );
 
   const filtersSnapshot = useMemo(
-    () => ({ world, query, category: resolvedCategory, location, saleMode, sortBy, view }),
-    [world, query, resolvedCategory, location, saleMode, sortBy, view],
+    () => ({ world, query: committedQuery, category: resolvedCategory, location, saleMode, sortBy, view }),
+    [world, committedQuery, resolvedCategory, location, saleMode, sortBy, view],
   );
+  const searchIntent = useMemo(() => {
+    if (target === "store") {
+      return createStoreSearchIntentFromFilters(storeFilters, searchMode);
+    }
+    return createSearchIntentFromFilters(filtersSnapshot, searchMode);
+  }, [target, storeFilters, filtersSnapshot, searchMode]);
   const returnTo = useMemo(() => {
     const params = serializeFiltersToSearchParams(filtersSnapshot);
     return buildReturnTo(pathname, params.toString());
@@ -87,12 +138,80 @@ export function ListingsPageClient({ initialFilters }: ListingsPageClientProps) 
       })),
     [catalogListings, returnTo],
   );
+  const storeResults = useMemo<StoreCatalogItem[]>(() => {
+    if (target !== "store") {
+      return [];
+    }
+    const normalized = storeFilters.query.trim().toLowerCase();
+    const filtered = storefrontSellers.filter((seller) => {
+      if (
+        normalized &&
+        !`${seller.storefrontName} ${seller.shortDescription} ${seller.city}`.toLowerCase().includes(normalized)
+      ) {
+        return false;
+      }
+      if (storeFilters.location !== "all" && seller.city !== storeFilters.location) {
+        return false;
+      }
+      if (
+        storeFilters.specialization !== "all" &&
+        !seller.shortDescription.toLowerCase().includes(storeFilters.specialization.toLowerCase())
+      ) {
+        return false;
+      }
+      if (storeFilters.verifiedOnly && seller.trustBadges.length === 0) {
+        return false;
+      }
+      if (storeFilters.storeType !== "all" && seller.type !== storeFilters.storeType) {
+        return false;
+      }
+      return true;
+    });
+    return filtered.map((seller) => ({
+      id: seller.id,
+      href: `/sellers/${seller.id}`,
+      avatarLabel: seller.avatarLabel,
+      storefrontName: seller.storefrontName,
+      specializationLabel: seller.shortDescription,
+      shortDescription: seller.shortDescription,
+      city: seller.city,
+      rating: seller.metrics.rating,
+      reviewsCount: Math.max(8, Math.round(seller.followersCount * 0.16)),
+      activeListingsCount: seller.metrics.activeListingsCount,
+      trustBadges: seller.trustBadges.map((item) => item.label),
+    }));
+  }, [target, storeFilters]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setCommittedQuery((prev) => (prev === draftQuery ? prev : draftQuery));
+    }, 320);
+    return () => window.clearTimeout(timer);
+  }, [draftQuery]);
+
+  useEffect(() => {
+    if (target !== "store") {
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      setStoreFilters((prev) => (prev.query === storeDraftQuery ? prev : { ...prev, query: storeDraftQuery }));
+    }, 320);
+    return () => window.clearTimeout(timer);
+  }, [storeDraftQuery, target]);
 
   useEffect(() => {
     const params = serializeFiltersToSearchParams(filtersSnapshot);
-    const next = params.toString();
-    router.replace(next ? `${pathname}?${next}` : pathname);
-  }, [filtersSnapshot, pathname, router]);
+    const paramsForTarget = target === "store" ? serializeStoreFiltersToSearchParams(storeFilters) : params;
+    paramsForTarget.set("target", target);
+    paramsForTarget.set("mode", searchMode);
+    const next = paramsForTarget.toString();
+    const href = next ? `${pathname}?${next}` : pathname;
+    if (lastSyncedUrlRef.current === href) {
+      return;
+    }
+    lastSyncedUrlRef.current = href;
+    router.replace(href);
+  }, [filtersSnapshot, pathname, router, searchMode, target, storeFilters]);
 
   useEffect(() => {
     let cancelled = false;
@@ -157,68 +276,244 @@ export function ListingsPageClient({ initialFilters }: ListingsPageClientProps) 
         </div>
       ) : null}
 
-      <div className="no-scrollbar -mx-1 flex items-center gap-2 overflow-x-auto px-1 pb-1">
-        {[...new Set(["all", ...categoryOptions.map((option) => option.id)])].slice(0, 6).map((id) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => setCategory(id)}
-            className={`whitespace-nowrap rounded-full border px-3 py-1.5 text-xs font-medium transition ${
-              resolvedCategory === id
-                ? "border-slate-400 bg-slate-900 text-white"
-                : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-            }`}
-          >
-            {id === "all" ? "Все категории" : categoryOptions.find((item) => item.id === id)?.label ?? id}
-          </button>
-        ))}
-      </div>
-      <div className="no-scrollbar -mx-1 flex items-center gap-2 overflow-x-auto px-1 pb-1">
-        <button
-          type="button"
-          onClick={() => setSaleMode("auction")}
-          className={`whitespace-nowrap rounded-full border px-3 py-1.5 text-xs font-medium transition ${
-            saleMode === "auction"
-              ? "border-indigo-500 bg-indigo-600 text-white"
-              : "border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100"
-          }`}
-        >
-          Только аукционы
-        </button>
-        <button
-          type="button"
-          onClick={() => setSaleMode("all")}
-          className="whitespace-nowrap rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
-        >
-          Сбросить режим
-        </button>
-      </div>
-
-      <FiltersBar
-        query={query}
-        onQueryChange={setQuery}
-        category={resolvedCategory}
-        onCategoryChange={setCategory}
-        categoryOptions={categoryOptions}
-        location={location}
-        onLocationChange={setLocation}
-        locations={locations}
-        saleMode={saleMode}
-        onSaleModeChange={setSaleMode}
-        sortBy={sortBy}
-        onSortChange={setSortBy}
-        view={view}
-        onViewChange={setView}
-        actions={<SaveSearchButton filters={filtersSnapshot} />}
-        className={worldPresentation.sectionToneClass}
+      <UnifiedSearchShell
+        target={target}
+        onTargetChange={(next) => {
+          if (next === target) {
+            return;
+          }
+          setSearchMode("keyword");
+          if (next === "store") {
+            const listingText = draftQuery.trim() || committedQuery.trim();
+            setStoreDraftQuery((prev) => (prev.trim() ? prev : listingText));
+            setStoreFilters((prev) => ({
+              ...prev,
+              query: prev.query.trim() ? prev.query : listingText,
+            }));
+            setTarget("store");
+            return;
+          }
+          const storeText = storeDraftQuery.trim() || storeFilters.query.trim();
+          setDraftQuery((prev) => (prev.trim() ? prev : storeText));
+          setCommittedQuery((prev) => {
+            const nextQuery = storeText || prev;
+            return nextQuery;
+          });
+          setTarget("listing");
+        }}
+        query={target === "store" ? storeDraftQuery : draftQuery}
+        onQueryChange={(value) => {
+          setSearchMode("keyword");
+          if (target === "store") {
+            setStoreDraftQuery(value);
+            return;
+          }
+          setDraftQuery(value);
+        }}
+        onQuerySubmit={() => {
+          setSearchMode("keyword");
+          if (target === "store") {
+            setStoreFilters((prev) => ({ ...prev, query: storeDraftQuery }));
+            return;
+          }
+          setCommittedQuery(draftQuery);
+        }}
+        onPhotoSearch={() => {
+          void mockSearchIntentService
+            .fromImageSearch({
+              imageUrl: "https://example.com/chair.jpg",
+              inferredCategory: "furniture",
+              traits: ["красное кресло", "ткань", "современный стиль"],
+            })
+            .then((intent) => {
+              setTarget("listing");
+              setSearchMode("image");
+              setDraftQuery(intent.filters.query ?? "");
+              setCommittedQuery(intent.filters.query ?? "");
+              setCategory(intent.filters.categoryId ?? "all");
+            });
+        }}
+        placeholder={
+          target === "store" ? "Название магазина, город, описание…" : "Что ищете? Название, бренд, модель…"
+        }
+        extraControls={<SaveSearchButton intent={searchIntent} />}
       />
 
+      {target === "listing" ? (
+        <CatalogCategoryScope
+          categoryOptions={categoryOptions}
+          resolvedCategory={resolvedCategory}
+          onCategoryChange={(id) => setCategory(id)}
+          onInteract={() => setSearchMode("keyword")}
+        />
+      ) : (
+        <div className="space-y-2">
+          <div className="space-y-1.5 rounded-xl border border-slate-100/90 bg-white/70 px-2 py-2 shadow-sm shadow-slate-900/[0.02]">
+            <p className="px-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">Тип витрины</p>
+            <div className="no-scrollbar flex flex-wrap items-center gap-1.5 px-1 pb-0.5">
+              {(["all", ...storeTypeScopeOptions] as const).map((id) => (
+                <button
+                  key={id === "all" ? "all" : id}
+                  type="button"
+                  onClick={() => {
+                    setSearchMode("keyword");
+                    setStoreFilters((prev) => ({
+                      ...prev,
+                      storeType: id === "all" ? "all" : id,
+                      specialization: "all",
+                    }));
+                  }}
+                  className={`whitespace-nowrap rounded-full border px-3 py-1.5 text-xs font-medium transition ${
+                    (id === "all" && storeFilters.storeType === "all") ||
+                    (id !== "all" && storeFilters.storeType === id)
+                      ? "border-slate-400 bg-slate-900 text-white"
+                      : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                  }`}
+                >
+                  {id === "all" ? "Все типы" : getSellerTypeLabel(id)}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="grid gap-2 rounded-lg border border-slate-100/80 bg-slate-50/40 p-2.5 sm:grid-cols-2 sm:p-3">
+            <select
+              value={storeFilters.location}
+              onChange={(event) => {
+                setSearchMode("keyword");
+                setStoreFilters((prev) => ({ ...prev, location: event.target.value }));
+              }}
+              className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm"
+            >
+              <option value="all">Все города</option>
+              {Array.from(new Set(storefrontSellers.map((item) => item.city))).map((city) => (
+                <option key={city} value={city}>
+                  {city}
+                </option>
+              ))}
+            </select>
+            <label className="flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm">
+              <input
+                type="checkbox"
+                checked={storeFilters.verifiedOnly}
+                onChange={(event) => {
+                  setSearchMode("keyword");
+                  setStoreFilters((prev) => ({ ...prev, verifiedOnly: event.target.checked }));
+                }}
+              />
+              Только проверенные
+            </label>
+          </div>
+        </div>
+      )}
+
+      {target === "listing" ? (
+      <FiltersBar
+        variant="refinements-only"
+        hideCategory
+        category={resolvedCategory}
+        onCategoryChange={(value) => {
+          setSearchMode("keyword");
+          setCategory(value);
+        }}
+        categoryOptions={categoryOptions}
+        location={location}
+        onLocationChange={(value) => {
+          setSearchMode("keyword");
+          setLocation(value);
+        }}
+        locations={locations}
+        saleMode={saleMode}
+        onSaleModeChange={(value) => {
+          setSearchMode("keyword");
+          setSaleMode(value);
+        }}
+        sortBy={sortBy}
+        onSortChange={(value) => {
+          setSearchMode("keyword");
+          setSortBy(value);
+        }}
+        view={view}
+        onViewChange={(value) => {
+          setSearchMode("keyword");
+          setView(value);
+        }}
+        actions={null}
+        className=""
+      />
+      ) : null}
+      {target === "listing" ? (
+      <section className="rounded-xl border border-slate-100 bg-slate-50/40 p-3">
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Smart Search demo</p>
+        <div className="mt-2 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              void mockSearchIntentService
+                .fromNaturalLanguage("Хочу красный угловой диван в Москве до 80к")
+                .then((intent) => {
+                  setSearchMode("natural_language");
+                  setDraftQuery(intent.filters.query ?? "");
+                  setCommittedQuery(intent.filters.query ?? "");
+                  setCategory(intent.filters.categoryId ?? "all");
+                  setLocation(intent.filters.location ?? "all");
+                });
+            }}
+            className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-700"
+          >
+            AI query: &quot;красный диван&quot;
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              void mockSearchIntentService
+                .fromImageSearch({
+                  imageUrl: "https://example.com/chair.jpg",
+                  inferredCategory: "furniture",
+                  traits: ["красное кресло", "ткань", "современный стиль"],
+                })
+                .then((intent) => {
+                  setSearchMode("image");
+                  setDraftQuery(intent.filters.query ?? "");
+                  setCommittedQuery(intent.filters.query ?? "");
+                  setCategory(intent.filters.categoryId ?? "all");
+                });
+            }}
+            className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-700"
+          >
+            Photo search demo
+          </button>
+        </div>
+      </section>
+      ) : null}
+
+      {target === "listing" ? (
       <p className="text-sm text-slate-600">
         Найдено объявлений: <span className="font-semibold text-slate-700">{catalogListings.length}</span>
         <span className="ml-1 text-slate-500">· сортировка: {sortOptions[sortBy].toLowerCase()}</span>
         {world !== "all" ? <span className="ml-1 text-slate-500">· мир: {getWorldLabel(world)}</span> : null}
       </p>
+      ) : (
+      <p className="text-sm text-slate-600">
+        Найдено магазинов: <span className="font-semibold text-slate-700">{storeResults.length}</span>
+      </p>
+      )}
 
+      {target === "listing" && catalogListings.length < 4 ? (
+        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <h3 className="text-base font-semibold text-slate-900">Не нашли нужное предложение?</h3>
+          <p className="mt-1 text-sm text-slate-600">
+            Разместите запрос о покупке. Мы предзаполним форму из текущих фильтров, а продавцы смогут откликнуться с релевантными предложениями.
+          </p>
+          <Link
+            href={`/requests/new?${serializeFiltersToSearchParams(filtersSnapshot).toString()}&target=listing&mode=${searchMode}`}
+            className="mt-3 inline-flex h-9 items-center justify-center rounded-xl bg-slate-900 px-3.5 text-sm font-semibold text-white transition hover:bg-slate-700"
+          >
+            Разместить запрос о покупке
+          </Link>
+        </section>
+      ) : null}
+
+      {target === "listing" ? (
       <ListingsGrid
         listings={catalogListingsWithReturnTo}
         auctionsByListingId={auctionsByListingId}
@@ -231,6 +526,13 @@ export function ListingsPageClient({ initialFilters }: ListingsPageClientProps) 
             : `В мире «${getWorldLabel(world)}» пока нет карточек под ваш запрос.`
         }
       />
+      ) : (
+        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {storeResults.map((store) => (
+            <StoreCard key={store.id} store={store} />
+          ))}
+        </section>
+      )}
     </div>
   );
 }

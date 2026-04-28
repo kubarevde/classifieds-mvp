@@ -44,6 +44,7 @@ export type ListingDraftSnapshot = {
   auctionDurationHours: 12 | 24 | 72 | 168;
   auctionAntiSnipingEnabled: boolean;
   auctionMinBidIncrement: string;
+  keywords: string;
 };
 
 const defaultDraft: ListingDraftSnapshot = {
@@ -76,6 +77,7 @@ const defaultDraft: ListingDraftSnapshot = {
   auctionDurationHours: 24,
   auctionAntiSnipingEnabled: true,
   auctionMinBidIncrement: "",
+  keywords: "",
 };
 
 type ListingDraftState = {
@@ -139,5 +141,6 @@ export function getListingDraftDefaults(overrides?: Partial<ListingDraftSnapshot
     auctionDurationHours: merged.auctionDurationHours,
     auctionAntiSnipingEnabled: merged.auctionAntiSnipingEnabled,
     auctionMinBidIncrement: merged.auctionMinBidIncrement,
+    keywords: merged.keywords,
   };
 }

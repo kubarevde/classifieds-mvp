@@ -9,7 +9,7 @@ export function EmptySavedSearchesState() {
       </div>
       <h2 className="mt-4 text-lg font-semibold tracking-tight text-slate-900">Пока нет сохранённых поисков</h2>
       <p className="mt-2 text-sm text-slate-600">
-        Настройте фильтры в каталоге и нажмите «Сохранить поиск» — вернуться к ним можно в один клик.
+        Сохраняйте keyword, AI и photo-search сценарии. Любой тип поиска можно вернуть в один клик.
       </p>
       <div className="mt-6 flex flex-col items-center justify-center gap-2 sm:flex-row">
         <Link
@@ -23,6 +23,12 @@ export function EmptySavedSearchesState() {
           className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
         >
           Уведомления
+        </Link>
+        <Link
+          href="/requests/new"
+          className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+        >
+          Разместить запрос о покупке
         </Link>
       </div>
     </div>

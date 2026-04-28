@@ -10,6 +10,8 @@ type FilterOption = {
 export type StoreSortOption = "rating_desc" | "newest_desc" | "listings_desc";
 
 type StoreFiltersBarProps = {
+  /** When store type is chosen via scope chips above, hide duplicate type `<select>`. */
+  hideStoreType?: boolean;
   world: string;
   onWorldChange: (value: string) => void;
   worldOptions: FilterOption[];
@@ -59,6 +61,7 @@ function FilterSelect({
 }
 
 export function StoreFiltersBar({
+  hideStoreType = false,
   world,
   onWorldChange,
   worldOptions,
@@ -78,7 +81,7 @@ export function StoreFiltersBar({
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <section className="rounded-2xl border border-slate-200/90 bg-white p-4 shadow-sm">
+    <section className="rounded-xl border border-slate-100 bg-slate-50/70 p-3 shadow-none sm:p-4">
       <div className="flex items-center justify-between gap-3 md:hidden">
         <p className="text-sm font-semibold text-slate-900">Фильтры и сортировка</p>
         <button
@@ -93,13 +96,15 @@ export function StoreFiltersBar({
       <div className={`${isOpen ? "mt-3 block" : "hidden"} space-y-3 md:mt-0 md:block`}>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
           <FilterSelect label="Мир" value={world} onChange={onWorldChange} options={worldOptions} optionKeyPrefix="world" />
-          <FilterSelect
-            label="Категория магазина"
-            value={type}
-            onChange={onTypeChange}
-            options={typeOptions}
-            optionKeyPrefix="type"
-          />
+          {!hideStoreType ? (
+            <FilterSelect
+              label="Категория магазина"
+              value={type}
+              onChange={onTypeChange}
+              options={typeOptions}
+              optionKeyPrefix="type"
+            />
+          ) : null}
           <FilterSelect
             label="Рейтинг"
             value={rating}

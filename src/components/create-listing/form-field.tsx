@@ -6,16 +6,21 @@ type FormFieldProps = {
   required?: boolean;
   error?: string;
   hint?: string;
+  /** Кнопки справа от подписи (например ✨ AI) */
+  actions?: ReactNode;
   children: ReactNode;
 };
 
-export function FormField({ label, htmlFor, required, error, hint, children }: FormFieldProps) {
+export function FormField({ label, htmlFor, required, error, hint, actions, children }: FormFieldProps) {
   return (
     <div className="space-y-1.5">
-      <label htmlFor={htmlFor} className="block text-sm font-medium text-slate-800">
-        {label}
-        {required ? <span className="ml-1 text-rose-500">*</span> : null}
-      </label>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <label htmlFor={htmlFor} className="block text-sm font-medium text-slate-800">
+          {label}
+          {required ? <span className="ml-1 text-rose-500">*</span> : null}
+        </label>
+        {actions ? <div className="flex shrink-0 flex-wrap items-center gap-1">{actions}</div> : null}
+      </div>
       {children}
       {error ? (
         <p className="text-xs font-medium text-rose-600">{error}</p>

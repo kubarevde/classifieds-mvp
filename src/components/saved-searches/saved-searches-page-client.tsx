@@ -7,7 +7,7 @@ import { SavedSearchList } from "@/components/saved-searches/saved-search-list";
 import { Card, buttonVariants } from "@/components/ui";
 
 export function SavedSearchesPageClient() {
-  const { searches } = useSavedSearches();
+  const { searches, getTotalNewMatches } = useSavedSearches();
 
   return (
     <div className="space-y-4">
@@ -20,6 +20,9 @@ export function SavedSearchesPageClient() {
             <p className="max-w-2xl text-sm text-slate-600 sm:text-base">
               Быстро возвращайтесь к фильтрам каталога и включайте уведомления о новых совпадениях (демо на
               фронтенде).
+            </p>
+            <p className="text-xs font-semibold text-slate-700">
+              Новых объявлений сегодня: {getTotalNewMatches()}
             </p>
           </div>
           <div className="flex flex-wrap gap-2 sm:justify-end">

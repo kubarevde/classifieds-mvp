@@ -1,15 +1,27 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 
 import { ListingsPageRoot } from "@/components/listings/listings-page-root";
 import { Navbar } from "@/components/layout/navbar";
+import { StructuredDataScript } from "@/components/seo/structured-data-script";
 import { Container } from "@/components/ui/container";
+import { buildBreadcrumbListJsonLd } from "@/lib/seo/breadcrumbs";
+import { toCanonicalUrl } from "@/lib/seo/canonical";
 import { CatalogWorld, getCategoryOptionsForWorld, getWorldLabel } from "@/lib/listings";
+import { buildCollectionPageJsonLd } from "@/lib/seo/structured-data";
 import { getWorldPresentation } from "@/lib/worlds";
+import { buildPageMetadata } from "@/lib/seo/metadata";
 
 type ListingsPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
+
+export const metadata: Metadata = buildPageMetadata({
+  title: "Каталог объявлений - Classify",
+  description: "Каталог объявлений по мирам и категориям: находите товары, услуги и магазины в одном поисковом интерфейсе.",
+  path: "/listings",
+});
 
 function ListingsFiltersFallback() {
   return (
@@ -50,6 +62,21 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
 
   return (
     <div className={`min-h-screen ${pageTone}`}>
+      <StructuredDataScript
+        id="listings-collection-jsonld"
+        data={buildCollectionPageJsonLd(
+          "Каталог объявлений",
+          "Каталог объявлений Classify по мирам и категориям.",
+          "/listings",
+        )}
+      />
+      <StructuredDataScript
+        id="listings-breadcrumb-jsonld"
+        data={buildBreadcrumbListJsonLd([
+          { name: "Главная", url: toCanonicalUrl("/") },
+          { name: "Каталог", url: toCanonicalUrl("/listings") },
+        ])}
+      />
       <Navbar />
       <main className="py-6 sm:py-8">
         <Container className="space-y-4">

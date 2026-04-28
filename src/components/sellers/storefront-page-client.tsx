@@ -1,11 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useMemo, useState } from "react";
-import { CheckCircle2, Clock3, Heart, ShieldCheck, Users } from "lucide-react";
+import { CheckCircle2, Heart, Search } from "lucide-react";
 
-import { ListingPreviewCard } from "@/components/listings/listing-preview-card";
 import { ListingsGrid } from "@/components/listings/listings-grid";
+import { ErrorBoundary } from "@/components/platform";
+import { StorefrontFeaturedSection } from "@/components/sellers/storefront-featured-section";
+import { StorefrontHeroTrustHint } from "@/components/sellers/storefront-hero-trust-hint";
 import {
   MarketingCampaign,
   MarketingCoupon,
@@ -53,19 +56,13 @@ const worldLabels: Record<ListingWorld, string> = {
 const viewButtonClassName =
   "rounded-xl border px-3 py-2 text-sm font-medium transition hover:border-slate-300 hover:bg-slate-50";
 
-function TrustBadgeIcon({ badgeId }: { badgeId: string }) {
-  const className = "h-5 w-5";
-  if (badgeId === "verified") {
-    return <ShieldCheck className={className} strokeWidth={1.5} />;
-  }
-  if (badgeId === "response") {
-    return <Clock3 className={className} strokeWidth={1.5} />;
-  }
-  if (badgeId === "repeat") {
-    return <Users className={className} strokeWidth={1.5} />;
-  }
-  return <ShieldCheck className={className} strokeWidth={1.5} />;
-}
+const StorefrontReputationSection = dynamic(
+  () => import("@/components/sellers/storefront-reputation-section").then((mod) => mod.StorefrontReputationSection),
+  {
+    loading: () => <div className="h-[420px] animate-pulse rounded-2xl bg-slate-200" />,
+    ssr: false,
+  },
+);
 
 function formatPostDate(isoDate: string) {
   return new Intl.DateTimeFormat("ru-RU", {
@@ -84,6 +81,8 @@ export function StorefrontPageClient({
   const storefrontReturnTo = `/sellers/${seller.id}#seller-listings`;
   const [scope, setScope] = useState<ListingScope>("all");
   const [world, setWorld] = useState<"all" | ListingWorld>("all");
+  const [inventoryQuery, setInventoryQuery] = useState("");
+  const [inventorySort, setInventorySort] = useState<"newest" | "price_asc" | "price_desc">("newest");
   const [view, setView] = useState<ListingsView>("grid");
   const [isPhoneRevealed, setIsPhoneRevealed] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
@@ -102,15 +101,39 @@ export function StorefrontPageClient({
     [listings],
   );
 
-  const visibleListings = useMemo(
-    () =>
-      listings.filter((listing) => {
-        const matchesScope = scope === "all" ? true : listing.status === "active";
-        const matchesWorld = world === "all" ? true : listing.world === world;
-        return matchesScope && matchesWorld;
-      }),
-    [listings, scope, world],
-  );
+  const visibleListings = useMemo(() => {
+    const normalized = inventoryQuery.trim().toLowerCase();
+    const base = listings.filter((listing) => {
+      const matchesScope = scope === "all" ? true : listing.status === "active";
+      const matchesWorld = world === "all" ? true : listing.world === world;
+      if (!matchesScope || !matchesWorld) {
+        return false;
+      }
+      if (!normalized) {
+        return true;
+      }
+      const haystack = [
+        listing.title,
+        listing.description,
+        listing.categoryLabel,
+        listing.price,
+        listing.location,
+      ]
+        .join(" ")
+        .toLowerCase();
+      return haystack.includes(normalized);
+    });
+    const sorted = [...base].sort((a, b) => {
+      if (inventorySort === "price_asc") {
+        return a.priceValue - b.priceValue;
+      }
+      if (inventorySort === "price_desc") {
+        return b.priceValue - a.priceValue;
+      }
+      return new Date(b.postedAtIso).getTime() - new Date(a.postedAtIso).getTime();
+    });
+    return sorted;
+  }, [listings, scope, world, inventoryQuery, inventorySort]);
   const visibleListingsWithReturnTo = useMemo(
     () =>
       visibleListings.map((listing) => ({
@@ -122,10 +145,7 @@ export function StorefrontPageClient({
 
   const firstListing = visibleListings[0] ?? listings[0];
   const activeCoupons = useMemo(() => coupons.filter((coupon) => coupon.status === "active"), [coupons]);
-  const activeCampaigns = useMemo(
-    () => campaigns.filter((campaign) => campaign.status === "active"),
-    [campaigns],
-  );
+  const activeCampaigns = useMemo(() => campaigns.filter((campaign) => campaign.status === "active"), [campaigns]);
   const featuredListings = useMemo(() => {
     const promotedListingIds = new Set<string>();
     promotionState.forEach((state) => {
@@ -262,76 +282,65 @@ export function StorefrontPageClient({
   }
 
   return (
-    <div className="space-y-4">
-      <section
-        className={`relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br p-4 text-white shadow-lg shadow-slate-900/10 sm:p-5 lg:min-h-[190px] ${seller.heroGradientClass}`}
-      >
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(255,255,255,0.14),transparent_55%)]" />
-        <div className="pointer-events-none absolute -left-10 top-8 h-32 w-32 rounded-full bg-white/12 blur-2xl" />
-        <div className="pointer-events-none absolute -right-16 bottom-0 h-44 w-44 rounded-full bg-black/25 blur-3xl" />
-
-        <div className="relative grid gap-5 lg:grid-cols-[minmax(0,1fr)_280px] lg:items-stretch">
-          <div className="flex h-full min-h-[150px] flex-col justify-between">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded-full border border-white/20 bg-white/10 px-2.5 py-1 text-[11px] font-medium text-white/85">
-                Витрина магазина
+    <div className="space-y-3 sm:space-y-4">
+      <section className="rounded-2xl border border-slate-200/90 bg-white shadow-sm">
+        <div className="h-1 w-full rounded-t-2xl bg-slate-900/80" aria-hidden />
+        <div className="grid gap-4 px-3 py-3 sm:px-4 sm:py-4 lg:grid-cols-[minmax(0,1fr)_280px] lg:gap-6 lg:px-5">
+          <div className="min-w-0 space-y-3.5">
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+              <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-medium text-slate-700 sm:px-2.5 sm:py-1 sm:text-[11px]">
+                Магазин
               </span>
-              <span className="rounded-full border border-white/15 bg-black/10 px-2.5 py-1 text-[11px] font-medium text-white/80">
+              <span className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-medium text-slate-600 sm:px-2.5 sm:py-1 sm:text-[11px]">
                 {seller.city}
               </span>
-              <span className="rounded-full border border-white/15 bg-black/10 px-2.5 py-1 text-[11px] font-medium text-white/80">
+              <span className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-medium text-slate-600 sm:px-2.5 sm:py-1 sm:text-[11px]">
                 {getSellerTypeLabel(seller.type)}
               </span>
             </div>
 
-            <div className="flex items-center gap-4">
-              <div className="grid h-16 w-16 shrink-0 self-start place-items-center rounded-xl border border-white/35 bg-white/20 text-lg font-semibold tracking-tight shadow-[inset_0_1px_0_rgba(255,255,255,0.25),0_8px_20px_rgba(15,23,42,0.22)]">
+            <div className="flex items-start gap-3 sm:gap-4">
+              <div className="grid h-14 w-14 shrink-0 place-items-center rounded-xl border border-slate-200 bg-slate-100 text-base font-semibold tracking-tight text-slate-800 sm:h-16 sm:w-16 sm:text-lg">
                 {seller.avatarLabel}
               </div>
-              <div className="min-w-0 space-y-1.5">
-                <div className="flex flex-wrap items-center">
-                  <h1 className="text-balance text-2xl font-semibold tracking-tight sm:text-3xl">{seller.storefrontName}</h1>
+
+              <div className="min-w-0 max-w-[620px] space-y-1.5">
+                <div className="flex flex-wrap items-center gap-1">
+                  <h1 className="text-balance text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl md:text-3xl">
+                    {seller.storefrontName}
+                  </h1>
                   <button
                     type="button"
                     onClick={toggleFavoriteStore}
                     aria-label={isFavoriteStore ? "Убрать из избранных магазинов" : "Добавить магазин в избранные"}
-                    className={`ml-3 inline-flex h-8 w-8 items-center justify-center rounded-full border transition ${
-                      isFavoriteStore
-                        ? "border-white/35 bg-white/20 text-white"
-                        : "border-white/25 bg-black/15 text-white/80 hover:bg-white/10"
+                    className={`ml-1 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white transition sm:ml-2 ${
+                      isFavoriteStore ? "text-rose-600" : "text-slate-500 hover:bg-slate-50"
                     }`}
                   >
                     <Heart className="h-4 w-4" fill={isFavoriteStore ? "currentColor" : "none"} strokeWidth={1.5} />
                   </button>
                 </div>
-                <p className="text-sm text-white/75">
+                <p className="text-xs text-slate-600 sm:text-sm">
                   {seller.displayName} · {seller.city}
                 </p>
-                <p className="max-w-2xl text-pretty text-sm leading-relaxed text-white/88 sm:text-[15px]">
+                <p className="text-pretty text-sm leading-snug text-slate-700 sm:text-[15px] sm:leading-relaxed">
                   {seller.shortDescription}
                 </p>
+                <p className="text-[11px] text-slate-500 sm:text-xs">
+                  Активно: <span className="font-semibold tabular-nums text-slate-800">{activeListingsCount}</span>
+                  <span className="text-slate-400"> · </span>
+                  На платформе: <span className="font-medium text-slate-700">{seller.memberSinceLabel}</span>
+                </p>
+                <StorefrontHeroTrustHint targetId={seller.id} />
               </div>
             </div>
-
-            <p className="text-xs text-white/80 sm:text-sm">
-              Активно: <span className="font-semibold tabular-nums text-white">{activeListingsCount}</span>
-              <span className="text-white/55"> · </span>
-              Рейтинг: <span className="font-semibold tabular-nums text-white">{seller.metrics.rating.toFixed(1)}</span>
-              <span className="text-white/55"> · </span>
-              На платформе: <span className="font-semibold text-white">{seller.memberSinceLabel}</span>
-            </p>
           </div>
 
-          <aside className="flex flex-col gap-3 rounded-2xl border border-white/20 bg-black/25 p-4 text-sm shadow-lg shadow-black/20 backdrop-blur-md sm:p-5">
-            <div className="space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-wide text-white/60">Связь с магазином</p>
-              <p className={`text-sm font-medium ${seller.accentClass}`}>
-                {seller.city}, {seller.region}
-              </p>
-              <p className="text-xs leading-relaxed text-white/75">{seller.responseSpeedLabel}</p>
-            </div>
-
-            <div className="space-y-2 border-t border-white/15 pt-3">
+          <aside className="space-y-2 lg:border-l lg:border-slate-100 lg:pl-6">
+            <p className="text-xs text-slate-600">
+              <span className="font-medium text-slate-800">{seller.city}</span>, {seller.region}
+            </p>
+            <div className="space-y-1.5">
               <Link
                 href={{
                   pathname: "/messages",
@@ -341,63 +350,47 @@ export function StorefrontPageClient({
                     listingTitle: firstListing?.title ?? seller.storefrontName,
                   },
                 }}
-                className="inline-flex w-full items-center justify-center rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:bg-slate-100"
+                className="inline-flex w-full items-center justify-center rounded-lg bg-slate-900 px-3 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
               >
                 Написать продавцу
               </Link>
               <button
                 type="button"
                 onClick={() => setIsPhoneRevealed((previous) => !previous)}
-                className="inline-flex w-full items-center justify-center rounded-xl border border-white/30 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/10"
+                className="inline-flex w-full items-center justify-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
               >
                 {isPhoneRevealed ? seller.phone : "Показать телефон"}
               </button>
               <a
                 href="#seller-listings"
-                className="inline-flex w-full items-center justify-center rounded-xl border border-white/30 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/10"
+                className="inline-flex w-full items-center justify-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
               >
                 Ко всем объявлениям
               </a>
             </div>
-
-            <div className="border-t border-white/15 pt-3">
-              <button
-                type="button"
-                onClick={toggleSubscription}
-                className={`inline-flex w-full items-center justify-center rounded-xl border px-4 py-2.5 text-sm font-semibold transition ${
-                  isSubscribed
-                    ? "border-white/35 bg-white/15 text-white hover:bg-white/20"
-                    : "border-white/25 bg-white text-slate-900 hover:bg-slate-100"
-                }`}
-              >
-                {isSubscribed ? (
-                  <span className="inline-flex items-center gap-1">
-                    Подписан <CheckCircle2 className="h-4 w-4" strokeWidth={1.5} />
-                  </span>
-                ) : (
-                  "Подписаться"
-                )}
-              </button>
-            </div>
+            <p className="text-[11px] text-slate-500">Откройте каталог, чтобы сразу посмотреть актуальные позиции магазина.</p>
+            <button
+              type="button"
+              onClick={toggleSubscription}
+              className={`inline-flex w-full items-center justify-center rounded-lg border px-3 py-2 text-sm font-semibold transition ${
+                isSubscribed
+                  ? "border-slate-300 bg-white text-slate-800 hover:bg-slate-50"
+                  : "border-slate-900 bg-slate-900 text-white hover:bg-slate-800"
+              }`}
+            >
+              {isSubscribed ? (
+                <span className="inline-flex items-center gap-1">
+                  Подписан <CheckCircle2 className="h-4 w-4" strokeWidth={1.5} />
+                </span>
+              ) : (
+                "Подписаться"
+              )}
+            </button>
           </aside>
         </div>
       </section>
 
-      <section className="rounded-2xl bg-white/70 px-2 py-1">
-        <ul className="flex flex-wrap items-center gap-2">
-          {seller.trustBadges.map((badge) => (
-            <li
-              key={badge.id}
-              className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm"
-            >
-              <span className="text-slate-500">
-                <TrustBadgeIcon badgeId={badge.id} />
-              </span>
-              <span>{badge.label}</span>
-            </li>
-          ))}
-        </ul>
-      </section>
+      <StorefrontFeaturedSection pinnedListings={pinnedPromoListingsWithReturnTo} campaigns={campaigns} />
 
       {vitrinePopular.length ? (
         <section className="space-y-4 rounded-3xl border border-slate-200/90 bg-white p-5 shadow-sm sm:p-6">
@@ -478,13 +471,39 @@ export function StorefrontPageClient({
         </section>
       ) : null}
 
-      <section id="seller-listings" className="rounded-3xl border border-slate-200/90 bg-white p-5 shadow-sm sm:p-6">
-        <div className="mb-4 border-b border-slate-100 pb-4">
+      <section
+        id="seller-listings"
+        className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm sm:p-5"
+      >
+        <div className="mb-3 border-b border-slate-100 pb-3">
           <h2 className="text-lg font-semibold tracking-tight text-slate-900">Все объявления</h2>
           <p className="mt-1 text-sm text-slate-600">
-            Полный каталог магазина с фильтрами по статусу и тематическим «мирам» каталога.
+            Локальный поиск по витрине, сортировка и фильтры по статусу и «мирам» каталога.
           </p>
         </div>
+
+        <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-stretch">
+          <div className="relative min-w-0 flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <input
+              type="search"
+              value={inventoryQuery}
+              onChange={(event) => setInventoryQuery(event.target.value)}
+              placeholder="Искать в этом магазине…"
+              className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50/50 pl-9 pr-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:bg-white"
+            />
+          </div>
+          <select
+            value={inventorySort}
+            onChange={(event) => setInventorySort(event.target.value as "newest" | "price_asc" | "price_desc")}
+            className="h-10 shrink-0 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none focus:border-slate-400 sm:min-w-[11rem]"
+          >
+            <option value="newest">Сначала новые</option>
+            <option value="price_asc">Сначала дешевле</option>
+            <option value="price_desc">Сначала дороже</option>
+          </select>
+        </div>
+
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex flex-wrap gap-2">
             {(["all", "active"] as ListingScope[]).map((section) => {
@@ -563,57 +582,12 @@ export function StorefrontPageClient({
         emptyMessage="По выбранным фильтрам у продавца пока нет объявлений."
       />
 
-      <section
-        id="store-promo-hub"
-        className="space-y-4 rounded-3xl border border-slate-200/90 bg-white p-5 shadow-sm sm:p-6"
+      <ErrorBoundary
+        context="storefront-reputation-section"
+        fallback={<div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-600">Раздел отзывов временно недоступен.</div>}
       >
-        <div>
-          <h2 className="text-lg font-semibold tracking-tight text-slate-900">Промо и закрепления</h2>
-          <p className="mt-1 max-w-2xl text-sm text-slate-600">
-            Закреплённые товары и статусы кампаний — рабочий growth-слой витрины (демо-логика).
-          </p>
-        </div>
-
-        {pinnedPromoListings.length ? (
-          <div>
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Закреплённые товары</p>
-            <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-1 pt-0.5 [scrollbar-width:thin]">
-              {pinnedPromoListingsWithReturnTo.map((listing) => (
-                <div key={listing.id} className="w-[min(100%,18rem)] shrink-0">
-                  <ListingPreviewCard listing={listing} view="grid" />
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <p className="rounded-2xl border border-slate-100 bg-slate-50/80 px-3 py-2 text-sm text-slate-600">
-            Закреплённых позиций пока нет — витрина показывает каталог в естественном порядке.
-          </p>
-        )}
-
-        {campaigns.length ? (
-          <div>
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Кампании продвижения</p>
-            <ul className="flex flex-wrap gap-2">
-              {campaigns.map((campaign) => (
-                <li
-                  key={campaign.id}
-                  className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium ${
-                    campaign.status === "active"
-                      ? "border-emerald-200/80 bg-emerald-50/90 text-emerald-900"
-                      : "border-slate-200 bg-slate-50 text-slate-600"
-                  }`}
-                >
-                  <span className="max-w-[200px] truncate">{campaign.name}</span>
-                  <span className="tabular-nums text-[10px] uppercase tracking-wide text-slate-500">
-                    {campaign.status === "active" ? "идёт" : "пауза"}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
-      </section>
+        <StorefrontReputationSection targetId={seller.id} />
+      </ErrorBoundary>
 
       {activeCoupons.length ? (
         <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
@@ -666,10 +640,13 @@ export function StorefrontPageClient({
         </section>
       ) : null}
 
-      <section className="rounded-3xl border border-slate-200/90 bg-gradient-to-b from-white to-slate-50/90 p-5 shadow-sm sm:p-6">
+      <section
+        id="store-about"
+        className="rounded-3xl border border-slate-200/90 bg-gradient-to-b from-white to-slate-50/90 p-5 shadow-sm sm:p-6"
+      >
         <h2 className="text-lg font-semibold tracking-tight text-slate-900">О магазине</h2>
         <p className="mt-1 max-w-2xl text-sm text-slate-600">
-          Краткий профиль продавца, сервисные обещания и контакты — в одном блоке, без лишних экранов.
+          Краткий профиль продавца и контакты — в одном блоке, без лишних экранов.
         </p>
         <div className="mt-5 grid gap-4 lg:grid-cols-3">
           <div className="space-y-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm shadow-slate-900/5">
@@ -680,23 +657,15 @@ export function StorefrontPageClient({
             </p>
           </div>
           <div className="space-y-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm shadow-slate-900/5">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Сервис и репутация</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Активность</p>
             <ul className="space-y-2 text-sm text-slate-700">
-              <li className="flex justify-between gap-2 border-b border-slate-100 pb-2">
-                <span className="text-slate-500">Рейтинг</span>
-                <span className="font-semibold tabular-nums text-slate-900">{seller.metrics.rating.toFixed(1)} / 5</span>
-              </li>
-              <li className="flex justify-between gap-2 border-b border-slate-100 pb-2">
-                <span className="text-slate-500">Ответ</span>
-                <span className="text-right font-medium text-slate-800">{seller.responseSpeedLabel}</span>
-              </li>
               <li className="flex justify-between gap-2">
                 <span className="text-slate-500">Активные лоты</span>
                 <span className="font-semibold tabular-nums text-slate-900">{activeListingsCount}</span>
               </li>
             </ul>
             <p className="text-xs leading-relaxed text-slate-500">
-              Метрики на витрине — демо-значения для MVP, без подключения аналитики.
+              Репутация и отзывы — в разделе «Репутация и отзывы» на этой странице.
             </p>
           </div>
           <div className="space-y-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm shadow-slate-900/5">

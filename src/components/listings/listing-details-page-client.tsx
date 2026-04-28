@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 import { Container } from "@/components/ui/container";
-import { AuctionDetailPanel } from "@/components/auctions/AuctionDetailPanel";
+import { ErrorBoundary } from "@/components/platform";
 import { useToast } from "@/components/ui/toast";
 import { getStorefrontSellerByListingId } from "@/lib/sellers";
 import type { Listing } from "@/lib/types";
@@ -17,6 +18,14 @@ import { usePublishedListingStore } from "@/stores/published-listing-store";
 import { ListingDetails } from "./listing-details";
 import { ListingPreviewCard } from "./listing-preview-card";
 import { SellerCard } from "./seller-card";
+
+const AuctionDetailPanel = dynamic(
+  () => import("@/components/auctions/AuctionDetailPanel").then((mod) => mod.AuctionDetailPanel),
+  {
+    loading: () => <div className="h-[420px] animate-pulse rounded-2xl bg-slate-200" />,
+    ssr: false,
+  },
+);
 
 type ListingDetailsPageClientProps = {
   id: string;
@@ -128,7 +137,12 @@ export function ListingDetailsPageClient({ id, staticListing }: ListingDetailsPa
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
           <ListingDetails listing={listing} />
           {auction ? (
-            <AuctionDetailPanel auction={auction} />
+            <ErrorBoundary
+              context="auction-detail-panel"
+              fallback={<div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-600">Панель аукциона временно недоступна.</div>}
+            >
+              <AuctionDetailPanel auction={auction} />
+            </ErrorBoundary>
           ) : (
             <SellerCard
               sellerName={listing.sellerName}

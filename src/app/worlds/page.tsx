@@ -6,15 +6,13 @@ import { WorldCard } from "@/components/worlds/world-identity";
 import { getWorldAudienceChips, getWorldOnlineStats, type WorldId } from "@/lib/worlds.community";
 import { worldPresentationById } from "@/lib/worlds";
 import { mockListingsService } from "@/services/listings";
+import { buildPageMetadata } from "@/lib/seo/metadata";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = buildPageMetadata({
   title: "Миры - Classify",
-  description: "Выберите мир по своим интересам — электроника, авто, дом, детские товары и другие",
-  openGraph: {
-    title: "Миры - Classify",
-    description: "Мини-комьюнити вокруг интересов: техника, авто, дом и хобби.",
-  },
-};
+  description: "Тематические миры Classify: электроника, авто, агро, недвижимость, услуги и другие ниши каталога.",
+  path: "/worlds",
+});
 
 const worldIds = (Object.keys(worldPresentationById) as Array<keyof typeof worldPresentationById>).filter(
   (item): item is WorldId => item !== "all",

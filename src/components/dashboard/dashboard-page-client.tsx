@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { useBuyer } from "@/components/buyer/buyer-provider";
 import { DashboardFilters } from "@/components/dashboard/dashboard-filters";
@@ -9,9 +9,12 @@ import { DashboardProfileCard } from "@/components/dashboard/dashboard-profile-c
 import { DashboardSummaryCards } from "@/components/dashboard/dashboard-summary-cards";
 import { DashboardFilter } from "@/components/dashboard/types";
 import { MyListingsSection } from "@/components/dashboard/my-listings-section";
+import { MyRequestsSection } from "@/components/dashboard/my-requests-section";
 import { DEMO_STOREFRONT_SELLER_ID } from "@/lib/demo-role-constants";
 import { isListingVisibleByFilter } from "@/lib/dashboard";
 import { Card, buttonVariants } from "@/components/ui";
+import type { BuyerRequest } from "@/entities/requests/model";
+import { mockBuyerRequestsService } from "@/services/requests";
 
 const defaultFilter: DashboardFilter = "all";
 
@@ -28,8 +31,17 @@ export function DashboardPageClient({
 }: DashboardPageClientProps) {
   const buyer = useBuyer();
   const [filter, setFilter] = useState<DashboardFilter>(defaultFilter);
+  const [publicationType, setPublicationType] = useState<"sale" | "purchase">("sale");
   const [showSponsorBoardHint, setShowSponsorBoardHint] = useState(fromSponsorBoard || promoteHeroIntent);
+  const [buyerRequests, setBuyerRequests] = useState<BuyerRequest[]>([]);
   const listings = buyer.myListings;
+  const currentBuyerId = "buyer-dmitriy";
+
+  useEffect(() => {
+    void mockBuyerRequestsService.getBuyerRequests({ authorId: currentBuyerId }).then((rows) => {
+      setBuyerRequests(rows.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+    });
+  }, []);
 
   const counts = useMemo(
     () => ({
@@ -50,6 +62,13 @@ export function DashboardPageClient({
   const views = useMemo(
     () => listings.reduce((accumulator, listing) => accumulator + listing.views, 0),
     [listings],
+  );
+  const publicationCounts = useMemo(
+    () => ({
+      sale: listings.length,
+      purchase: buyerRequests.length,
+    }),
+    [listings.length, buyerRequests.length],
   );
 
   return (
@@ -135,26 +154,77 @@ export function DashboardPageClient({
           <Card className="space-y-3 p-4 sm:p-5">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="space-y-1">
-                <h2 className="text-lg font-semibold tracking-tight text-slate-900">Мои объявления</h2>
+                <h2 className="text-lg font-semibold tracking-tight text-slate-900">Мои публикации</h2>
                 <p className="text-sm text-slate-600">
-                  Управляйте статусами, редактируйте карточки и отслеживайте активность.
+                  Выберите сценарий: опубликовать объявление о продаже или разместить запрос о покупке, чтобы получить предложения.
                 </p>
               </div>
-              <Link href="/create-listing" className={buttonVariants({ variant: "primary" })}>
-                Разместить объявление
-              </Link>
+              <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+                <Link href="/create-listing" className={buttonVariants({ variant: "primary" })}>
+                  Разместить объявление о продаже
+                </Link>
+                <Link
+                  href="/requests/new"
+                  className={buttonVariants({ variant: "outline", className: "border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100" })}
+                >
+                  Разместить запрос о покупке
+                </Link>
+              </div>
             </div>
-            <DashboardFilters value={filter} onChange={setFilter} counts={counts} />
+            <div className="inline-flex rounded-xl border border-slate-200 bg-slate-50/80 p-1">
+              {(
+                [
+                  { id: "sale", label: "О продаже" },
+                  { id: "purchase", label: "О покупке" },
+                ] as const
+              ).map((item) => {
+                const active = publicationType === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setPublicationType(item.id)}
+                    className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition ${
+                      active ? "bg-white text-slate-900 shadow-sm ring-1 ring-slate-200" : "text-slate-600 hover:bg-white/70 hover:text-slate-900"
+                    }`}
+                  >
+                    <span>{item.label}</span>
+                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
+                      {publicationCounts[item.id]}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            {publicationType === "sale" ? (
+              <DashboardFilters value={filter} onChange={setFilter} counts={counts} />
+            ) : null}
           </Card>
 
-          <MyListingsSection
-            listings={filteredListings}
-            filter={filter}
-            onEdit={(id) => buyer.updateListingStatus(id, "draft")}
-            onArchive={(id) => buyer.updateListingStatus(id, "hidden")}
-            onMarkSold={(id) => buyer.updateListingStatus(id, "sold")}
-            onDelete={buyer.removeListing}
-          />
+          {publicationType === "sale" ? (
+            <MyListingsSection
+              listings={filteredListings}
+              filter={filter}
+              onEdit={(id) => buyer.updateListingStatus(id, "draft")}
+              onArchive={(id) => buyer.updateListingStatus(id, "hidden")}
+              onMarkSold={(id) => buyer.updateListingStatus(id, "sold")}
+              onDelete={buyer.removeListing}
+            />
+          ) : (
+            <MyRequestsSection
+              requests={buyerRequests}
+              onMarkFulfilled={async (id) => {
+                const updated = await mockBuyerRequestsService.updateBuyerRequestStatus(id, "fulfilled");
+                if (!updated) return;
+                setBuyerRequests((prev) => prev.map((item) => (item.id === id ? updated : item)));
+              }}
+              onCancel={async (id) => {
+                const updated = await mockBuyerRequestsService.updateBuyerRequestStatus(id, "cancelled");
+                if (!updated) return;
+                setBuyerRequests((prev) => prev.map((item) => (item.id === id ? updated : item)));
+              }}
+            />
+          )}
         </section>
 
         <div className="space-y-3">

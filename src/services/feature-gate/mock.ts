@@ -1,9 +1,11 @@
 import type { DemoRole } from "@/components/demo-role/demo-role";
 import type { EffectivePlan, StorePlan } from "@/components/subscription/subscription-provider";
 import type { Entitlement, Feature, Plan } from "@/entities/billing/model";
+import { getPlanById, getNextPlan, isLimitReached } from "@/entities/billing/model";
+import { billingPlansMock } from "@/mocks/billing/plans";
 import { auctionCreatePolicy, canCreateAuction } from "@/services/entitlements/config";
 
-import type { FeatureGateContext, FeatureGateService } from "./index";
+import type { FeatureGateContext, FeatureGateService, GateResult } from "./index";
 
 export type SubscriptionFeatureSnapshot = {
   isPro: boolean;
@@ -60,6 +62,7 @@ function buildFeatures(role: DemoRole, snap: SubscriptionFeatureSnapshot): Featu
   };
 
   add("listing_create");
+  add("ai_listing_assistant");
 
   if (role === "seller" || role === "all") {
     if (storeMeetsMin(snap, "basic")) {
@@ -71,18 +74,24 @@ function buildFeatures(role: DemoRole, snap: SubscriptionFeatureSnapshot): Featu
       add("listing_boost");
       add("store_marketing_campaigns");
       add("growth:pro");
+      add("store_analytics_history_30d");
+      add("store_analytics_history_90d");
+      add("store_analytics_funnel");
+      add("store_analytics_export");
+      add("ai_listing_assistant_unlimited");
     }
     if (storeMeetsMin(snap, "business")) {
       add("store_analytics_advanced");
+      add("store_analytics_history_1y");
+      add("store_analytics_benchmark");
       add("store_verified_badge");
       add("growth:business");
+      add("ai_listing_assistant_unlimited");
     }
   }
 
-  const aiListing =
-    role === "seller" ? snap.storePlan === "business" : snap.planName === "business" || snap.isPro;
-  if (aiListing) {
-    add("ai_listing_assistant");
+  if (role === "buyer" && (snap.isPro || snap.planName === "pro" || snap.planName === "business")) {
+    add("ai_listing_assistant_unlimited");
   }
 
   const savedAlerts = role !== "seller" && (snap.isPro || snap.planName === "pro" || snap.planName === "business");
@@ -140,12 +149,67 @@ function buildEntitlement(role: DemoRole, snap: SubscriptionFeatureSnapshot): En
   };
 }
 
+const featureMinPlan: Partial<Record<Feature, Plan>> = {
+  listing_create: "free",
+  listing_promote: "starter",
+  listing_boost: "pro",
+  store_analytics_basic: "free",
+  store_analytics_history_30d: "pro",
+  store_analytics_history_90d: "pro",
+  store_analytics_history_1y: "business",
+  store_analytics_funnel: "pro",
+  store_analytics_benchmark: "business",
+  store_analytics_export: "pro",
+  store_analytics_advanced: "business",
+  store_marketing_campaigns: "pro",
+  store_verified_badge: "business",
+  ai_listing_assistant: "free",
+  ai_listing_assistant_unlimited: "pro",
+  auction_create: "pro",
+  auction_auto_bid: "pro",
+  saved_searches_alerts: "pro",
+  "growth:basic": "starter",
+  "growth:pro": "pro",
+  "growth:business": "business",
+};
+
+const featureLabels: Partial<Record<Feature, string>> = {
+  listing_create: "Создание объявлений",
+  listing_promote: "Продвижение объявлений",
+  listing_boost: "Буст объявлений",
+  store_analytics_history_30d: "История аналитики 30 дней",
+  store_analytics_history_90d: "История аналитики 90 дней",
+  store_analytics_history_1y: "История аналитики 1 год",
+  store_analytics_funnel: "Воронка продаж",
+  store_analytics_benchmark: "Сравнение с нишей",
+  store_analytics_export: "Экспорт аналитики CSV",
+  store_analytics_advanced: "Расширенная аналитика",
+  store_marketing_campaigns: "Маркетинговые кампании",
+  ai_listing_assistant: "AI-помощник при создании объявления",
+  ai_listing_assistant_unlimited: "AI-помощник без дневного лимита",
+};
+
 function upgradeForStoreFeature(feature: Feature, snap: SubscriptionFeatureSnapshot): string {
   if (snap.storePlan === "business") {
     return "Тариф магазина уже максимальный для демо.";
   }
   if (snap.storePlan === "pro" && feature === "store_analytics_advanced") {
     return "Подключите тариф «Бизнес» для магазина, чтобы открыть эту возможность.";
+  }
+  if (
+    feature === "store_analytics_history_1y" ||
+    feature === "store_analytics_benchmark" ||
+    feature === "store_analytics_advanced"
+  ) {
+    return "Тариф «Бизнес» открывает годовую историю и сравнение с нишей.";
+  }
+  if (
+    feature === "store_analytics_history_30d" ||
+    feature === "store_analytics_history_90d" ||
+    feature === "store_analytics_funnel" ||
+    feature === "store_analytics_export"
+  ) {
+    return "Тариф «Про» и выше: глубже история, воронка и экспорт CSV.";
   }
   return "Перейдите к тарифам магазина и выберите более высокий уровень.";
 }
@@ -159,9 +223,65 @@ export function createMockFeatureGateService(
   role: DemoRole,
 ): FeatureGateService {
   const entitlement = buildEntitlement(role, snapshot);
+  const currentPlan = resolvePlan(role, snapshot);
+  const currentPlanConfig = getPlanById(billingPlansMock, currentPlan);
+
+  function getRequiredPlan(feature: Feature): Plan | undefined {
+    return featureMinPlan[feature];
+  }
+
+  function getGateResult(feature: Feature, context?: FeatureGateContext): GateResult {
+    const allowedByFeature = entitlement.features.includes(feature);
+    const requiredPlan = getRequiredPlan(feature);
+    const usage = context?.usage;
+    const planLimit =
+      feature === "listing_create"
+        ? currentPlanConfig?.limits.active_listings
+        : feature === "listing_boost"
+          ? currentPlanConfig?.limits.boosts_per_month
+          : feature === "store_marketing_campaigns"
+            ? currentPlanConfig?.limits.campaigns_active
+            : undefined;
+
+    if (typeof planLimit === "number" && typeof usage === "number" && isLimitReached(planLimit, usage)) {
+      return {
+        allowed: false,
+        reason: "limit_reached",
+        requiredPlan: requiredPlan ?? getNextPlan(currentPlan) ?? "business",
+        currentPlan,
+        currentUsage: usage,
+        limit: planLimit,
+        featureLabel: featureLabels[feature],
+      };
+    }
+
+    if (!allowedByFeature) {
+      return {
+        allowed: false,
+        reason: "plan_restriction",
+        requiredPlan: requiredPlan ?? getNextPlan(currentPlan) ?? "business",
+        currentPlan,
+        limit: typeof planLimit === "number" ? planLimit : undefined,
+        currentUsage: usage,
+        featureLabel: featureLabels[feature],
+      };
+    }
+
+    return {
+      allowed: true,
+      currentPlan,
+      requiredPlan,
+      currentUsage: usage,
+      limit: typeof planLimit === "number" ? planLimit : undefined,
+      featureLabel: featureLabels[feature],
+    };
+  }
 
   function canUse(feature: Feature, context?: FeatureGateContext): boolean {
-    void context;
+    const result = getGateResult(feature, context);
+    if (!result.allowed) {
+      return false;
+    }
     if (feature === "growth:basic" || feature === "growth:pro" || feature === "growth:business") {
       const min = feature.slice("growth:".length) as StorePlan;
       return storeMeetsMin(snapshot, min);
@@ -177,6 +297,18 @@ export function createMockFeatureGateService(
 
     if (feature === "store_analytics_advanced") {
       return (role === "seller" || role === "all") && snapshot.storePlan === "business";
+    }
+
+    if (feature === "store_analytics_history_30d" || feature === "store_analytics_history_90d") {
+      return (role === "seller" || role === "all") && storeMeetsMin(snapshot, "pro");
+    }
+
+    if (feature === "store_analytics_history_1y" || feature === "store_analytics_benchmark") {
+      return (role === "seller" || role === "all") && snapshot.storePlan === "business";
+    }
+
+    if (feature === "store_analytics_funnel" || feature === "store_analytics_export") {
+      return (role === "seller" || role === "all") && storeMeetsMin(snapshot, "pro");
     }
 
     if (feature === "listing_promote" || feature === "listing_boost" || feature === "store_marketing_campaigns") {
@@ -200,16 +332,21 @@ export function createMockFeatureGateService(
     }
 
     if (feature === "ai_listing_assistant") {
-      return role === "seller"
-        ? snapshot.storePlan === "business"
-        : snapshot.planName === "business" || snapshot.isPro;
+      return true;
+    }
+
+    if (feature === "ai_listing_assistant_unlimited") {
+      if (role === "seller" || role === "all") {
+        return storeMeetsMin(snapshot, "pro");
+      }
+      return snapshot.isPro || snapshot.planName === "pro" || snapshot.planName === "business";
     }
 
     if (feature === "saved_searches_alerts") {
       return role !== "seller" && (snapshot.isPro || snapshot.planName === "pro" || snapshot.planName === "business");
     }
 
-    return false;
+    return entitlement.features.includes(feature);
   }
 
   function getLimit(feature: string): number {
@@ -217,13 +354,17 @@ export function createMockFeatureGateService(
   }
 
   function getUpgradeReason(feature: Feature): string {
-    if (canUse(feature)) {
+    const gateResult = getGateResult(feature);
+    if (gateResult.allowed) {
       return "";
     }
-    if (feature === "ai_listing_assistant") {
-      return role === "seller"
-        ? "AI-помощник при создании объявлений доступен на тарифе «Бизнес» для магазина."
-        : "AI-помощник доступен в подписке Pro или Business.";
+    if (gateResult.reason === "limit_reached") {
+      return `Достигнут лимит текущего тарифа: ${gateResult.currentUsage}/${gateResult.limit}.`;
+    }
+    if (feature === "ai_listing_assistant_unlimited") {
+      return role === "seller" || role === "all"
+        ? "Снимите дневной лимит AI: тариф магазина «Про» или «Бизнес»."
+        : "Безлимитный AI при создании объявлений — в подписке Pro или Business.";
     }
     if (feature === "saved_searches_alerts") {
       return "Уведомления по сохранённым поискам доступны в Pro и Business.";
@@ -243,5 +384,5 @@ export function createMockFeatureGateService(
     return "Обновите тариф, чтобы получить доступ.";
   }
 
-  return { canUse, getLimit, getUpgradeReason };
+  return { canUse, getGateResult, getLimit, getUpgradeReason };
 }

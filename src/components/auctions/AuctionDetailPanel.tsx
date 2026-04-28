@@ -6,6 +6,7 @@ import type { AuctionState } from "@/entities/auction/model";
 import { mockAuctionService } from "@/services/auctions";
 import { getBidIncrement, getMinimumNextBid } from "@/services/auctions/rules";
 import { useFeatureGate } from "@/hooks/useFeatureGate";
+import { captureError } from "@/lib/observability";
 
 import { AuctionStatusBadge } from "./AuctionStatusBadge";
 import { CountdownTimer } from "./CountdownTimer";
@@ -83,6 +84,7 @@ export function AuctionDetailPanel({ auction }: AuctionDetailPanelProps) {
       setAmount(String(getMinimumNextBid(result.auction)));
       setAutoBidMax(String(getMinimumNextBid(result.auction) + 10_000));
     } catch (submitError) {
+      captureError(submitError, { area: "auction-place-bid", auctionId: state.id });
       setError(submitError instanceof Error ? submitError.message : "Не удалось разместить ставку.");
     } finally {
       setIsPending(false);

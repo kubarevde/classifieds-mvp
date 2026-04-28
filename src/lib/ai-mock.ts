@@ -44,3 +44,21 @@ export function getAiListingSuggestions(input: AiListingSuggestionInput): AiList
     priceTip: `Рекомендуем проверить цену рядом с ${cleanPrice} и добавить аргумент торга в описании.`,
   };
 }
+
+export function improveTextMock(text: string, type: "title" | "description"): { improved: string; changes: string[] } {
+  const trimmed = text.trim();
+  if (!trimmed) {
+    return { improved: "", changes: ["Пустой текст — добавьте детали вручную."] };
+  }
+  const suffix = type === "title" ? " · без лишних слов" : "\n\nУточните комплектацию и способ передачи.";
+  const improved = type === "title" ? `${trimmed.replace(/\s+/g, " ")}${suffix}` : `${trimmed}${suffix}`;
+  return {
+    improved,
+    changes: ["Убраны лишние пробелы", "Добавлен акцент для покупателя"],
+  };
+}
+
+export function delayMs(min = 500, max = 1500): Promise<void> {
+  const ms = min + Math.floor(Math.random() * (max - min + 1));
+  return new Promise((r) => setTimeout(r, ms));
+}

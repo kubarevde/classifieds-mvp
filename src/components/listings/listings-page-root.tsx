@@ -7,6 +7,7 @@ import { ListingsPageClient } from "@/components/listings/listings-page-client";
 import {
   defaultSavedSearchFilters,
   hasSavedSearchUrlParams,
+  parseIntentFromSearchParams,
   parseFiltersFromSearchParams,
 } from "@/lib/saved-searches";
 
@@ -22,6 +23,10 @@ export function ListingsPageRoot() {
 
     return parseFiltersFromSearchParams(params) ?? defaultSavedSearchFilters;
   }, [queryString]);
+  const initialIntent = useMemo(() => {
+    const params = new URLSearchParams(queryString);
+    return parseIntentFromSearchParams(params);
+  }, [queryString]);
 
-  return <ListingsPageClient key={queryString || "__catalog__"} initialFilters={initialFilters} />;
+  return <ListingsPageClient initialFilters={initialFilters} initialIntent={initialIntent} />;
 }

@@ -1,10 +1,11 @@
 import Link from "next/link";
 
 import { FavoriteButton } from "@/components/favorites/favorite-button";
+import { TrustScoreWidget } from "@/components/trust";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/components/ui/cn";
 import { getListingBadges, ListingsView, UnifiedCatalogListing } from "@/lib/listings";
-import { getListingMarketingBadgeData } from "@/lib/sellers";
+import { getListingMarketingBadgeData, getStorefrontSellerByListingId } from "@/lib/sellers";
 
 type ListingPreviewCardProps = {
   listing: UnifiedCatalogListing;
@@ -15,6 +16,7 @@ export function ListingPreviewCard({ listing, view }: ListingPreviewCardProps) {
   const categoryLabel = listing.categoryLabel;
   const badges = getListingBadges(listing);
   const marketing = getListingMarketingBadgeData(listing.id);
+  const seller = getStorefrontSellerByListingId(listing.id);
   const promotionBadges = [
     marketing.coupon
       ? `Купон ${marketing.coupon.discountType === "percent" ? `${marketing.coupon.discountValue}%` : `${marketing.coupon.discountValue} ₽`}`
@@ -53,6 +55,7 @@ export function ListingPreviewCard({ listing, view }: ListingPreviewCardProps) {
               <span>{listing.location}</span>
               <span>•</span>
               <span>{listing.publishedAt}</span>
+              {seller ? <TrustScoreWidget targetId={seller.id} compact /> : null}
             </div>
             {badges.length ? (
               <div className="flex flex-wrap gap-1.5">
@@ -98,6 +101,7 @@ export function ListingPreviewCard({ listing, view }: ListingPreviewCardProps) {
             <span>{listing.location}</span>
             <span>•</span>
             <span>{listing.publishedAt}</span>
+            {seller ? <TrustScoreWidget targetId={seller.id} compact /> : null}
           </div>
           {badges.length ? (
             <div className="flex flex-wrap gap-1.5">
@@ -151,6 +155,7 @@ export function ListingPreviewCard({ listing, view }: ListingPreviewCardProps) {
             <span>{listing.location}</span>
             <span>{listing.publishedAt}</span>
           </div>
+          {seller ? <TrustScoreWidget targetId={seller.id} compact /> : null}
           {badges.length ? (
             <div className="flex flex-wrap gap-1.5">
               {badges.map((badge) => (
@@ -197,6 +202,7 @@ export function ListingPreviewCard({ listing, view }: ListingPreviewCardProps) {
           <span>{listing.location}</span>
           <span>{listing.publishedAt}</span>
         </div>
+        {seller ? <TrustScoreWidget targetId={seller.id} compact /> : null}
         {badges.length ? (
           <div className="flex flex-wrap gap-1.5">
             {badges.map((badge) => (

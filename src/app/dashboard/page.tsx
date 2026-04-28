@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+
 import { type AccountTab } from "@/components/account/account-layout";
 import { DashboardTabContent } from "@/components/dashboard/dashboard-tab-content";
 import { DashboardStoreCabinetLink } from "@/components/dashboard/dashboard-store-cabinet-link";
@@ -7,6 +9,14 @@ import { Container } from "@/components/ui/container";
 
 type DashboardPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+export const metadata: Metadata = {
+  title: "Личный кабинет - Classify",
+  robots: {
+    index: false,
+    follow: false,
+  },
 };
 
 export default async function DashboardPage({ searchParams }: DashboardPageProps) {

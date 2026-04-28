@@ -8,6 +8,7 @@ import { PageShell, SectionCard } from "@/components/platform";
 import { StoreCard, type StoreCatalogItem } from "@/components/stores/store-card";
 import { WorldChat } from "@/components/worlds/world-chat";
 import { WorldIdentityStrip } from "@/components/worlds/world-identity";
+import { CatalogCategoryScope } from "@/components/search/catalog-category-scope";
 import { WorldSearch } from "@/components/worlds/world-search";
 import { catalogWorldLucideIcons } from "@/config/icons";
 import {
@@ -70,9 +71,21 @@ export function WorldPageClient({ world, listings, stores }: WorldPageClientProp
   const categoryOptions = useMemo(() => getCategoryOptionsForWorld(world), [world]);
   const locations = useMemo(() => getUniqueLocationsForUnified(worldListings), [worldListings]);
 
+  const hasSelectedCategory = useMemo(
+    () => categoryOptions.some((option) => option.id === category),
+    [category, categoryOptions],
+  );
+  const resolvedCategory = category === "all" || hasSelectedCategory ? category : "all";
+
   const filteredListings = useMemo(
-    () => filterAndSortUnifiedListings(worldListings, { query: "", category, location, sortBy: "newest" }),
-    [category, worldListings, location],
+    () =>
+      filterAndSortUnifiedListings(worldListings, {
+        query: "",
+        category: resolvedCategory,
+        location,
+        sortBy: "newest",
+      }),
+    [resolvedCategory, worldListings, location],
   );
 
   const featuredListings = useMemo(() => filteredListings.slice(0, 6), [filteredListings]);
@@ -117,9 +130,9 @@ export function WorldPageClient({ world, listings, stores }: WorldPageClientProp
       searchListingsSmart({
         worldId: world,
         city: location === "all" ? undefined : location,
-        categoryId: category === "all" ? undefined : category,
+        categoryId: resolvedCategory === "all" ? undefined : resolvedCategory,
       }),
-    [category, location, world],
+    [resolvedCategory, location, world],
   );
 
   return (
@@ -148,9 +161,18 @@ export function WorldPageClient({ world, listings, stores }: WorldPageClientProp
           </div>
         </section>
 
-        <WorldSearch worldId={world} location={location} category={category} />
+        <WorldSearch worldId={world} location={location} category={resolvedCategory} />
 
-        <section className={`grid gap-2 rounded-2xl border p-3 sm:grid-cols-[1fr_1fr_1fr_auto] ${worldPresentation.sectionToneClass}`}>
+        <CatalogCategoryScope
+          density="compact"
+          categoryOptions={categoryOptions}
+          resolvedCategory={resolvedCategory}
+          onCategoryChange={(id) => setCategory(id)}
+        />
+
+        <section
+          className={`grid gap-2 rounded-xl border border-slate-100 bg-slate-50/60 p-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] ${worldPresentation.sectionToneClass}`}
+        >
           <select
             value={world}
             disabled
@@ -170,19 +192,10 @@ export function WorldPageClient({ world, listings, stores }: WorldPageClientProp
               </option>
             ))}
           </select>
-          <select
-            value={category}
-            onChange={(event) => setCategory(event.target.value as "all" | string)}
-            className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none"
+          <Link
+            href={catalogHref}
+            className="inline-flex h-10 items-center justify-center rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white transition hover:bg-slate-700"
           >
-            <option value="all">Все категории</option>
-            {categoryOptions.map((option) => (
-              <option key={option.id} value={option.id}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-          <Link href={catalogHref} className="inline-flex h-10 items-center justify-center rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white transition hover:bg-slate-700">
             Открыть каталог мира
           </Link>
         </section>

@@ -18,6 +18,7 @@ import { resolveDemoStoreNavSellerId } from "@/lib/demo-role-constants";
 const guestNavLinks = [
   { label: "Главная", href: "/" },
   { label: "Объявления", href: "/listings" },
+  { label: "Запросы", href: "/requests" },
   { label: "Магазины", href: "/stores" },
 ] as const;
 

@@ -1,7 +1,9 @@
 import Link from "next/link";
 
 import type { AuctionState } from "@/entities/auction/model";
+import { TrustScoreWidget } from "@/components/trust";
 import type { UnifiedCatalogListing } from "@/lib/listings";
+import { getStorefrontSellerByListingId } from "@/lib/sellers";
 
 import { AuctionStatusBadge } from "./AuctionStatusBadge";
 import { CountdownTimer } from "./CountdownTimer";
@@ -17,6 +19,7 @@ function formatMoney(value: number) {
 }
 
 export function AuctionCard({ listing, auction, view }: AuctionCardProps) {
+  const seller = getStorefrontSellerByListingId(listing.id);
   const actionLabel = auction.status === "live" || auction.status === "ending_soon" ? "Сделать ставку" : "Смотреть";
   const wrapperClass =
     view === "list"
@@ -38,6 +41,7 @@ export function AuctionCard({ listing, auction, view }: AuctionCardProps) {
           <span>{listing.location}</span>
           <span>{listing.publishedAt}</span>
         </div>
+        {seller ? <TrustScoreWidget targetId={seller.id} compact /> : null}
         <span className="inline-flex h-9 items-center justify-center rounded-lg bg-slate-900 px-3 text-sm font-semibold text-white transition group-hover:bg-slate-700">
           {actionLabel}
         </span>

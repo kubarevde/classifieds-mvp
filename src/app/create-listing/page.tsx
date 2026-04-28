@@ -1,9 +1,19 @@
+import type { Metadata } from "next";
+
 import { CreateListingPageShell } from "@/components/create-listing/create-listing-page-shell";
 import { Navbar } from "@/components/layout/navbar";
 import { CatalogWorld } from "@/lib/listings";
 
 type CreateListingPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+export const metadata: Metadata = {
+  title: "Создать объявление - Classify",
+  robots: {
+    index: false,
+    follow: false,
+  },
 };
 
 function resolveWorld(raw: string | string[] | undefined): CatalogWorld {

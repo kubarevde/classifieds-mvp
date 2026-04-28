@@ -1,10 +1,16 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { Navbar } from "@/components/layout/navbar";
+import { StructuredDataScript } from "@/components/seo/structured-data-script";
 import { StorefrontPageClient } from "@/components/sellers/storefront-page-client";
 import { Container } from "@/components/ui/container";
 import { getWorldLabel } from "@/lib/listings";
+import { buildBreadcrumbListJsonLd } from "@/lib/seo/breadcrumbs";
+import { toCanonicalUrl } from "@/lib/seo/canonical";
+import { generateStoreMetadata } from "@/lib/seo/metadata";
+import { buildStoreJsonLd } from "@/lib/seo/structured-data";
 import {
   getSellerCoupons,
   getSellerMarketingCampaigns,
@@ -20,6 +26,18 @@ import { mockListingsService } from "@/services/listings";
 type SellerStorefrontPageProps = {
   params: Promise<{ id: string }>;
 };
+
+export async function generateMetadata({ params }: SellerStorefrontPageProps): Promise<Metadata> {
+  const { id } = await params;
+  const seller = getStorefrontSellerById(id);
+  if (!seller) {
+    return {
+      title: "Магазин не найден - Classify",
+      robots: { index: false, follow: false },
+    };
+  }
+  return generateStoreMetadata(seller);
+}
 
 export default async function SellerStorefrontPage({ params }: SellerStorefrontPageProps) {
   const { id } = await params;
@@ -47,6 +65,15 @@ export default async function SellerStorefrontPage({ params }: SellerStorefrontP
 
   return (
     <div className="min-h-screen bg-slate-50/70">
+      <StructuredDataScript id="store-jsonld" data={buildStoreJsonLd(seller)} />
+      <StructuredDataScript
+        id="store-breadcrumb-jsonld"
+        data={buildBreadcrumbListJsonLd([
+          { name: "Главная", url: toCanonicalUrl("/") },
+          { name: "Магазины", url: toCanonicalUrl("/stores") },
+          { name: seller.storefrontName, url: toCanonicalUrl(`/sellers/${seller.id}`) },
+        ])}
+      />
       <Navbar />
       <main className="py-6 sm:py-8">
         <Container className="space-y-4">

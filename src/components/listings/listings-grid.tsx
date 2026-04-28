@@ -35,7 +35,10 @@ export function ListingsGrid({
   }
 
   return (
-    <div className={view === "grid" ? "grid gap-3 sm:grid-cols-2 lg:grid-cols-3" : "space-y-3"}>
+    <div
+      className={view === "grid" ? "grid gap-3 sm:grid-cols-2 lg:grid-cols-3" : "space-y-3"}
+      style={{ contentVisibility: "auto", containIntrinsicSize: "1100px" }}
+    >
       {listings.map((listing) => {
         const auction = listing.listingSaleMode === "auction" ? auctionsByListingId[listing.id] ?? null : null;
         if (auction) {

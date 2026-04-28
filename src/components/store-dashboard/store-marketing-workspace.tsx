@@ -25,6 +25,7 @@ import {
   SellerStorefront,
 } from "@/lib/sellers";
 import { isStoreFeatureAllowed, storeFeatureMinTier } from "@/services/entitlements/config";
+import { UpgradeModal } from "@/components/platform";
 
 type ListingPromotionState = {
   sellerId: string;
@@ -266,6 +267,8 @@ export function StoreMarketingWorkspace({
   const [mailingText, setMailingText] = useState("");
   const [recentBoosts, setRecentBoosts] = useState<string[]>([]);
   const [lockedNotice, setLockedNotice] = useState<string | null>(null);
+  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
+  const [upgradeFeatureLabel, setUpgradeFeatureLabel] = useState<string | undefined>(undefined);
   const activeCampaigns = campaigns.filter((campaign) => campaign.status === "active");
   const activeCoupons = coupons.filter((coupon) => coupon.status === "active");
   const activeSuperCount = promotionState.filter((item) => item.isSuper).length;
@@ -278,6 +281,8 @@ export function StoreMarketingWorkspace({
   ].filter(Boolean).length;
   const activeCampaignUnits = activeCampaigns.length + activeSuperCount + recentBoostCount;
   const extraViewsFromPromotion = activeCampaigns.length * 240 + activeSuperCount * 160 + recentBoostCount * 75;
+  const campaignsLimit = seller.planTier === "business" ? 10 : seller.planTier === "pro" ? 3 : 1;
+  const boostsLimit = seller.planTier === "business" ? 60 : seller.planTier === "pro" ? 20 : 0;
 
   const snapshotsByWorld = useMemo(
     () => initialPriceAnalytics.filter((snapshot) => snapshot.world === priceWorld),
@@ -342,6 +347,12 @@ export function StoreMarketingWorkspace({
 
   function handleCampaignSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (activeCampaigns.length >= campaignsLimit) {
+      setUpgradeFeatureLabel("Лимит активных кампаний");
+      setUpgradeModalOpen(true);
+      onNotify(`Лимит кампаний достигнут: ${activeCampaigns.length}/${campaignsLimit}.`);
+      return;
+    }
     if (!campaignForm.name.trim() || campaignForm.listingIds.length === 0) {
       onNotify("Укажите название кампании и выберите объявления.");
       return;
@@ -397,6 +408,12 @@ export function StoreMarketingWorkspace({
   }
 
   function boostListing(listingId: string) {
+    if (recentBoostCount >= boostsLimit) {
+      setUpgradeFeatureLabel("Лимит бустов за месяц");
+      setUpgradeModalOpen(true);
+      onNotify(`Лимит бустов достигнут: ${recentBoostCount}/${boostsLimit}.`);
+      return;
+    }
     const title = listings.find((item) => item.id === listingId)?.title ?? "Объявление";
     const now = new Date().toISOString();
     setPromotionState((current) =>
@@ -513,6 +530,9 @@ export function StoreMarketingWorkspace({
                   <p className="mt-1 text-xl font-semibold text-slate-900">{activeToolTypes}</p>
                 </article>
               </div>
+              <p className="text-xs text-slate-500">
+                Квоты: кампании {activeCampaigns.length}/{campaignsLimit}, бусты {recentBoostCount}/{boostsLimit}.
+              </p>
 
               <div className="rounded-lg border border-slate-200 bg-white p-3">
                 <p className="text-sm font-semibold text-slate-900">Активные инструменты</p>
@@ -1104,6 +1124,16 @@ export function StoreMarketingWorkspace({
 
         </div>
       </div>
+      <UpgradeModal
+        isOpen={upgradeModalOpen}
+        onClose={() => setUpgradeModalOpen(false)}
+        reason="limit_reached"
+        featureLabel={upgradeFeatureLabel}
+        currentPlan={seller.planTier === "business" ? "business" : seller.planTier === "pro" ? "pro" : "starter"}
+        requiredPlan={seller.planTier === "pro" ? "business" : "pro"}
+        currentUsage={upgradeFeatureLabel?.includes("кампаний") ? activeCampaigns.length : recentBoostCount}
+        limit={upgradeFeatureLabel?.includes("кампаний") ? campaignsLimit : boostsLimit}
+      />
     </section>
   );
 }

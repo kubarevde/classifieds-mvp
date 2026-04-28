@@ -1,9 +1,20 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { createElement, useEffect, useMemo, useRef, useState, type Dispatch, type DragEvent, type SetStateAction } from "react";
+import {
+  createElement,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type Dispatch,
+  type DragEvent,
+  type SetStateAction,
+} from "react";
 import { useForm, useWatch } from "react-hook-form";
-import { CheckCircle2, ChevronLeft, ChevronRight, GripVertical, ImagePlus, Loader2, Star } from "lucide-react";
+import { CheckCircle2, ChevronLeft, ChevronRight, GripVertical, ImagePlus, Loader2, Star, Wand2 } from "lucide-react";
 
 import { useBuyer } from "@/components/buyer/buyer-provider";
 import { FormField } from "@/components/create-listing/form-field";
@@ -11,7 +22,7 @@ import { Input } from "@/components/create-listing/input";
 import { Select } from "@/components/create-listing/select";
 import { Textarea } from "@/components/create-listing/textarea";
 import { ListingPreviewCard } from "@/components/listings/listing-preview-card";
-import { InlineNotice, SectionCard, UpgradeBanner } from "@/components/platform";
+import { InlineNotice, SectionCard, UpgradeBanner, UpgradeModal } from "@/components/platform";
 import { useProfile } from "@/components/profile/profile-provider";
 import { useDemoRole } from "@/components/demo-role/demo-role";
 import { useSubscription } from "@/components/subscription/subscription-provider";
@@ -33,8 +44,8 @@ import {
   listingImageClass,
   type LocalPhoto,
 } from "@/components/create-listing/create-listing-wizard-utils";
+import { useAiListingGate } from "@/hooks/useAiListingGate";
 import { useFeatureGate } from "@/hooks/useFeatureGate";
-import { getAiListingSuggestions, getPriceRecommendationMock } from "@/lib/ai-mock";
 import {
   getCategoryOptionsForWorld,
   getSubcategoryOptionsForWorld,
@@ -46,11 +57,22 @@ import {
 import { catalogWorldLucideIcons } from "@/config/icons";
 import { getWorldPresentation } from "@/lib/worlds";
 import type { HeroBannerPeriod, HeroBannerScope, HeroBannerWorld } from "@/lib/hero-board";
-import type { SnapAndFillResult } from "@/services/ai/listing-assistant";
-import { buildListingFromClarifications, createMockAIListingAssistant } from "@/services/ai/listing-assistant";
+import { AIAssistantDrawer } from "@/components/listings/create/AIAssistantDrawer";
+import { AIStepSummaryCard } from "@/components/listings/create/AIStepSummaryCard";
+import { AITitleSuggestions } from "@/components/listings/create/AITitleSuggestions";
+import { AIPriceRecommendation } from "@/components/listings/create/AIPriceRecommendation";
+import { InlineAISuggestionBlock } from "@/components/listings/create/InlineAISuggestionBlock";
+import { wizardStepToAiContext } from "@/components/listings/create/wizard-ai-types";
+import { mergeKeywordList } from "@/components/listings/create/listing-ai-utils";
+import { useCreateListingAiController } from "@/components/listings/create/useCreateListingAiController";
+import { useListingAiActions } from "@/components/listings/create/use-listing-ai-actions";
+import type { AiUsageCheckResult } from "@/entities/ai/model";
+import type { AIIssue, SnapAndFillResult } from "@/services/ai/listing-assistant";
+import { buildListingFromClarifications, createListingAssistantMock } from "@/services/ai/listing-assistant";
 import { getMinimumNextBid } from "@/services/auctions";
 import { mockAuctionService } from "@/services/auctions";
 import { mockListingsService } from "@/services/listings";
+import { useAiUsageStore } from "@/stores/ai-usage-store";
 import { getListingDraftDefaults, useListingDraftStore, type DraftPhoto } from "@/stores/listing-draft-store";
 import { usePublishedListingStore } from "@/stores/published-listing-store";
 
@@ -151,6 +173,10 @@ export function CreateListingWizard({
   const aiFeature = useFeatureGate("ai_listing_assistant");
   const auctionGate = useFeatureGate("auction_create");
   const promoteGate = useFeatureGate("listing_promote");
+  const gateApi = useFeatureGate();
+  const listingLimit = gateApi.getLimit("listing_create");
+  const activeListingsCount = buyer.myListings.filter((listing) => listing.status === "active").length;
+  const photosPerListingLimit = subscription.storePlan === "business" ? 25 : subscription.storePlan === "pro" ? 15 : 5;
 
   const formDefaults = getListingDraftDefaults({
     world: initialWorld === "all" ? "electronics" : initialWorld,
@@ -179,6 +205,12 @@ export function CreateListingWizard({
   const [clarificationResolved, setClarificationResolved] = useState(false);
   const [showAiSummaryDetails, setShowAiSummaryDetails] = useState(false);
   const [auctionUpsellMessage, setAuctionUpsellMessage] = useState<string | null>(null);
+  const [manualUpgradeModalOpen, setManualUpgradeModalOpen] = useState(false);
+  const [manualUpgradeFeatureLabel, setManualUpgradeFeatureLabel] = useState<string | undefined>(undefined);
+  const [aiLimitModalOpen, setAiLimitModalOpen] = useState(false);
+  const [assistantDrawerOpen, setAssistantDrawerOpen] = useState(false);
+  const [photoAiById, setPhotoAiById] = useState<Record<string, "idle" | "scanning" | "done">>({});
+  const [photoAiDetail, setPhotoAiDetail] = useState<Record<string, { detected: string; tags: string[] }>>({});
   const [catalogListings, setCatalogListings] = useState<UnifiedCatalogListing[]>([]);
   const dynamicStepLabels = useMemo(
     () =>
@@ -255,14 +287,47 @@ export function CreateListingWizard({
   );
   const worldPresentation = useMemo(() => getWorldPresentation(values.world), [values.world]);
   const worldHeroIcon = catalogWorldLucideIcons[values.world];
-  const aiSuggestions = useMemo(
-    () => getAiListingSuggestions({ title: values.title, category: values.category, price: values.price }),
-    [values.category, values.price, values.title],
-  );
-  const priceRecommendation = useMemo(
-    () => getPriceRecommendationMock({ category: values.category, title: values.title, price: values.price }),
-    [values.category, values.price, values.title],
-  );
+
+  const { dailyLimit: dailyAiLimit, hasUnlimited: aiUnlimited } = useAiListingGate();
+  const aiEffectiveDailyLimit = aiFeature.allowed ? dailyAiLimit : 0;
+  const assistant = useMemo(() => createListingAssistantMock(), []);
+  const { run, busyKey, lastError, setLastError, guard } = useListingAiActions(aiEffectiveDailyLimit);
+  const aiByType = useAiUsageStore((s) => s.byType);
+  const usedTodayAi = useMemo(() => Object.values(aiByType).reduce((a, n) => a + (n ?? 0), 0), [aiByType]);
+
+  const onAiBlocked = useCallback((check: AiUsageCheckResult) => {
+    if (check.reason === "daily_limit") {
+      setAiLimitModalOpen(true);
+      return;
+    }
+    if (check.reason === "plan_limit") {
+      setManualUpgradeFeatureLabel("AI Listing Assistant");
+      setManualUpgradeModalOpen(true);
+    }
+  }, []);
+
+  const ai = useCreateListingAiController({
+    assistant,
+    run,
+    busyKey,
+    lastError,
+    setLastError,
+    guard,
+    getValues,
+    setValue,
+    categoryLabel: (id) => categoryOptions.find((e) => e.id === id)?.label ?? id,
+    onBlocked: onAiBlocked,
+  });
+
+  const scrollToAiField = useCallback((field: AIIssue["field"]) => {
+    const map: Record<AIIssue["field"], string> = {
+      title: "wizard-ai-title",
+      description: "wizard-ai-description",
+      price: "wizard-ai-price",
+      photos: "wizard-ai-photos",
+    };
+    document.getElementById(map[field])?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, []);
 
   const previewListing = useMemo<UnifiedCatalogListing>(() => {
     const categoryLabel = categoryOptions.find((entry) => entry.id === values.category)?.label ?? "Категория";
@@ -333,6 +398,7 @@ export function CreateListingWizard({
         auctionDurationHours: draft.auctionDurationHours,
         auctionAntiSnipingEnabled: draft.auctionAntiSnipingEnabled,
         auctionMinBidIncrement: draft.auctionMinBidIncrement,
+        keywords: draft.keywords ?? "",
       });
       const stepCap = draft.saleMode === "auction" ? 6 : 5;
       setStep(Math.max(0, Math.min(draft.step, stepCap)));
@@ -378,14 +444,46 @@ export function CreateListingWizard({
       auctionDurationHours: current.auctionDurationHours,
       auctionAntiSnipingEnabled: current.auctionAntiSnipingEnabled,
       auctionMinBidIncrement: current.auctionMinBidIncrement,
+      keywords: current.keywords ?? "",
     });
     draftStore.touchSaved();
   };
 
-  const addPhotos = (files: File[], limit: number, setter: Dispatch<SetStateAction<LocalPhoto[]>>) => {
+  const handleGalleryPhotoReady = useCallback(
+    (photo: LocalPhoto & { dataUrl: string }) => {
+      if (!aiFeature.allowed) return;
+      void (async () => {
+        setPhotoAiById((m) => ({ ...m, [photo.id]: "scanning" }));
+        const out = await run(`photo-${photo.id}`, "photo_tags", () =>
+          assistant.analyzePhotoForTags({ fileName: photo.name, dataUrl: photo.dataUrl }),
+        );
+        setPhotoAiById((m) => ({ ...m, [photo.id]: out ? "done" : "idle" }));
+        if (out) {
+          const cur = getValues("keywords");
+          setValue("keywords", mergeKeywordList(cur, out.tags), { shouldDirty: true });
+          setPhotoAiDetail((d) => ({ ...d, [photo.id]: { detected: out.detectedLabel, tags: out.tags } }));
+        }
+      })();
+    },
+    [aiFeature.allowed, assistant, getValues, run, setValue],
+  );
+
+  const addPhotos = (
+    files: File[],
+    limit: number,
+    setter: Dispatch<SetStateAction<LocalPhoto[]>>,
+    opts?: { onGalleryReady?: (photo: LocalPhoto & { dataUrl: string }) => void },
+  ) => {
     const selected = files.filter((file) => file.type.startsWith("image/"));
     setter((current) => {
       const room = Math.max(0, limit - current.length);
+      if (selected.length > room) {
+        setPhotoError(
+          `Лимит фото: ${limit}. На вашем плане доступно до ${limit} фото, на Про и выше лимит больше.`,
+        );
+        setManualUpgradeFeatureLabel("Лимит фото на объявление");
+        setManualUpgradeModalOpen(true);
+      }
       const slice = selected.slice(0, room);
       const placeholders = slice.map((file) => ({ id: makePhotoId(), name: file.name, dataUrl: "", loading: true }));
       const merged = [...current, ...placeholders];
@@ -394,7 +492,14 @@ export function CreateListingWizard({
         void (async () => {
           await new Promise((resolve) => setTimeout(resolve, 350));
           const data = await fileToDataUrl(file);
-          setter((inner) => inner.map((img) => (img.id === id ? { ...img, dataUrl: data, loading: false } : img)));
+          setter((inner) => {
+            const next = inner.map((img) => (img.id === id ? { ...img, dataUrl: data, loading: false } : img));
+            const ready = next.find((p) => p.id === id);
+            if (opts?.onGalleryReady && ready?.dataUrl && !ready.loading) {
+              opts.onGalleryReady(ready as LocalPhoto & { dataUrl: string });
+            }
+            return next;
+          });
         })();
       });
       return merged;
@@ -405,9 +510,11 @@ export function CreateListingWizard({
     if (!aiFeature.allowed) return;
     if (snapPhotos.filter((item) => !item.loading).length === 0) return;
     setIsSnapLoading(true);
-    const assistant = createMockAIListingAssistant();
-    const response = await assistant.snapAndFillFromPhotos({ photos: snapPhotos.map((photo) => photo.name) });
+    const response = await run("snap-fill", "snap", () =>
+      assistant.snapAndFillFromPhotos({ photos: snapPhotos.map((photo) => photo.name) }),
+    );
     setIsSnapLoading(false);
+    if (!response) return;
     if (response.needsClarification) {
       setClarificationQuestions(response.clarificationQuestions ?? []);
       setLastSnapResult(response);
@@ -420,8 +527,10 @@ export function CreateListingWizard({
     setValue("description", response.description);
     setValue("condition", response.condition);
     setValue("price", String(response.price.recommended), { shouldValidate: true });
+    setValue("keywords", mergeKeywordList(getValues("keywords"), response.tags), { shouldDirty: true });
     setLastSnapResult(response);
     setClarificationResolved(false);
+    setAssistantDrawerOpen(false);
     setStep(1);
   };
 
@@ -435,10 +544,12 @@ export function CreateListingWizard({
     setValue("description", response.description);
     setValue("condition", response.condition);
     setValue("price", String(response.price.recommended), { shouldValidate: true });
+    setValue("keywords", mergeKeywordList(getValues("keywords"), response.tags), { shouldDirty: true });
     setLastSnapResult(response);
     setClarificationQuestions(null);
     setClarificationAnswers({});
     setClarificationResolved(true);
+    setAssistantDrawerOpen(false);
     setStep(1);
   };
 
@@ -498,12 +609,28 @@ export function CreateListingWizard({
 
   const goNext = () => {
     if (!validateStep(step)) return;
+    ai.clearInlineAiPreviews();
+    setAssistantDrawerOpen(false);
     setStep((current) => Math.min(current + 1, dynamicStepLabels.length - 1));
   };
-  const goBack = () => setStep((current) => Math.max(current - 1, 0));
-  const goManualFromSnap = () => setStep(1);
+  const goBack = () => {
+    ai.clearInlineAiPreviews();
+    setAssistantDrawerOpen(false);
+    setStep((current) => Math.max(current - 1, 0));
+  };
+  const goManualFromSnap = () => {
+    ai.clearInlineAiPreviews();
+    setAssistantDrawerOpen(false);
+    setStep(1);
+  };
 
   const onPublish = handleSubmit(async (data: WizardCoreValues) => {
+    if (listingLimit > 0 && activeListingsCount >= listingLimit) {
+      setSubmitError(`Достигнут лимит активных объявлений: ${activeListingsCount}/${listingLimit}.`);
+      setManualUpgradeFeatureLabel("Лимит активных объявлений");
+      setManualUpgradeModalOpen(true);
+      return;
+    }
     if (images.filter((entry) => !entry.loading && entry.dataUrl).length === 0) {
       setPhotoError("Добавьте хотя бы одно фото");
       setStep(values.saleMode === "auction" ? 4 : 3);
@@ -676,6 +803,22 @@ export function CreateListingWizard({
     </article>
   );
 
+  const showAiAssistantRail = step >= 1 && step < dynamicStepLabels.length;
+  const aiDrawerContext = wizardStepToAiContext(step, values.saleMode);
+
+  const renderAiStepEntry = () =>
+    aiFeature.allowed && showAiAssistantRail ? (
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200/80 bg-slate-50/60 px-3 py-2">
+        <div className="flex items-center gap-2 text-xs font-medium text-slate-700">
+          <Wand2 className="h-3.5 w-3.5 shrink-0 text-slate-600" strokeWidth={1.5} aria-hidden />
+          Подсказки AI
+        </div>
+        <Button type="button" size="sm" variant="outline" className="h-8 text-xs" onClick={() => setAssistantDrawerOpen(true)}>
+          Открыть
+        </Button>
+      </div>
+    ) : null;
+
   return (
     <div className="space-y-4 pb-24 md:pb-0">
       <SectionCard padding="sm" className="border-slate-200/90">
@@ -698,7 +841,7 @@ export function CreateListingWizard({
       </SectionCard>
 
       <SectionCard padding="lg">
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,1.2fr)]">
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,280px)]">
           <div className="space-y-5">
             {step === 0 ? (
               <section className="space-y-4">
@@ -801,7 +944,10 @@ export function CreateListingWizard({
 
             {step === 1 ? (
               <section className="space-y-4">
-                <h3 className="text-lg font-semibold text-slate-900">Шаг 2. Категория и мир</h3>
+                <div className="space-y-2">
+                  <h3 className="text-lg font-semibold text-slate-900">Шаг 2. Категория и мир</h3>
+                  {renderAiStepEntry()}
+                </div>
                 <div className="grid gap-2 sm:grid-cols-2">
                   {worldCardIds.map((worldId) => {
                     const item = getWorldPresentation(worldId);
@@ -830,7 +976,29 @@ export function CreateListingWizard({
                     );
                   })}
                 </div>
-                <FormField label="Категория" htmlFor="category" required error={formState.errors.category?.message}>
+                <FormField
+                  label="Категория"
+                  htmlFor="category"
+                  required
+                  error={formState.errors.category?.message}
+                  actions={
+                    aiFeature.allowed ? (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 text-xs"
+                        disabled={Boolean(busyKey) || ai.categoryLoading}
+                        onClick={() => void ai.suggestCategory()}
+                      >
+                        <span className="inline-flex items-center gap-1">
+                          <Wand2 className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
+                          AI
+                        </span>
+                      </Button>
+                    ) : undefined
+                  }
+                >
                   <Select id="category" {...register("category")} hasError={Boolean(formState.errors.category)}>
                     <option value="">Выберите категорию</option>
                     {categoryOptions.map((category) => (
@@ -840,6 +1008,55 @@ export function CreateListingWizard({
                     ))}
                   </Select>
                 </FormField>
+                {ai.categoryOptions.length > 0 ? (
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                    <p className="text-xs font-semibold text-slate-600">Варианты ИИ</p>
+                    <ul className="mt-2 space-y-1.5">
+                      {ai.categoryOptions.map((row) => (
+                        <li key={`${row.categoryId}-${row.worldId ?? ""}`}>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              ai.selectCategoryPreview({
+                                categoryId: row.categoryId,
+                                worldId: row.worldId,
+                                label: row.label,
+                              })
+                            }
+                            className={cn(
+                              "w-full rounded-lg border px-2 py-1.5 text-left text-xs shadow-sm transition",
+                              ai.categoryApplyPreview?.categoryId === row.categoryId &&
+                                (ai.categoryApplyPreview?.worldId ?? "") === (row.worldId ?? "")
+                                ? "border-slate-900 bg-slate-50 ring-1 ring-slate-900/10"
+                                : "border-white bg-white text-slate-800 hover:border-slate-200",
+                            )}
+                          >
+                            {row.label} · {(row.confidence * 100).toFixed(0)}%
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                    {ai.catalogHrefFromCategory ? (
+                      <Link
+                        href={ai.catalogHrefFromCategory}
+                        className="mt-2 inline-block text-xs font-semibold text-slate-900 underline underline-offset-2"
+                      >
+                        Похожие в каталоге
+                      </Link>
+                    ) : null}
+                  </div>
+                ) : null}
+                {ai.categoryApplyPreview ? (
+                  <InlineAISuggestionBlock
+                    title="Применить категорию"
+                    rationale="Категория и мир обновятся в форме; подбор в каталоге можно открыть после применения."
+                    onApply={() => ai.applyCategoryPreview()}
+                    onDismiss={() => ai.dismissCategoryPreview()}
+                    disabled={Boolean(busyKey)}
+                  >
+                    <p className="font-medium text-slate-900">{ai.categoryApplyPreview.label}</p>
+                  </InlineAISuggestionBlock>
+                ) : null}
                 {subCategoryOptions.length > 0 ? (
                   <FormField label="Подкатегория" htmlFor="subCategory">
                     <Select id="subCategory" {...register("subCategory")}>
@@ -894,44 +1111,195 @@ export function CreateListingWizard({
 
             {step === 2 ? (
               <section className="space-y-4">
-                <h3 className="text-lg font-semibold text-slate-900">Шаг 3. Описание и цена</h3>
-                <FormField label="Заголовок" htmlFor="title" required error={formState.errors.title?.message}>
-                  <Input id="title" {...register("title")} hasError={Boolean(formState.errors.title)} />
-                </FormField>
-                {aiFeature.allowed ? (
-                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm">
-                    <p className="font-medium">AI-подсказка: {aiSuggestions.titleSuggestion}</p>
-                    <Button type="button" size="sm" variant="outline" className="mt-2" onClick={() => setValue("title", aiSuggestions.titleSuggestion)}>
-                      Подставить
-                    </Button>
-                  </div>
-                ) : null}
-                <FormField label="Описание" htmlFor="description" required error={formState.errors.description?.message}>
-                  <Textarea id="description" rows={6} {...register("description")} hasError={Boolean(formState.errors.description)} />
-                </FormField>
-                <FormField label="Цена, ₽" htmlFor="price" required error={formState.errors.price?.message}>
-                  <Input
-                    id="price"
-                    inputMode="decimal"
-                    placeholder={values.saleMode === "auction" ? "Для аукциона цена берётся из стартовой ставки" : "Например, 120000"}
-                    {...register("price")}
-                    disabled={values.saleMode === "auction"}
-                    hasError={Boolean(formState.errors.price)}
-                  />
-                </FormField>
+                <div className="space-y-2">
+                  <h3 className="text-lg font-semibold text-slate-900">Шаг 3. Описание и цена</h3>
+                  {renderAiStepEntry()}
+                </div>
+                <div id="wizard-ai-title">
+                  <FormField
+                    label="Заголовок"
+                    htmlFor="title"
+                    required
+                    error={formState.errors.title?.message}
+                    actions={
+                      aiFeature.allowed ? (
+                        <>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            className="h-8 gap-1 text-xs"
+                            disabled={Boolean(busyKey) || ai.titlesLoading}
+                            onClick={() => void ai.generateTitles(false)}
+                          >
+                            <Wand2 className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
+                            Варианты
+                          </Button>
+                          <Button type="button" size="sm" variant="ghost" className="h-8 text-xs" disabled={Boolean(busyKey)} onClick={() => void ai.improveTitle()}>
+                            Улучшить
+                          </Button>
+                        </>
+                      ) : undefined
+                    }
+                  >
+                    <Input id="title" {...register("title")} hasError={Boolean(formState.errors.title)} />
+                  </FormField>
+                  {aiFeature.allowed && ai.titlePack ? (
+                    <div className="mt-2">
+                      <AITitleSuggestions
+                        key={ai.titlePack.suggestions.join("|")}
+                        suggestions={ai.titlePack.suggestions}
+                        confidence={ai.titlePack.confidence}
+                        loading={ai.titlesLoading}
+                        disabled={Boolean(busyKey)}
+                        onApply={ai.applyTitle}
+                        onGenerate={() => void ai.generateTitles(false)}
+                        onMore={() => void ai.generateTitles(true)}
+                        onDismiss={ai.dismissTitlePack}
+                      />
+                    </div>
+                  ) : null}
+                  {aiFeature.allowed && ai.titleImprovePreview ? (
+                    <div className="mt-2">
+                      <InlineAISuggestionBlock
+                        title="Улучшенный заголовок"
+                        rationale={ai.titleImprovePreview.changes.join(" · ")}
+                        onApply={() => ai.applyTitleImprovePreview()}
+                        onDismiss={() => ai.dismissTitleImprovePreview()}
+                        onRegenerate={() => void ai.improveTitle()}
+                        disabled={Boolean(busyKey)}
+                      >
+                        <p className="whitespace-pre-wrap text-slate-900">{ai.titleImprovePreview.improved}</p>
+                      </InlineAISuggestionBlock>
+                    </div>
+                  ) : null}
+                </div>
+                <div id="wizard-ai-description">
+                  <FormField
+                    label="Описание"
+                    htmlFor="description"
+                    required
+                    error={formState.errors.description?.message}
+                    actions={
+                      aiFeature.allowed ? (
+                        <>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            className="h-8 gap-1 text-xs"
+                            disabled={Boolean(busyKey) || ai.descLoading}
+                            onClick={() => void ai.generateDescription()}
+                          >
+                            <Wand2 className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
+                            Черновик
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            className="h-8 text-xs"
+                            disabled={Boolean(busyKey)}
+                            onClick={() => void ai.improveDescription()}
+                          >
+                            Улучшить
+                          </Button>
+                        </>
+                      ) : undefined
+                    }
+                  >
+                    <Textarea id="description" rows={6} {...register("description")} hasError={Boolean(formState.errors.description)} />
+                  </FormField>
+                  {aiFeature.allowed && ai.descPreview ? (
+                    <div className="mt-2">
+                      <InlineAISuggestionBlock
+                        title="Черновик описания"
+                        rationale={ai.descPreview.highlights.length ? `Акценты: ${ai.descPreview.highlights.join(", ")}` : undefined}
+                        onApply={() => ai.applyDescPreview()}
+                        onDismiss={() => ai.dismissDescPreview()}
+                        onRegenerate={() => void ai.generateDescription()}
+                        applyLabel="Вставить в поле"
+                        disabled={Boolean(busyKey)}
+                      >
+                        <p className="whitespace-pre-wrap text-slate-900">{ai.descPreview.text}</p>
+                      </InlineAISuggestionBlock>
+                    </div>
+                  ) : null}
+                  {aiFeature.allowed && ai.descImprovePreview ? (
+                    <div className="mt-2">
+                      <InlineAISuggestionBlock
+                        title="Улучшенное описание"
+                        rationale={ai.descImprovePreview.changes.join(" · ")}
+                        onApply={() => ai.applyDescImprovePreview()}
+                        onDismiss={() => ai.dismissDescImprovePreview()}
+                        onRegenerate={() => void ai.improveDescription()}
+                        disabled={Boolean(busyKey)}
+                      >
+                        <p className="whitespace-pre-wrap text-slate-900">{ai.descImprovePreview.improved}</p>
+                      </InlineAISuggestionBlock>
+                    </div>
+                  ) : null}
+                </div>
+                <div id="wizard-ai-price">
+                  <FormField
+                    label="Цена, ₽"
+                    htmlFor="price"
+                    required
+                    error={formState.errors.price?.message}
+                    actions={
+                      aiFeature.allowed && values.saleMode === "fixed" ? (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          className="h-8 gap-1 text-xs"
+                          disabled={Boolean(busyKey) || ai.priceLoading}
+                          onClick={() => void ai.suggestPrice()}
+                        >
+                          <Wand2 className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
+                          Подсказка
+                        </Button>
+                      ) : undefined
+                    }
+                  >
+                    <Input
+                      id="price"
+                      inputMode="decimal"
+                      placeholder={values.saleMode === "auction" ? "Для аукциона цена берётся из стартовой ставки" : "Например, 120000"}
+                      {...register("price")}
+                      disabled={values.saleMode === "auction"}
+                      hasError={Boolean(formState.errors.price)}
+                    />
+                  </FormField>
+                  {aiFeature.allowed && values.saleMode === "fixed" && ai.priceBlock ? (
+                    <div className="mt-2">
+                      <AIPriceRecommendation
+                        min={ai.priceBlock.min}
+                        max={ai.priceBlock.max}
+                        recommended={ai.priceBlock.recommended}
+                        reasoning={ai.priceBlock.reasoning}
+                        comparables={ai.priceBlock.comparables}
+                        loading={ai.priceLoading}
+                        disabled={Boolean(busyKey)}
+                        onSuggest={() => void ai.suggestPrice()}
+                        onApply={ai.applyRecommendedPrice}
+                        onDismiss={ai.dismissPriceBlock}
+                      />
+                    </div>
+                  ) : null}
+                </div>
                 {values.saleMode === "auction" ? (
                   <p className="text-xs text-slate-500">
                     Для аукциона каноническая цена объявления — стартовая цена на шаге «Настройки аукциона».
                   </p>
                 ) : null}
-                {values.saleMode !== "free" && values.price.trim() ? (
-                  <div className="rounded-xl border border-indigo-100 bg-indigo-50 p-3 text-sm">
-                    <p className="font-medium">
-                      Рекомендация: {priceRecommendation.suggestedMin.toLocaleString("ru-RU")} - {priceRecommendation.suggestedMax.toLocaleString("ru-RU")} ₽
-                    </p>
-                    <p className="mt-1 text-xs text-indigo-900">{priceRecommendation.rationale}</p>
-                  </div>
-                ) : null}
+                <FormField
+                  label="Ключевые слова и теги"
+                  htmlFor="keywords"
+                  hint="Через запятую. ИИ может предложить теги после загрузки фото на следующем шаге."
+                >
+                  <Input id="keywords" {...register("keywords")} placeholder="например: iPhone, 128GB, б/у" />
+                </FormField>
                 <FormField label="Состояние товара" htmlFor="condition">
                   <Select id="condition" {...register("condition")}>
                     {CONDITION_OPTIONS.map((option) => (
@@ -946,7 +1314,10 @@ export function CreateListingWizard({
 
             {step === 3 && values.saleMode === "auction" ? (
               <section className="space-y-4">
-                <h3 className="text-lg font-semibold text-slate-900">Шаг 4. Настройки аукциона</h3>
+                <div className="space-y-2">
+                  <h3 className="text-lg font-semibold text-slate-900">Шаг 4. Настройки аукциона</h3>
+                  {renderAiStepEntry()}
+                </div>
                 <FormField label="Стартовая цена" htmlFor="auctionStartPrice" required error={formState.errors.auctionStartPrice?.message}>
                   <Input id="auctionStartPrice" inputMode="decimal" placeholder="Например, 50000" {...register("auctionStartPrice")} />
                 </FormField>
@@ -1006,18 +1377,48 @@ export function CreateListingWizard({
             ) : null}
 
             {step === (values.saleMode === "auction" ? 4 : 3) ? (
-              <section className="space-y-4">
-                <h3 className="text-lg font-semibold text-slate-900">
-                  Шаг {values.saleMode === "auction" ? 5 : 4}. Фото
-                </h3>
-                <div className="rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 p-8 text-center" onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); addPhotos(Array.from(e.dataTransfer.files ?? []), 10, setImages); }}>
+              <section className="space-y-4" id="wizard-ai-photos">
+                <div className="space-y-2">
+                  <h3 className="text-lg font-semibold text-slate-900">
+                    Шаг {values.saleMode === "auction" ? 5 : 4}. Фото
+                  </h3>
+                  {renderAiStepEntry()}
+                </div>
+                {aiFeature.allowed ? (
+                  <div className="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2 text-xs leading-relaxed text-slate-600">
+                    После загрузки каждого фото ИИ коротко проанализирует кадр: на превью появится тип товара и теги. Они добавятся в «Ключевые слова» только после вашего редактирования на прошлом шаге или здесь вручную.
+                  </div>
+                ) : null}
+                <div
+                  className="rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 p-8 text-center"
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    addPhotos(Array.from(e.dataTransfer.files ?? []), photosPerListingLimit, setImages, {
+                      onGalleryReady: handleGalleryPhotoReady,
+                    });
+                  }}
+                >
                   <ImagePlus className="mx-auto h-9 w-9 text-slate-400" />
                   <p className="mt-2 text-sm text-slate-700">Drag & drop или выберите до 10 фото</p>
                   <label className={cn(buttonVariants({ variant: "outline", className: "mt-3 cursor-pointer" }))}>
-                    <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => addPhotos(Array.from(e.target.files ?? []), 10, setImages)} />
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                      onChange={(e) =>
+                        addPhotos(Array.from(e.target.files ?? []), photosPerListingLimit, setImages, {
+                          onGalleryReady: handleGalleryPhotoReady,
+                        })
+                      }
+                    />
                     Выбрать фото
                   </label>
                 </div>
+                <p className="text-xs text-slate-500">
+                  Лимит фото для текущего тарифа: до {photosPerListingLimit} шт.
+                </p>
                 {photoError ? <p className="text-sm text-rose-600">{photoError}</p> : null}
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                   {images.map((image) => (
@@ -1047,6 +1448,17 @@ export function CreateListingWizard({
                           // eslint-disable-next-line @next/next/no-img-element
                           <img src={image.dataUrl} alt={image.name} className="h-full w-full object-cover" />
                         )}
+                      {photoAiById[image.id] === "scanning" ? (
+                        <div className="absolute inset-x-0 bottom-0 bg-black/55 px-1.5 py-1 text-[10px] leading-tight text-white">
+                          AI анализирует фото…
+                        </div>
+                      ) : null}
+                      {photoAiById[image.id] !== "scanning" && photoAiDetail[image.id] ? (
+                        <div className="absolute inset-x-0 bottom-0 space-y-0.5 bg-black/60 px-1.5 py-1 text-[10px] leading-tight text-white">
+                          <p>Обнаружен: {photoAiDetail[image.id].detected}</p>
+                          <p className="line-clamp-2 opacity-95">Теги: {photoAiDetail[image.id].tags.join(", ")}</p>
+                        </div>
+                      ) : null}
                       <button type="button" className="absolute left-1 top-1 rounded bg-black/60 p-1 text-white"><GripVertical className="h-4 w-4" /></button>
                       <button type="button" onClick={() => setCoverPhotoId(image.id)} className={cn("absolute bottom-1 right-1 rounded p-1", (coverPhotoId ?? images[0]?.id) === image.id ? "bg-amber-400 text-slate-900" : "bg-black/60 text-white")}>
                         <Star className="h-4 w-4" fill="currentColor" />
@@ -1059,9 +1471,12 @@ export function CreateListingWizard({
 
             {step === (values.saleMode === "auction" ? 5 : 4) ? (
               <section className="space-y-4">
-                <h3 className="text-lg font-semibold text-slate-900">
-                  Шаг {values.saleMode === "auction" ? 6 : 5}. Локация и контакты
-                </h3>
+                <div className="space-y-2">
+                  <h3 className="text-lg font-semibold text-slate-900">
+                    Шаг {values.saleMode === "auction" ? 6 : 5}. Локация и контакты
+                  </h3>
+                  {renderAiStepEntry()}
+                </div>
                 <FormField label="Город" htmlFor="city" required error={formState.errors.city?.message}>
                   <Select id="city" {...register("city")} hasError={Boolean(formState.errors.city)}>
                     <option value="">Выберите город</option>
@@ -1114,13 +1529,16 @@ export function CreateListingWizard({
 
             {step === dynamicStepLabels.length - 1 ? (
               <section className="space-y-4">
-                <header className="space-y-1">
-                  <h3 className="text-xl font-semibold text-slate-900">
-                    Шаг {dynamicStepLabels.length}. Предпросмотр перед публикацией
-                  </h3>
-                  <p className="text-sm text-slate-600">
-                    Так объявление увидят покупатели в каталоге и на странице товара.
-                  </p>
+                <header className="space-y-2">
+                  <div className="space-y-1">
+                    <h3 className="text-xl font-semibold text-slate-900">
+                      Шаг {dynamicStepLabels.length}. Предпросмотр перед публикацией
+                    </h3>
+                    <p className="text-sm text-slate-600">
+                      Так объявление увидят покупатели в каталоге и на странице товара.
+                    </p>
+                  </div>
+                  {renderAiStepEntry()}
                 </header>
                 <div className="hidden items-center gap-2 md:flex">
                   <Button
@@ -1170,9 +1588,19 @@ export function CreateListingWizard({
               </section>
             ) : null}
 
-            {step >= 1 && step <= (values.saleMode === "auction" ? 5 : 4) ? (
-              <div className="lg:hidden">
+            {showAiAssistantRail ? (
+              <div className="space-y-3 lg:hidden">
                 {renderCompactPreviewWidget()}
+                <AIStepSummaryCard
+                  featureAllowed={aiFeature.allowed}
+                  dailyLimit={aiEffectiveDailyLimit}
+                  usedToday={usedTodayAi}
+                  hasUnlimited={aiUnlimited}
+                  score={ai.score}
+                  scoreLoading={ai.scoreLoading}
+                  onOpenAssistant={() => setAssistantDrawerOpen(true)}
+                  onQuickScore={() => void ai.runDetect()}
+                />
               </div>
             ) : null}
           </div>
@@ -1205,8 +1633,18 @@ export function CreateListingWizard({
                 </>
               ) : null}
 
-              {step >= 1 && step <= (values.saleMode === "auction" ? 5 : 4) ? (
+              {showAiAssistantRail ? (
                 <>
+                  <AIStepSummaryCard
+                    featureAllowed={aiFeature.allowed}
+                    dailyLimit={aiEffectiveDailyLimit}
+                    usedToday={usedTodayAi}
+                    hasUnlimited={aiUnlimited}
+                    score={ai.score}
+                    scoreLoading={ai.scoreLoading}
+                    onOpenAssistant={() => setAssistantDrawerOpen(true)}
+                    onQuickScore={() => void ai.runDetect()}
+                  />
                   {renderCompactPreviewWidget()}
                   <div className="rounded-xl border border-slate-200 bg-slate-50/80 px-3 py-2 text-xs text-slate-600">
                     • Добавьте хорошие фото • Укажите состояние • Проверьте цену перед публикацией
@@ -1289,9 +1727,6 @@ export function CreateListingWizard({
                   {getWorldLabel(values.world)}
                 </div>
               </SectionCard>
-              {step >= 1 && step <= 4 && aiFeature.allowed ? (
-                <p className="px-1 text-[11px] text-slate-500">{aiSuggestions.priceTip}</p>
-              ) : null}
             </div>
           </aside>
         </div>
@@ -1346,6 +1781,38 @@ export function CreateListingWizard({
           )}
         </div>
       </nav>
+      <UpgradeModal
+        isOpen={manualUpgradeModalOpen}
+        onClose={() => setManualUpgradeModalOpen(false)}
+        reason="limit_reached"
+        currentPlan={subscription.storePlan === "business" ? "business" : subscription.storePlan === "pro" ? "pro" : "starter"}
+        requiredPlan="pro"
+        currentUsage={manualUpgradeFeatureLabel?.includes("фото") ? images.length : activeListingsCount}
+        limit={manualUpgradeFeatureLabel?.includes("фото") ? photosPerListingLimit : listingLimit}
+        featureLabel={manualUpgradeFeatureLabel}
+      />
+      <AIAssistantDrawer
+        open={assistantDrawerOpen}
+        onClose={() => setAssistantDrawerOpen(false)}
+        context={aiDrawerContext}
+        ai={ai}
+        featureAllowed={aiFeature.allowed}
+        dailyLimit={aiEffectiveDailyLimit}
+        usedToday={usedTodayAi}
+        hasUnlimited={aiUnlimited}
+        saleMode={values.saleMode}
+        onScrollToField={scrollToAiField}
+      />
+      <UpgradeModal
+        isOpen={aiLimitModalOpen}
+        onClose={() => setAiLimitModalOpen(false)}
+        reason="limit_reached"
+        featureLabel="ИИ-помощник для объявлений"
+        currentPlan={subscription.storePlan === "business" ? "business" : subscription.storePlan === "pro" ? "pro" : "starter"}
+        requiredPlan="pro"
+        currentUsage={usedTodayAi}
+        limit={Number.isFinite(dailyAiLimit) ? dailyAiLimit : Math.max(1, usedTodayAi)}
+      />
     </div>
   );
 }

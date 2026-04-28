@@ -1,6 +1,6 @@
 "use client";
 
-import { SavedSearch } from "@/lib/saved-searches";
+import type { SavedSearch } from "@/entities/search/model";
 
 import { EmptySavedSearchesState } from "./empty-saved-searches-state";
 import { SavedSearchCard } from "./saved-search-card";
