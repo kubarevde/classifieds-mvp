@@ -33,7 +33,7 @@ export function SectionCard({
 }: SectionCardProps) {
   const pad = paddingMap[padding];
   const hasHeader = Boolean(title || subtitle || actions);
-  const shell = unstyled ? "" : "rounded-2xl border border-slate-200 bg-white shadow-sm";
+  const shell = unstyled ? "" : "rounded-2xl border border-slate-200/90 bg-white shadow-none";
 
   return (
     <div id={id} className={`${shell} ${pad} ${className}`.trim()}>

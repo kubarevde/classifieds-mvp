@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { Bookmark } from "lucide-react";
 
+import { REQUESTS_NEW_PATH } from "@/services/requests/intent-adapter";
+
 export function EmptySavedSearchesState() {
   return (
     <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-6 text-center shadow-sm sm:p-10">
@@ -25,10 +27,10 @@ export function EmptySavedSearchesState() {
           Уведомления
         </Link>
         <Link
-          href="/requests/new"
+          href={REQUESTS_NEW_PATH}
           className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
         >
-          Разместить запрос о покупке
+          Разместить запрос
         </Link>
       </div>
     </div>

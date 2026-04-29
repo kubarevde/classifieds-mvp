@@ -1,16 +1,11 @@
-import type { SearchIntent } from "@/entities/search/model";
-import type { SavedSearchFilters, StoreSearchFilters } from "@/lib/saved-searches";
+import { mockSearchIntentService } from "./mock";
 
-export interface SearchIntentService {
-  fromFilters(filters: SavedSearchFilters): Promise<SearchIntent>;
-  fromStoreFilters(filters: StoreSearchFilters): Promise<SearchIntent>;
-  fromNaturalLanguage(rawQuery: string): Promise<SearchIntent>;
-  fromImageSearch(input: {
-    imageUrl?: string;
-    inferredCategory?: string;
-    traits?: string[];
-    normalizedQuery?: string;
-  }): Promise<SearchIntent>;
-}
+export type { SearchIntentService } from "./types";
 
-export { mockSearchIntentService } from "./mock";
+export const getSearchIntentFromFilters = mockSearchIntentService.fromFilters.bind(mockSearchIntentService);
+export const getStoreSearchIntentFromFilters = mockSearchIntentService.fromStoreFilters.bind(mockSearchIntentService);
+export const getSearchIntentFromNaturalLanguage =
+  mockSearchIntentService.fromNaturalLanguage.bind(mockSearchIntentService);
+export const getSearchIntentFromImageSearch = mockSearchIntentService.fromImageSearch.bind(mockSearchIntentService);
+
+export { mockSearchIntentService };

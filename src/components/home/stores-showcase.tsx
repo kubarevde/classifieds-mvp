@@ -14,7 +14,7 @@ export function StoresShowcase() {
           <div>
             <h2 className="text-2xl font-semibold tracking-tight text-slate-900">Магазины и продавцы</h2>
             <p className="mt-1 text-sm text-slate-600">
-              Продавцы ведут storefront, публикуют обновления и собирают подписчиков вокруг своих витрин.
+              Продавцы развивают магазин, публикуют обновления и собирают подписчиков.
             </p>
           </div>
           <Link
@@ -43,10 +43,10 @@ export function StoresShowcase() {
                 <span>{seller.metrics.activeListingsCount} активных</span>
               </div>
               <Link
-                href={`/sellers/${seller.id}`}
+                href={`/stores/${seller.id}`}
                 className="mt-3 inline-flex rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-100"
               >
-                Открыть витрину магазина
+                Открыть магазин
               </Link>
             </article>
           ))}

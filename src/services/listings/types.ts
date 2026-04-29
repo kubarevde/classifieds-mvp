@@ -1,3 +1,4 @@
+import type { Feature } from "@/lib/types";
 import type { SortOption, UnifiedCatalogListing } from "@/lib/listings.types";
 import type { AuctionSaleMode } from "@/entities/auction/model";
 
@@ -25,3 +26,13 @@ export interface ListingsService {
   update(id: string, patch: Partial<ListingDraft>): Promise<UnifiedCatalogListing>;
   delete(id: string): Promise<void>;
 }
+
+export type HomeCategory = {
+  id: string;
+  label: string;
+  caption: string;
+  icon: string;
+  listingCount: string;
+};
+
+export type HomeFeature = Feature;

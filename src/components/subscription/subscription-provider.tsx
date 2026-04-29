@@ -1,11 +1,12 @@
 "use client";
 
-import { createContext, ReactNode, useContext, useMemo, useState } from "react";
+import { createContext, ReactNode, useContext, useMemo, useSyncExternalStore } from "react";
 
 import { useDemoRole } from "@/components/demo-role/demo-role";
 
 const SUBSCRIPTION_STORAGE_KEY = "classifieds-subscription";
 const STORE_PLAN_STORAGE_KEY = "classifieds-store-plan";
+const SUBSCRIPTION_CHANGE_EVENT = "classifieds-subscription-change";
 
 type BuyerStoredPlan = "demo" | "pro";
 
@@ -31,6 +32,8 @@ const DEFAULT_STORED_STATE: SubscriptionStoredState = {
   buyerPlan: "demo",
   buyerExpiryDate: null,
 };
+const DEFAULT_STORED_STATE_RAW = JSON.stringify(DEFAULT_STORED_STATE);
+const DEFAULT_STORE_PLAN: StorePlan = "business";
 
 const SubscriptionContext = createContext<SubscriptionContextValue | null>(null);
 
@@ -61,17 +64,18 @@ function writeStoredState(next: SubscriptionStoredState) {
     return;
   }
   window.localStorage.setItem(SUBSCRIPTION_STORAGE_KEY, JSON.stringify(next));
+  window.dispatchEvent(new Event(SUBSCRIPTION_CHANGE_EVENT));
 }
 
 function readStorePlan(): StorePlan {
   if (typeof window === "undefined") {
-    return "business";
+    return DEFAULT_STORE_PLAN;
   }
   const raw = window.localStorage.getItem(STORE_PLAN_STORAGE_KEY);
   if (raw === "basic" || raw === "pro" || raw === "business") {
     return raw;
   }
-  return "business";
+  return DEFAULT_STORE_PLAN;
 }
 
 function writeStorePlan(next: StorePlan) {
@@ -79,6 +83,7 @@ function writeStorePlan(next: StorePlan) {
     return;
   }
   window.localStorage.setItem(STORE_PLAN_STORAGE_KEY, next);
+  window.dispatchEvent(new Event(SUBSCRIPTION_CHANGE_EVENT));
 }
 
 function computeExpiryDate(days: number) {
@@ -89,12 +94,62 @@ function computeExpiryDate(days: number) {
 
 export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const { role } = useDemoRole();
-  const [storedState, setStoredState] = useState<SubscriptionStoredState>(() => readStoredState());
-  const [storePlan, setStorePlanState] = useState<StorePlan>(() => readStorePlan());
+  const storedStateRaw = useSyncExternalStore(
+    (onStoreChange) => {
+      const onStorage = (event: StorageEvent) => {
+        if (event.key === SUBSCRIPTION_STORAGE_KEY || event.key === null) {
+          onStoreChange();
+        }
+      };
+      window.addEventListener("storage", onStorage);
+      window.addEventListener(SUBSCRIPTION_CHANGE_EVENT, onStoreChange);
+      return () => {
+        window.removeEventListener("storage", onStorage);
+        window.removeEventListener(SUBSCRIPTION_CHANGE_EVENT, onStoreChange);
+      };
+    },
+    () => {
+      if (typeof window === "undefined") {
+        return DEFAULT_STORED_STATE_RAW;
+      }
+      return window.localStorage.getItem(SUBSCRIPTION_STORAGE_KEY) ?? DEFAULT_STORED_STATE_RAW;
+    },
+    () => DEFAULT_STORED_STATE_RAW,
+  );
+  const storePlan = useSyncExternalStore(
+    (onStoreChange) => {
+      const onStorage = (event: StorageEvent) => {
+        if (event.key === STORE_PLAN_STORAGE_KEY || event.key === null) {
+          onStoreChange();
+        }
+      };
+      window.addEventListener("storage", onStorage);
+      window.addEventListener(SUBSCRIPTION_CHANGE_EVENT, onStoreChange);
+      return () => {
+        window.removeEventListener("storage", onStorage);
+        window.removeEventListener(SUBSCRIPTION_CHANGE_EVENT, onStoreChange);
+      };
+    },
+    () => readStorePlan(),
+    () => DEFAULT_STORE_PLAN,
+  );
+  const storedState = useMemo(() => {
+    try {
+      const parsed = JSON.parse(storedStateRaw) as SubscriptionStoredState;
+      return {
+        buyerPlan: parsed.buyerPlan === "pro" ? "pro" : "demo",
+        buyerExpiryDate:
+          typeof parsed.buyerExpiryDate === "string" || parsed.buyerExpiryDate === null
+            ? parsed.buyerExpiryDate
+            : null,
+      } satisfies SubscriptionStoredState;
+    } catch {
+      return readStoredState();
+    }
+  }, [storedStateRaw]);
 
   const value = useMemo<SubscriptionContextValue>(() => {
     const setStorePlan = (plan: StorePlan) => {
-      setStorePlanState(plan);
       writeStorePlan(plan);
     };
 
@@ -103,7 +158,6 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         buyerPlan: "pro" as const,
         buyerExpiryDate: computeExpiryDate(7),
       };
-      setStoredState(next);
       writeStoredState(next);
     };
 
@@ -112,7 +166,6 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         buyerPlan: "demo" as const,
         buyerExpiryDate: null,
       };
-      setStoredState(next);
       writeStoredState(next);
     };
 

@@ -1,7 +1,7 @@
-import { profileStatsMock } from "@/lib/profile-mock";
+import { getProfileStatsSync } from "@/services/auth";
 
 export function ProfileStats() {
-  const { activeListings, savedSearches, unreadMessages } = profileStatsMock;
+  const { activeListings, savedSearches, unreadMessages } = getProfileStatsSync();
 
   const items = [
     { label: "Активных объявлений", value: String(activeListings) },

@@ -8,7 +8,6 @@ const PERIODS: { id: StoreAnalyticsPeriod; label: string; title: string }[] = [
   { id: "7d", label: "7 дн.", title: "Последние 7 дней" },
   { id: "30d", label: "30 дн.", title: "Последние 30 дней" },
   { id: "90d", label: "90 дн.", title: "Последние 90 дней" },
-  { id: "1y", label: "1 год", title: "Последний год (365 дн.)" },
 ];
 
 export function periodDayCount(p: StoreAnalyticsPeriod): number {

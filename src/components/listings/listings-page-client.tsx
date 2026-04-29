@@ -2,14 +2,18 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { createElement, useEffect, useMemo, useRef, useState } from "react";
+import { createElement, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { catalogWorldLucideIcons } from "@/config/icons";
 import { FiltersBar } from "@/components/listings/filters-bar";
+import { ListingRefinementsMobileDrawer } from "@/components/listings/listing-refinements-mobile-drawer";
 import { ListingsGrid } from "@/components/listings/listings-grid";
 import { CatalogCategoryScope } from "@/components/search/catalog-category-scope";
+import { SearchActiveFilterChips, type SearchActiveChip } from "@/components/search/search-active-filter-chips";
 import { UnifiedSearchShell } from "@/components/search/unified-search-shell";
 import { SaveSearchButton } from "@/components/saved-searches/save-search-button";
+import { cn } from "@/components/ui/cn";
+import { buttonVariants } from "@/lib/button-styles";
 import type { SearchIntent } from "@/entities/search/model";
 import { StoreCard, type StoreCatalogItem } from "@/components/stores/store-card";
 import { WorldIdentityStrip } from "@/components/worlds/world-identity";
@@ -26,8 +30,11 @@ import {
 } from "@/lib/listings";
 import type { SavedSearchFilters } from "@/lib/saved-searches";
 import {
+  countListingsDrawerRefinements,
   createSearchIntentFromFilters,
   createStoreSearchIntentFromFilters,
+  defaultSavedSearchFilters,
+  hasPersistableSearchIntent,
   serializeFiltersToSearchParams,
   serializeStoreFiltersToSearchParams,
   type StoreSearchFilters,
@@ -39,6 +46,7 @@ import { getSellerTypeLabel, storefrontSellers } from "@/lib/sellers";
 import { mockAuctionService } from "@/services/auctions";
 import { mockListingsService } from "@/services/listings";
 import { mockSearchIntentService } from "@/services/search-intent";
+import { buildCreateRequestHrefFromIntent } from "@/services/requests/intent-adapter";
 
 type ListingsPageClientProps = {
   initialFilters: SavedSearchFilters;
@@ -84,6 +92,15 @@ export function ListingsPageClient({ initialFilters, initialIntent }: ListingsPa
         : "rating_desc",
   });
   const lastSyncedUrlRef = useRef<string>("");
+  const isMountedRef = useRef(false);
+  const [mobileListingFiltersOpen, setMobileListingFiltersOpen] = useState(false);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const worldPresentation = useMemo(() => getWorldPresentation(world), [world]);
   const worldHeroIcon = catalogWorldLucideIcons[world];
@@ -126,6 +143,91 @@ export function ListingsPageClient({ initialFilters, initialIntent }: ListingsPa
     }
     return createSearchIntentFromFilters(filtersSnapshot, searchMode);
   }, [target, storeFilters, filtersSnapshot, searchMode]);
+  const drawerRefinementCount = useMemo(() => countListingsDrawerRefinements(filtersSnapshot), [filtersSnapshot]);
+  const listingActiveChips = useMemo((): SearchActiveChip[] => {
+    const chips: SearchActiveChip[] = [];
+    const q = committedQuery.trim();
+    if (q) {
+      chips.push({
+        id: "q",
+        label: `Запрос: ${q.length > 36 ? `${q.slice(0, 36)}…` : q}`,
+        onRemove: () => {
+          setSearchMode("keyword");
+          setDraftQuery("");
+          setCommittedQuery("");
+        },
+      });
+    }
+    if (resolvedCategory !== "all") {
+      const catLabel = categoryOptions.find((o) => o.id === resolvedCategory)?.label ?? resolvedCategory;
+      chips.push({
+        id: "cat",
+        label: catLabel,
+        onRemove: () => {
+          setSearchMode("keyword");
+          setCategory("all");
+        },
+      });
+    }
+    if (location !== "all") {
+      chips.push({
+        id: "loc",
+        label: location,
+        onRemove: () => {
+          setSearchMode("keyword");
+          setLocation("all");
+        },
+      });
+    }
+    if (saleMode !== defaultSavedSearchFilters.saleMode) {
+      const saleLabel =
+        saleMode === "fixed" ? "Продажа" : saleMode === "auction" ? "Аукцион" : saleMode === "free" ? "Бесплатно" : saleMode;
+      chips.push({
+        id: "sale",
+        label: saleLabel,
+        onRemove: () => {
+          setSearchMode("keyword");
+          setSaleMode("all");
+        },
+      });
+    }
+    if (sortBy !== defaultSavedSearchFilters.sortBy) {
+      chips.push({
+        id: "sort",
+        label: sortOptions[sortBy],
+        onRemove: () => {
+          setSearchMode("keyword");
+          setSortBy(defaultSavedSearchFilters.sortBy);
+        },
+      });
+    }
+    return chips;
+  }, [categoryOptions, committedQuery, location, resolvedCategory, saleMode, sortBy]);
+  const clearListingDiscoveryFilters = useCallback(() => {
+    setSearchMode("keyword");
+    setDraftQuery("");
+    setCommittedQuery("");
+    setCategory("all");
+    setLocation("all");
+    setSaleMode(defaultSavedSearchFilters.saleMode);
+    setSortBy(defaultSavedSearchFilters.sortBy);
+    setView(defaultSavedSearchFilters.view);
+  }, []);
+  const storeRequestBridgeIntent = useMemo(
+    () =>
+      createSearchIntentFromFilters(
+        {
+          ...filtersSnapshot,
+          query: storeFilters.query.trim() || storeDraftQuery.trim(),
+          category: "all",
+          location: storeFilters.location,
+          saleMode: defaultSavedSearchFilters.saleMode,
+          sortBy: defaultSavedSearchFilters.sortBy,
+        },
+        "keyword",
+      ),
+    [filtersSnapshot, storeDraftQuery, storeFilters.location, storeFilters.query],
+  );
   const returnTo = useMemo(() => {
     const params = serializeFiltersToSearchParams(filtersSnapshot);
     return buildReturnTo(pathname, params.toString());
@@ -169,7 +271,7 @@ export function ListingsPageClient({ initialFilters, initialIntent }: ListingsPa
     });
     return filtered.map((seller) => ({
       id: seller.id,
-      href: `/sellers/${seller.id}`,
+      href: `/stores/${seller.id}`,
       avatarLabel: seller.avatarLabel,
       storefrontName: seller.storefrontName,
       specializationLabel: seller.shortDescription,
@@ -200,6 +302,9 @@ export function ListingsPageClient({ initialFilters, initialIntent }: ListingsPa
   }, [storeDraftQuery, target]);
 
   useEffect(() => {
+    if (!isMountedRef.current) {
+      return;
+    }
     const params = serializeFiltersToSearchParams(filtersSnapshot);
     const paramsForTarget = target === "store" ? serializeStoreFiltersToSearchParams(storeFilters) : params;
     paramsForTarget.set("target", target);
@@ -251,7 +356,7 @@ export function ListingsPageClient({ initialFilters, initialIntent }: ListingsPa
       </section>
 
       {world !== "all" ? (
-        <div className="rounded-2xl border border-slate-200 bg-white/90 p-3">
+        <div className="rounded-2xl border border-slate-200/90 bg-white/90 p-3 shadow-none">
           <WorldIdentityStrip
             world={world}
             chips={worldAudienceChips}
@@ -262,14 +367,11 @@ export function ListingsPageClient({ initialFilters, initialIntent }: ListingsPa
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <Link
               href={`/worlds/${world}`}
-              className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
+              className={cn(buttonVariants({ variant: "secondary", size: "md" }), "rounded-xl")}
             >
               Вернуться в мир
             </Link>
-            <Link
-              href="/worlds"
-              className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
-            >
+            <Link href="/worlds" className={cn(buttonVariants({ variant: "secondary", size: "md" }), "rounded-xl")}>
               Все миры
             </Link>
           </div>
@@ -336,7 +438,16 @@ export function ListingsPageClient({ initialFilters, initialIntent }: ListingsPa
         placeholder={
           target === "store" ? "Название магазина, город, описание…" : "Что ищете? Название, бренд, модель…"
         }
-        extraControls={<SaveSearchButton intent={searchIntent} />}
+        belowQuery={
+          target === "listing" ? (
+            <SearchActiveFilterChips
+              chips={listingActiveChips}
+              onClearAll={listingActiveChips.length ? clearListingDiscoveryFilters : undefined}
+              clearAllLabel="Сбросить всё"
+            />
+          ) : null
+        }
+        extraControls={hasPersistableSearchIntent(searchIntent) ? <SaveSearchButton intent={searchIntent} /> : null}
       />
 
       {target === "listing" ? (
@@ -348,8 +459,8 @@ export function ListingsPageClient({ initialFilters, initialIntent }: ListingsPa
         />
       ) : (
         <div className="space-y-2">
-          <div className="space-y-1.5 rounded-xl border border-slate-100/90 bg-white/70 px-2 py-2 shadow-sm shadow-slate-900/[0.02]">
-            <p className="px-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">Тип витрины</p>
+          <div className="space-y-1.5 rounded-xl border border-slate-200/90 bg-white/80 px-2 py-2 shadow-none">
+            <p className="px-1 text-sm font-medium text-slate-600">Тип магазина</p>
             <div className="no-scrollbar flex flex-wrap items-center gap-1.5 px-1 pb-0.5">
               {(["all", ...storeTypeScopeOptions] as const).map((id) => (
                 <button
@@ -363,11 +474,11 @@ export function ListingsPageClient({ initialFilters, initialIntent }: ListingsPa
                       specialization: "all",
                     }));
                   }}
-                  className={`whitespace-nowrap rounded-full border px-3 py-1.5 text-xs font-medium transition ${
+                  className={`min-h-11 whitespace-nowrap rounded-full border px-3 py-2 text-sm font-medium transition ${
                     (id === "all" && storeFilters.storeType === "all") ||
                     (id !== "all" && storeFilters.storeType === id)
-                      ? "border-slate-400 bg-slate-900 text-white"
-                      : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                      ? "border-blue-600 bg-blue-600 text-white"
+                      : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50"
                   }`}
                 >
                   {id === "all" ? "Все типы" : getSellerTypeLabel(id)}
@@ -407,43 +518,98 @@ export function ListingsPageClient({ initialFilters, initialIntent }: ListingsPa
       )}
 
       {target === "listing" ? (
-      <FiltersBar
-        variant="refinements-only"
-        hideCategory
-        category={resolvedCategory}
-        onCategoryChange={(value) => {
-          setSearchMode("keyword");
-          setCategory(value);
-        }}
-        categoryOptions={categoryOptions}
-        location={location}
-        onLocationChange={(value) => {
-          setSearchMode("keyword");
-          setLocation(value);
-        }}
-        locations={locations}
-        saleMode={saleMode}
-        onSaleModeChange={(value) => {
-          setSearchMode("keyword");
-          setSaleMode(value);
-        }}
-        sortBy={sortBy}
-        onSortChange={(value) => {
-          setSearchMode("keyword");
-          setSortBy(value);
-        }}
-        view={view}
-        onViewChange={(value) => {
-          setSearchMode("keyword");
-          setView(value);
-        }}
-        actions={null}
-        className=""
-      />
+        <>
+          <div className="flex items-center gap-2 md:hidden">
+            <button
+              type="button"
+              onClick={() => setMobileListingFiltersOpen(true)}
+              className={cn(
+                buttonVariants({ variant: "secondary", size: "md" }),
+                "min-h-11 flex-1 justify-center rounded-xl font-semibold",
+              )}
+            >
+              Фильтры{drawerRefinementCount > 0 ? ` (${drawerRefinementCount})` : ""}
+            </button>
+          </div>
+          <ListingRefinementsMobileDrawer
+            open={mobileListingFiltersOpen}
+            onClose={() => setMobileListingFiltersOpen(false)}
+            title={`Фильтры${drawerRefinementCount > 0 ? ` (${drawerRefinementCount})` : ""}`}
+          >
+            <FiltersBar
+              variant="refinements-only"
+              hideCategory
+              category={resolvedCategory}
+              onCategoryChange={(value) => {
+                setSearchMode("keyword");
+                setCategory(value);
+              }}
+              categoryOptions={categoryOptions}
+              location={location}
+              onLocationChange={(value) => {
+                setSearchMode("keyword");
+                setLocation(value);
+              }}
+              locations={locations}
+              saleMode={saleMode}
+              onSaleModeChange={(value) => {
+                setSearchMode("keyword");
+                setSaleMode(value);
+              }}
+              sortBy={sortBy}
+              onSortChange={(value) => {
+                setSearchMode("keyword");
+                setSortBy(value);
+              }}
+              view={view}
+              onViewChange={(value) => {
+                setSearchMode("keyword");
+                setView(value);
+              }}
+              actions={null}
+              className=""
+            />
+          </ListingRefinementsMobileDrawer>
+          <div className="hidden md:block">
+            <FiltersBar
+              variant="refinements-only"
+              hideCategory
+              category={resolvedCategory}
+              onCategoryChange={(value) => {
+                setSearchMode("keyword");
+                setCategory(value);
+              }}
+              categoryOptions={categoryOptions}
+              location={location}
+              onLocationChange={(value) => {
+                setSearchMode("keyword");
+                setLocation(value);
+              }}
+              locations={locations}
+              saleMode={saleMode}
+              onSaleModeChange={(value) => {
+                setSearchMode("keyword");
+                setSaleMode(value);
+              }}
+              sortBy={sortBy}
+              onSortChange={(value) => {
+                setSearchMode("keyword");
+                setSortBy(value);
+              }}
+              view={view}
+              onViewChange={(value) => {
+                setSearchMode("keyword");
+                setView(value);
+              }}
+              actions={null}
+              className=""
+            />
+          </div>
+        </>
       ) : null}
       {target === "listing" ? (
-      <section className="rounded-xl border border-slate-100 bg-slate-50/40 p-3">
-        <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Smart Search demo</p>
+      <section className="hidden rounded-xl border border-slate-200/90 bg-slate-50/50 p-3 shadow-none md:block">
+        <p className="text-sm font-medium text-slate-600">Smart Search demo</p>
         <div className="mt-2 flex flex-wrap gap-2">
           <button
             type="button"
@@ -458,7 +624,7 @@ export function ListingsPageClient({ initialFilters, initialIntent }: ListingsPa
                   setLocation(intent.filters.location ?? "all");
                 });
             }}
-            className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-700"
+            className={cn(buttonVariants({ variant: "secondary", size: "md" }), "rounded-xl bg-white")}
           >
             AI query: &quot;красный диван&quot;
           </button>
@@ -478,7 +644,7 @@ export function ListingsPageClient({ initialFilters, initialIntent }: ListingsPa
                   setCategory(intent.filters.categoryId ?? "all");
                 });
             }}
-            className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-700"
+            className={cn(buttonVariants({ variant: "secondary", size: "md" }), "rounded-xl bg-white")}
           >
             Photo search demo
           </button>
@@ -497,21 +663,6 @@ export function ListingsPageClient({ initialFilters, initialIntent }: ListingsPa
         Найдено магазинов: <span className="font-semibold text-slate-700">{storeResults.length}</span>
       </p>
       )}
-
-      {target === "listing" && catalogListings.length < 4 ? (
-        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <h3 className="text-base font-semibold text-slate-900">Не нашли нужное предложение?</h3>
-          <p className="mt-1 text-sm text-slate-600">
-            Разместите запрос о покупке. Мы предзаполним форму из текущих фильтров, а продавцы смогут откликнуться с релевантными предложениями.
-          </p>
-          <Link
-            href={`/requests/new?${serializeFiltersToSearchParams(filtersSnapshot).toString()}&target=listing&mode=${searchMode}`}
-            className="mt-3 inline-flex h-9 items-center justify-center rounded-xl bg-slate-900 px-3.5 text-sm font-semibold text-white transition hover:bg-slate-700"
-          >
-            Разместить запрос о покупке
-          </Link>
-        </section>
-      ) : null}
 
       {target === "listing" ? (
       <ListingsGrid
@@ -533,6 +684,36 @@ export function ListingsPageClient({ initialFilters, initialIntent }: ListingsPa
           ))}
         </section>
       )}
+
+      {target === "listing" && catalogListings.length < 3 ? (
+        <section className="rounded-2xl border border-dashed border-slate-200/90 bg-white p-4 shadow-none sm:p-5">
+          <h3 className="text-base font-semibold text-slate-900">Не нашли то, что нужно?</h3>
+          <p className="mt-1 text-sm text-slate-600">
+            Создайте запрос — перенесём текущий поиск и фильтры в форму, чтобы продавцы могли откликнуться предложениями.
+          </p>
+          <Link
+            href={buildCreateRequestHrefFromIntent(searchIntent)}
+            className={cn(buttonVariants({ variant: "primary", size: "md" }), "mt-3 inline-flex justify-center rounded-xl")}
+          >
+            Создать запрос
+          </Link>
+        </section>
+      ) : null}
+
+      {target === "store" && storeResults.length < 3 ? (
+        <section className="rounded-2xl border border-dashed border-slate-200/90 bg-white p-4 shadow-none sm:p-5">
+          <h3 className="text-base font-semibold text-slate-900">Не нашли то, что нужно?</h3>
+          <p className="mt-1 text-sm text-slate-600">
+            Опишите запрос на товар — подставим ваш поиск по магазинам в черновик обращения к продавцам.
+          </p>
+          <Link
+            href={buildCreateRequestHrefFromIntent(storeRequestBridgeIntent)}
+            className={cn(buttonVariants({ variant: "primary", size: "md" }), "mt-3 inline-flex justify-center rounded-xl")}
+          >
+            Создать запрос
+          </Link>
+        </section>
+      ) : null}
     </div>
   );
 }

@@ -1,10 +1,14 @@
+"use client";
+
 import Link from "next/link";
 
-import { Badge } from "@/components/ui/badge";
+import { TrustSummary } from "@/components/trust";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/components/ui/cn";
 import { buttonVariants } from "@/lib/button-styles";
 import { SellerStorefront, getSellerTypeLabel } from "@/lib/sellers";
+import { getVerificationProfile } from "@/services/verification";
+import { VerificationBadgeFromTarget } from "@/components/verification/VerificationBadgeFromTarget";
 
 type SellerCardProps = {
   sellerName: string;
@@ -21,10 +25,17 @@ export function SellerCard({
   listingTitle,
   storefront,
 }: SellerCardProps) {
-  const trustSignals = storefront?.trustBadges.slice(0, 2) ?? [];
+  const isVerified = storefront ? storefront.trustBadges.some((badge) => badge.id === "verified") : false;
+  const reviewsCount = storefront ? Math.max(8, Math.round(storefront.followersCount * 0.16)) : null;
   const activeListings = storefront?.listingRefs.filter((item) => item.status === "active").length ?? 1;
-  const allListingsHref = storefront ? `/sellers/${storefront.id}#seller-listings` : "/listings";
-  const storeHref = storefront ? `/sellers/${storefront.id}` : "/listings";
+  const allListingsHref = storefront ? `/stores/${storefront.id}#seller-listings` : "/listings";
+  const storeHref = storefront ? `/stores/${storefront.id}` : "/listings";
+
+  const sellerIdentityProfile = storefront ? getVerificationProfile(storefront.id, "seller") : null;
+  const storeBusinessProfile = storefront ? getVerificationProfile(storefront.id, "store") : null;
+
+  const identityVerified = sellerIdentityProfile?.status === "verified";
+  const storeVerified = storeBusinessProfile?.status === "verified";
 
   return (
     <Card className="overflow-hidden">
@@ -55,13 +66,39 @@ export function SellerCard({
             <p>Обычно отвечает за: {storefront?.responseSpeedLabel ?? "несколько часов"}</p>
           </div>
 
-          {trustSignals.length ? (
-            <div className="flex flex-wrap gap-1.5">
-              {trustSignals.map((signal) => (
-                <Badge key={signal.id} variant="secondary" size="sm" className="font-medium text-slate-700">
-                  {signal.label}
-                </Badge>
-              ))}
+          <div className="space-y-1">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Trust</p>
+            {storefront ? (
+              <Link href={`/stores/${storefront.id}#store-reputation`} className="inline-flex">
+                <TrustSummary
+                  variant="compact"
+                  verified={isVerified}
+                  rating={storefront.metrics.rating}
+                  reviewsCount={reviewsCount}
+                />
+              </Link>
+            ) : (
+              <TrustSummary variant="compact" verified={false} />
+            )}
+          </div>
+
+          {storefront ? (
+            <div className="space-y-2 pt-2">
+              <div className="flex flex-wrap gap-2">
+                <VerificationBadgeFromTarget targetId={storefront.id} subjectType="seller" size="sm" variant="compact" />
+                <VerificationBadgeFromTarget targetId={storefront.id} subjectType="store" size="sm" variant="compact" />
+              </div>
+              <div className="space-y-1">
+                {identityVerified ? (
+                  <p className="text-xs font-semibold text-emerald-800">Профиль подтверждён</p>
+                ) : null}
+                {storeVerified ? (
+                  <p className="text-xs font-semibold text-emerald-800">Магазин прошёл проверку</p>
+                ) : null}
+                {!identityVerified && !storeVerified ? (
+                  <p className="text-xs text-slate-600">В демо идёт проверка профиля магазина/личности.</p>
+                ) : null}
+              </div>
             </div>
           ) : null}
         </section>
@@ -109,7 +146,7 @@ export function SellerCard({
         {storefront ? (
           <p className="border-t border-slate-100 pt-3 text-xs leading-5 text-slate-500">
             Это ваш storefront?{" "}
-            <Link href={`/dashboard/store?sellerId=${storefront.id}`} className="font-semibold text-slate-700 underline">
+            <Link href={`/dashboard/store?sellerId=${storefront.id}`} className="text-sm font-semibold text-slate-700 underline">
               Управлять магазином
             </Link>
           </p>

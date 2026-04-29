@@ -1,5 +1,8 @@
 import Link from "next/link";
-import { Star } from "lucide-react";
+
+import { TrustSummary } from "@/components/trust";
+import { cn } from "@/components/ui/cn";
+import { buttonVariants } from "@/lib/button-styles";
 
 export type StoreCatalogItem = {
   id: string;
@@ -20,10 +23,10 @@ type StoreCardProps = {
 };
 
 export function StoreCard({ store }: StoreCardProps) {
-  const visibleBadges = store.trustBadges.slice(0, 2);
+  const isVerified = store.trustBadges.some((badge) => badge.toLowerCase().includes("провер"));
 
   return (
-    <article className="group rounded-2xl border border-slate-200/90 bg-[linear-gradient(145deg,#ffffff_0%,#f8fafc_100%)] p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+    <article className="group rounded-2xl border border-slate-200/90 bg-white p-4 shadow-none transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md">
       <div className="flex min-w-0 items-center gap-3">
         <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-slate-900 text-xs font-semibold text-white">
           {store.avatarLabel}
@@ -36,22 +39,16 @@ export function StoreCard({ store }: StoreCardProps) {
 
       <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-600">
         <span>{store.city}</span>
-        <span className="inline-flex items-center gap-1">
-          <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" strokeWidth={1.5} /> {store.rating.toFixed(1)} · {store.reviewsCount}
-        </span>
         <span>{store.activeListingsCount} объявлений</span>
       </div>
 
-      <div className="mt-3 flex flex-wrap gap-1.5">
-        {visibleBadges.map((badge) => (
-          <span
-            key={`${store.id}-${badge}`}
-            className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-medium text-slate-600"
-          >
-            {badge}
-          </span>
-        ))}
-      </div>
+      <TrustSummary
+        variant="compact"
+        verified={isVerified}
+        rating={store.rating}
+        reviewsCount={store.reviewsCount}
+        className="mt-3"
+      />
 
       <p className="mt-2 max-h-0 overflow-hidden text-xs leading-relaxed text-slate-500 opacity-0 transition-all duration-200 group-hover:max-h-16 group-hover:opacity-100">
         {store.shortDescription}
@@ -59,7 +56,7 @@ export function StoreCard({ store }: StoreCardProps) {
 
       <Link
         href={store.href}
-        className="mt-3 inline-flex h-9 items-center justify-center rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+        className={cn(buttonVariants({ variant: "secondary", size: "md" }), "mt-3 w-full justify-center rounded-xl sm:w-auto")}
       >
         Перейти в магазин
       </Link>

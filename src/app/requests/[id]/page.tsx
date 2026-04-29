@@ -42,7 +42,7 @@ export default async function RequestDetailsPage({ params }: RequestDetailsPageP
         id="request-breadcrumb-jsonld"
         data={buildBreadcrumbListJsonLd([
           { name: "Главная", url: toCanonicalUrl("/") },
-          { name: "Запросы покупателей", url: toCanonicalUrl("/requests") },
+          { name: "Запросы", url: toCanonicalUrl("/requests") },
           { name: request.title, url: toCanonicalUrl(`/requests/${request.id}`) },
         ])}
       />

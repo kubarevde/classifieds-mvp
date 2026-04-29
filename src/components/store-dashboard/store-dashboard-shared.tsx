@@ -36,7 +36,7 @@ export type StoreDashboardPageClientProps = {
   initialSection?: "messages" | "notifications";
 };
 
-export type ListingFilter = "all" | "active" | "inactive" | "auctions";
+export type ListingFilter = "all" | "active" | "paused" | "sold";
 export type DashboardTourStep = "hero" | "listings" | "marketing" | "content" | "settings";
 
 export type StoreSettingsForm = {
@@ -94,8 +94,8 @@ export function MetricIcon({ id }: { id: string }) {
 export const listingFilterLabels: Record<ListingFilter, string> = {
   all: "Все",
   active: "Активные",
-  inactive: "Скрытые / Архив",
-  auctions: "Мои аукционы",
+  paused: "Пауза",
+  sold: "Продано",
 };
 
 export const listingStatusLabels: Record<SellerListingStatus, string> = {

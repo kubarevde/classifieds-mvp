@@ -94,8 +94,8 @@ export default async function StoreDashboardPage({ searchParams }: StoreDashboar
         <Container className="space-y-4">
           <DemoRoleGuard
             allowedRoles={["seller", "all"]}
-            title="Кабинет магазина доступен для seller"
-            description="В режиме buyer и guest этот раздел скрыт. Переключитесь на seller, чтобы открыть маркетинг, аналитику и управление витриной."
+            title="Кабинет магазина доступен для продавца"
+            description="В режиме buyer и guest этот раздел скрыт. Переключитесь на seller, чтобы открыть маркетинг, аналитику и управление магазином."
             ctaRoles={["seller"]}
           >
             <header className="space-y-2">
@@ -103,7 +103,7 @@ export default async function StoreDashboardPage({ searchParams }: StoreDashboar
                 Кабинет магазина
               </p>
               <h1 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
-                Управление storefront
+                Управление магазином
               </h1>
               <p className="max-w-3xl text-sm text-slate-600 sm:text-base">
                 Операционная панель магазина: объявления, метрики, маркетинг, контент и настройки в одном месте.

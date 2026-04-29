@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Bell, CreditCard, Heart, LayoutGrid, Megaphone, MessageCircle, Search, User } from "lucide-react";
+import { Bell, CreditCard, Heart, LayoutGrid, LifeBuoy, Megaphone, MessageCircle, Search, User } from "lucide-react";
 
 import { Badge, Card } from "@/components/ui";
 
@@ -13,6 +13,7 @@ export type AccountTab =
   | "saved-searches"
   | "messages"
   | "notifications"
+  | "support"
   | "profile";
 
 type AccountLayoutProps = {
@@ -33,6 +34,7 @@ const tabs: Array<{ id: AccountTab; label: string; icon: React.ReactNode }> = [
   { id: "saved-searches", label: "Сохранённые поиски", icon: <Search className="h-4 w-4" /> },
   { id: "messages", label: "Сообщения", icon: <MessageCircle className="h-4 w-4" /> },
   { id: "notifications", label: "Уведомления", icon: <Bell className="h-4 w-4" /> },
+  { id: "support", label: "Поддержка", icon: <LifeBuoy className="h-4 w-4" /> },
   { id: "profile", label: "Профиль", icon: <User className="h-4 w-4" /> },
 ];
 
@@ -109,7 +111,7 @@ export function AccountLayout({
                 key={tab.id}
                 href={tabHref(tab.id)}
                 className={[
-                  "inline-flex min-h-11 shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-xs sm:text-sm",
+                  "inline-flex min-h-11 shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-sm",
                   isActive ? "border-slate-900 bg-slate-900 text-white" : "border-slate-200 bg-white text-slate-700",
                 ].join(" ")}
               >

@@ -6,6 +6,8 @@ import { ListingsPageRoot } from "@/components/listings/listings-page-root";
 import { Navbar } from "@/components/layout/navbar";
 import { StructuredDataScript } from "@/components/seo/structured-data-script";
 import { Container } from "@/components/ui/container";
+import { cn } from "@/components/ui/cn";
+import { buttonVariants } from "@/lib/button-styles";
 import { buildBreadcrumbListJsonLd } from "@/lib/seo/breadcrumbs";
 import { toCanonicalUrl } from "@/lib/seo/canonical";
 import { CatalogWorld, getCategoryOptionsForWorld, getWorldLabel } from "@/lib/listings";
@@ -25,7 +27,7 @@ export const metadata: Metadata = buildPageMetadata({
 
 function ListingsFiltersFallback() {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-500 shadow-sm">
+    <div className="rounded-2xl border border-slate-200/90 bg-white p-6 text-sm text-slate-500 shadow-none">
       Загружаем фильтры каталога...
     </div>
   );
@@ -108,10 +110,7 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
                 Единый каталог с тематическими мирами и чётким разделением: мир задаёт контекст, категории уточняют тип объявления.
               </p>
             </div>
-            <Link
-              href={createHref}
-              className="inline-flex h-10 items-center justify-center rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white transition hover:bg-slate-700 active:scale-[0.99]"
-            >
+            <Link href={createHref} className={cn(buttonVariants({ variant: "primary", size: "md" }), "w-full justify-center sm:w-auto")}>
               Разместить объявление
             </Link>
           </header>

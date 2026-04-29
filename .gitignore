@@ -39,4 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-classifieds-mvp/ 
+
+# local Lighthouse reports
+.lighthouse-*.json

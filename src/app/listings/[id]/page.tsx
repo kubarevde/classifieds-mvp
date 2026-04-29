@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 
 import { ListingDetailsPageClient } from "@/components/listings/listing-details-page-client";
 import { Navbar } from "@/components/layout/navbar";
@@ -64,7 +65,9 @@ export default async function ListingDetailsPage({ params }: ListingDetailsPageP
         </>
       ) : null}
       <Navbar />
-      <ListingDetailsPageClient id={id} staticListing={staticListing} />
+      <Suspense fallback={<main className="py-10 text-center text-sm text-slate-500">Загрузка…</main>}>
+        <ListingDetailsPageClient id={id} staticListing={staticListing} />
+      </Suspense>
     </div>
   );
 }

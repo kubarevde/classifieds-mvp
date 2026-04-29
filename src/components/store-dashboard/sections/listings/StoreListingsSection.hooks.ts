@@ -13,9 +13,8 @@ export function useStoreListingsSectionData({ listings, filter }: UseStoreListin
     () => ({
       all: listings.length,
       active: listings.filter((listing) => listing.status === "active").length,
-      inactive: listings.filter((listing) => listing.status === "hidden" || listing.status === "archived")
-        .length,
-      auctions: listings.filter((listing) => listing.listingSaleMode === "auction").length,
+      paused: listings.filter((listing) => listing.status === "hidden").length,
+      sold: listings.filter((listing) => listing.status === "archived").length,
     }),
     [listings],
   );
@@ -26,11 +25,11 @@ export function useStoreListingsSectionData({ listings, filter }: UseStoreListin
         if (filter === "active") {
           return listing.status === "active";
         }
-        if (filter === "inactive") {
-          return listing.status === "hidden" || listing.status === "archived";
+        if (filter === "paused") {
+          return listing.status === "hidden";
         }
-        if (filter === "auctions") {
-          return listing.listingSaleMode === "auction";
+        if (filter === "sold") {
+          return listing.status === "archived";
         }
         return true;
       }),

@@ -3,17 +3,50 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
+import type { SavedSearch } from "@/entities/search/model";
 import { useNotifications } from "@/components/notifications/notifications-provider";
 import { useSavedSearches } from "@/components/saved-searches/saved-searches-provider";
 import { Button, Card } from "@/components/ui";
+import { useSavedSearchMatchSummary } from "@/hooks/data/use-saved-search-matches";
 import { buildSearchHrefFromIntent } from "@/lib/saved-searches";
 
 import { NotificationFilter, NotificationFilterTabs } from "./notification-filter-tabs";
 import { NotificationList } from "./notification-list";
 
+function SavedSearchAlertRow({ search }: { search: SavedSearch }) {
+  const { summary, loading } = useSavedSearchMatchSummary(search);
+  const count = loading ? "…" : summary?.newMatches ?? 0;
+  const preview =
+    loading || !summary
+      ? ""
+      : summary.listings
+          .slice(0, 2)
+          .map((item) => item.title)
+          .join(", ");
+
+  return (
+    <article className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm font-semibold text-slate-900">{search.title ?? search.intent.autoTitle}</p>
+        <span className="rounded-full bg-sky-100 px-2 py-0.5 text-xs font-semibold text-sky-800">
+          {search.intent.mode}
+        </span>
+      </div>
+      <p className="mt-1 text-sm text-slate-700">Новых совпадений: {count}</p>
+      <p className="text-xs text-slate-600">{preview || "Пока без новых совпадений"}</p>
+      <Link
+        href={buildSearchHrefFromIntent(search.intent)}
+        className="mt-2 inline-flex text-xs font-semibold text-slate-800 underline underline-offset-2"
+      >
+        Посмотреть
+      </Link>
+    </article>
+  );
+}
+
 export function NotificationsPageClient() {
   const { notifications, unreadCount, markAllAsRead, markAsRead } = useNotifications();
-  const { searches, getNewMatchesCount, getMatchingListings } = useSavedSearches();
+  const { searches } = useSavedSearches();
   const [filter, setFilter] = useState<NotificationFilter>("all");
 
   const showOnlyUnread = filter === "unread";
@@ -57,31 +90,9 @@ export function NotificationsPageClient() {
       <Card className="p-4 sm:p-5">
         <h2 className="text-lg font-semibold text-slate-900">Новые по вашим поискам</h2>
         <div className="mt-3 space-y-2">
-          {searches.slice(0, 4).map((search) => {
-            const count = getNewMatchesCount(search.id);
-            const preview = getMatchingListings(search.id)
-              .slice(0, 2)
-              .map((item) => item.title)
-              .join(", ");
-            return (
-              <article key={search.id} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-sm font-semibold text-slate-900">{search.title ?? search.intent.autoTitle}</p>
-                  <span className="rounded-full bg-sky-100 px-2 py-0.5 text-xs font-semibold text-sky-800">
-                    {search.intent.mode}
-                  </span>
-                </div>
-                <p className="mt-1 text-sm text-slate-700">Новых совпадений: {count}</p>
-                <p className="text-xs text-slate-600">{preview || "Пока без новых совпадений"}</p>
-                <Link
-                  href={buildSearchHrefFromIntent(search.intent)}
-                  className="mt-2 inline-flex text-xs font-semibold text-slate-800 underline underline-offset-2"
-                >
-                  Посмотреть
-                </Link>
-              </article>
-            );
-          })}
+          {searches.slice(0, 4).map((search) => (
+            <SavedSearchAlertRow key={search.id} search={search} />
+          ))}
         </div>
       </Card>
     </div>

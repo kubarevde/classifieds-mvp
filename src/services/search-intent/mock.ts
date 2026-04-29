@@ -7,7 +7,7 @@ import {
   type StoreSearchFilters,
 } from "@/lib/saved-searches";
 
-import type { SearchIntentService } from "./index";
+import type { SearchIntentService } from "./types";
 
 export const mockSearchIntentService: SearchIntentService = {
   async fromFilters(filters: SavedSearchFilters) {

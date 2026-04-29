@@ -55,7 +55,7 @@ export function CatalogCategoryScope({
                 onInteract?.();
                 onCategoryChange(id);
               }}
-              className={`rounded-full border px-2.5 py-1 text-xs font-medium transition sm:px-3 sm:py-1.5 ${
+              className={`min-h-11 rounded-full border px-3 py-2 text-sm font-medium transition ${
                 active
                   ? "border-slate-800 bg-slate-900 text-white"
                   : "border-slate-200/90 bg-slate-50/80 text-slate-700 hover:border-slate-300 hover:bg-white"
@@ -80,7 +80,7 @@ export function CatalogCategoryScope({
                 }
                 onCategoryChange(value);
               }}
-              className="h-8 w-full cursor-pointer appearance-none rounded-full border border-dashed border-slate-200 bg-white py-1 pl-3 pr-8 text-xs font-medium text-slate-600 outline-none transition hover:border-slate-300 hover:text-slate-900 focus:border-slate-400 sm:h-9 sm:text-[13px]"
+              className="h-11 min-h-[44px] w-full cursor-pointer appearance-none rounded-full border border-dashed border-slate-200 bg-white py-2 pl-3 pr-8 text-sm font-medium text-slate-600 outline-none transition hover:border-slate-300 hover:text-slate-900 focus:border-slate-400"
             >
               <option value="">Ещё категории…</option>
               {rest.map((option) => (

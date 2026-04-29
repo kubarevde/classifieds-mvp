@@ -24,6 +24,15 @@ export type StoreSearchFilters = {
   sortBy: "rating_desc" | "listings_desc" | "newest_desc";
 };
 
+export const defaultStoreSearchFilters: StoreSearchFilters = {
+  query: "",
+  location: "all",
+  specialization: "all",
+  verifiedOnly: false,
+  storeType: "all",
+  sortBy: "rating_desc",
+};
+
 export type SavedSearch = {
   id: string;
   name: string;
@@ -499,6 +508,77 @@ export function buildStoresHrefFromIntent(intent: SearchIntent) {
 
 export function buildSearchHrefFromIntent(intent: SearchIntent) {
   return intent.target === "store" ? buildStoresHrefFromIntent(intent) : buildListingsHrefFromIntent(intent);
+}
+
+export function hasPersistableListingFilters(filters: SavedSearchFilters): boolean {
+  if (filters.query.trim().length > 0) {
+    return true;
+  }
+  if (filters.category !== "all") {
+    return true;
+  }
+  if (filters.location !== "all") {
+    return true;
+  }
+  if (filters.saleMode !== defaultSavedSearchFilters.saleMode) {
+    return true;
+  }
+  if (filters.world !== defaultSavedSearchFilters.world) {
+    return true;
+  }
+  if (filters.sortBy !== defaultSavedSearchFilters.sortBy) {
+    return true;
+  }
+  if (filters.priceMin != null || filters.priceMax != null) {
+    return true;
+  }
+  return false;
+}
+
+export function hasPersistableStoreFilters(filters: StoreSearchFilters): boolean {
+  if (filters.query.trim().length > 0) {
+    return true;
+  }
+  if (filters.location !== "all") {
+    return true;
+  }
+  if (filters.specialization !== "all") {
+    return true;
+  }
+  if (filters.verifiedOnly) {
+    return true;
+  }
+  if (filters.storeType !== "all") {
+    return true;
+  }
+  if (filters.sortBy !== defaultStoreSearchFilters.sortBy) {
+    return true;
+  }
+  return false;
+}
+
+export function hasPersistableSearchIntent(intent: SearchIntent): boolean {
+  return intent.target === "store"
+    ? hasPersistableStoreFilters(intentToStoreSearchFilters(intent))
+    : hasPersistableListingFilters(intentToSavedSearchFilters(intent));
+}
+
+/** Fields edited inside the listings refinements drawer (category lives in scope chips). */
+export function countListingsDrawerRefinements(filters: SavedSearchFilters): number {
+  let n = 0;
+  if (filters.location !== "all") {
+    n += 1;
+  }
+  if (filters.saleMode !== defaultSavedSearchFilters.saleMode) {
+    n += 1;
+  }
+  if (filters.sortBy !== defaultSavedSearchFilters.sortBy) {
+    n += 1;
+  }
+  if (filters.view !== defaultSavedSearchFilters.view) {
+    n += 1;
+  }
+  return n;
 }
 
 export function parseIntentFromSearchParams(searchParams: URLSearchParams): SearchIntent | null {

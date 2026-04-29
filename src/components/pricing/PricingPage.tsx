@@ -1,8 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 import { formatPlanPrice, type Plan, type SubscriptionPlan } from "@/entities/billing/model";
+import { buttonVariants } from "@/lib/button-styles";
+import { cn } from "@/components/ui/cn";
 import { mockBillingService } from "@/services/billing";
 import { useSubscription } from "@/components/subscription/subscription-provider";
 
@@ -133,6 +136,21 @@ export function PricingPage() {
             </table>
           </div>
         ) : null}
+      </section>
+
+      <section className="space-y-3 rounded-2xl border border-slate-200 bg-sky-50/50 p-4 sm:p-5">
+        <h3 className="text-lg font-semibold text-slate-900">Есть вопросы по тарифам?</h3>
+        <p className="text-sm text-slate-700">
+          Разберём лимиты, апгрейды и демо-оплату: коротко в справке или персонально в тикете.
+        </p>
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+          <Link href="/support" className={cn(buttonVariants({ variant: "secondary" }), "inline-flex h-10 justify-center px-4")}>
+            Посмотреть помощь
+          </Link>
+          <Link href="/support/tickets/new" className={cn(buttonVariants(), "inline-flex h-10 justify-center px-4")}>
+            Написать в поддержку
+          </Link>
+        </div>
       </section>
 
       <section className="space-y-2 rounded-2xl border border-slate-200 bg-white p-4">

@@ -46,7 +46,7 @@ export function AccountMenu({
           {storeNavSellerId ? (
             <li>
               <Link
-                href={`/sellers/${storeNavSellerId}`}
+                href={`/stores/${storeNavSellerId}`}
                 className="flex items-center rounded-lg px-3 py-2 hover:bg-slate-50"
               >
                 Мой магазин

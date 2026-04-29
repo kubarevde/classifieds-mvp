@@ -26,6 +26,8 @@ import { InlineNotice, SectionCard, UpgradeBanner, UpgradeModal } from "@/compon
 import { useProfile } from "@/components/profile/profile-provider";
 import { useDemoRole } from "@/components/demo-role/demo-role";
 import { useSubscription } from "@/components/subscription/subscription-provider";
+import { getVerificationProfile } from "@/services/verification";
+import { VerificationPrompt } from "@/components/verification/VerificationPrompt";
 import { Button, buttonVariants } from "@/components/ui";
 import { cn } from "@/components/ui/cn";
 import {
@@ -72,9 +74,9 @@ import { buildListingFromClarifications, createListingAssistantMock } from "@/se
 import { getMinimumNextBid } from "@/services/auctions";
 import { mockAuctionService } from "@/services/auctions";
 import { mockListingsService } from "@/services/listings";
+import { usePutPublishedListing } from "@/hooks/data/use-published-listings-cache";
 import { useAiUsageStore } from "@/stores/ai-usage-store";
 import { getListingDraftDefaults, useListingDraftStore, type DraftPhoto } from "@/stores/listing-draft-store";
-import { usePublishedListingStore } from "@/stores/published-listing-store";
 
 const STEP_LABELS = [
   "Фото и ИИ",
@@ -84,6 +86,8 @@ const STEP_LABELS = [
   "Локация и контакты",
   "Предпросмотр",
 ] as const;
+const BASIC_STEP_LABELS = ["Фото и заголовок", "Категория и мир", "Цена и описание"] as const;
+type WizardUxMode = "basic" | "advanced";
 
 const CONDITION_OPTIONS = [
   { id: "new", label: "Новое" },
@@ -166,9 +170,9 @@ export function CreateListingWizard({
   const router = useRouter();
   const buyer = useBuyer();
   const profile = useProfile();
-  const { role } = useDemoRole();
+  const { role, currentSellerId } = useDemoRole();
   const subscription = useSubscription();
-  const putPublished = usePublishedListingStore((s) => s.putListing);
+  const putPublished = usePutPublishedListing();
   const draftStore = useListingDraftStore();
   const aiFeature = useFeatureGate("ai_listing_assistant");
   const auctionGate = useFeatureGate("auction_create");
@@ -186,9 +190,34 @@ export function CreateListingWizard({
   const form = useForm<WizardCoreValues>({ defaultValues: formDefaults, mode: "onChange" });
   const { register, handleSubmit, setValue, reset, formState, control, getValues, setError } = form;
   const values = useWatch({ control, defaultValue: formDefaults }) as WizardCoreValues;
+
+  const sellerSubjectId = currentSellerId ?? "marina-tech";
+  const sellerIdentityProfile = getVerificationProfile(sellerSubjectId, "seller");
+  const storeBusinessProfile = getVerificationProfile(sellerSubjectId, "store");
+  const sellerIdentityVerified = sellerIdentityProfile?.status === "verified";
+  const storeBusinessVerified = storeBusinessProfile?.status === "verified" || storeBusinessProfile?.status === "needs_review";
+
+  const isHighValueWorld = values.world === "electronics";
+  const showVerificationPrompt = !sellerIdentityVerified || !storeBusinessVerified;
+  const promptTitle = !sellerIdentityVerified
+    ? isHighValueWorld
+      ? "Подтвердите личность — для дорогих категорий это особенно важно"
+      : "Подтвердите профиль, чтобы повысить доверие к объявлениям"
+    : "Подтвердите магазин, чтобы доверие покупателей было выше";
+
+  const promptDescription = !sellerIdentityVerified
+    ? "В демо шаги имитируют UX проверки (без реальной KYC). После завершения статус появится в карточках и на витрине."
+    : "В демо шаги имитируют проверку магазина. Это отдельный сигнал доверия (показывается отдельно от trust score/отзывов).";
+
+  const promptBullets = !sellerIdentityVerified
+    ? isHighValueWorld
+      ? ["Меньше сомнений у покупателей", "Больше шансов на быстрый отклик", "Лучше отображение на trust-поверхностях (mock)"]
+      : ["Больше доверия в карточке", "Отклики приходят охотнее", "Меньше поводов для ручной проверки (mock)"]
+    : ["Магазин прошёл проверку (mock)", "Повышенная конверсия в отклик", "Приоритет для будущих promoted tools (mock)"];
   const hydrated = useRef(false);
 
   const [step, setStep] = useState(0);
+  const [wizardMode, setWizardMode] = useState<WizardUxMode>("basic");
   const [sessionNow] = useState(() => Date.now());
   const [images, setImages] = useState<LocalPhoto[]>([]);
   const [coverPhotoId, setCoverPhotoId] = useState<string | null>(null);
@@ -212,7 +241,7 @@ export function CreateListingWizard({
   const [photoAiById, setPhotoAiById] = useState<Record<string, "idle" | "scanning" | "done">>({});
   const [photoAiDetail, setPhotoAiDetail] = useState<Record<string, { detected: string; tags: string[] }>>({});
   const [catalogListings, setCatalogListings] = useState<UnifiedCatalogListing[]>([]);
-  const dynamicStepLabels = useMemo(
+  const advancedStepLabels = useMemo(
     () =>
       values.saleMode === "auction"
         ? [
@@ -227,6 +256,8 @@ export function CreateListingWizard({
         : [...STEP_LABELS],
     [values.saleMode],
   );
+  const isBasicMode = wizardMode === "basic";
+  const dynamicStepLabels = isBasicMode ? [...BASIC_STEP_LABELS] : advancedStepLabels;
 
   const auctionStartAtDate = useMemo(() => {
     if (values.auctionStartNow) {
@@ -364,6 +395,11 @@ export function CreateListingWizard({
       setValue("saleMode", "fixed");
     }
   }, [auctionGate.allowed, setValue, values.saleMode]);
+  useEffect(() => {
+    if (isBasicMode && values.saleMode !== "fixed") {
+      setValue("saleMode", "fixed");
+    }
+  }, [isBasicMode, setValue, values.saleMode]);
 
   useEffect(() => {
     if (hydrated.current) return;
@@ -554,6 +590,39 @@ export function CreateListingWizard({
   };
 
   const validateStep = (index: number): boolean => {
+    if (isBasicMode) {
+      if (index === 0) {
+        if (images.filter((entry) => !entry.loading && entry.dataUrl).length === 0) {
+          setPhotoError("Добавьте хотя бы одно фото");
+          return false;
+        }
+        if (values.title.trim().length < 3) {
+          setError("title", { message: "Заголовок слишком короткий" });
+          return false;
+        }
+      }
+      if (index === 1) {
+        const parsed = step1Schema.safeParse(values);
+        if (!parsed.success) {
+          parsed.error.issues.forEach((issue) => {
+            const path = issue.path[0] as keyof WizardCoreValues | undefined;
+            if (path) setError(path, { message: issue.message });
+          });
+          return false;
+        }
+      }
+      if (index === 2) {
+        const parsed = buildStep2Schema("fixed").safeParse({ ...values, saleMode: "fixed" });
+        if (!parsed.success) {
+          parsed.error.issues.forEach((issue) => {
+            const path = issue.path[0] as keyof WizardCoreValues | undefined;
+            if (path) setError(path, { message: issue.message });
+          });
+          return false;
+        }
+      }
+      return true;
+    }
     if (index === 1) {
       const parsed = step1Schema.safeParse(values);
       if (!parsed.success) {
@@ -633,48 +702,58 @@ export function CreateListingWizard({
     }
     if (images.filter((entry) => !entry.loading && entry.dataUrl).length === 0) {
       setPhotoError("Добавьте хотя бы одно фото");
-      setStep(values.saleMode === "auction" ? 4 : 3);
+      setStep(isBasicMode ? 0 : values.saleMode === "auction" ? 4 : 3);
       return;
     }
-    const valid = fullPublishSchema.safeParse(data);
+    const normalizedForPublish: WizardCoreValues = {
+      ...data,
+      saleMode: isBasicMode ? "fixed" : data.saleMode,
+      city: data.city.trim() || profile.city || locations[0] || "Москва",
+      contactMethod: data.contactMethod || "chat",
+      useProfileContacts: data.useProfileContacts || Boolean(profileContacts.sellerName && profileContacts.phone),
+      sellerName: data.sellerName.trim() || profileContacts.sellerName || "Продавец",
+      phone: data.phone.trim() || profileContacts.phone || "+7 (900) 000-00-00",
+    };
+    const valid = fullPublishSchema.safeParse(normalizedForPublish);
     if (!valid.success) {
       setSubmitError("Проверьте поля формы перед публикацией");
       return;
     }
     setIsPublishing(true);
-    const sellerName = data.isAuthenticated && data.useProfileContacts ? profileContacts.sellerName : data.sellerName;
-    const sellerPhone = data.isAuthenticated && data.useProfileContacts ? profileContacts.phone : data.phone;
+    const publishData = normalizedForPublish;
+    const sellerName = publishData.isAuthenticated && publishData.useProfileContacts ? profileContacts.sellerName : publishData.sellerName;
+    const sellerPhone = publishData.isAuthenticated && publishData.useProfileContacts ? profileContacts.phone : publishData.phone;
     const createdCatalogListing = await mockListingsService.create({
-      listingSaleMode: data.saleMode,
-      title: data.title.trim(),
-      price: formatWizardPrice(data),
+      listingSaleMode: publishData.saleMode,
+      title: publishData.title.trim(),
+      price: formatWizardPrice(publishData),
       priceValue:
-        data.saleMode === "auction"
-          ? Number.parseFloat(data.auctionStartPrice.replace(",", ".")) || 0
-          : Number.parseFloat(data.price.replace(",", ".")) || 0,
-      categoryId: data.category,
-      categoryLabel: categoryOptions.find((entry) => entry.id === data.category)?.label ?? data.category,
-      location: data.city.trim(),
+        publishData.saleMode === "auction"
+          ? Number.parseFloat(publishData.auctionStartPrice.replace(",", ".")) || 0
+          : Number.parseFloat(publishData.price.replace(",", ".")) || 0,
+      categoryId: publishData.category,
+      categoryLabel: categoryOptions.find((entry) => entry.id === publishData.category)?.label ?? publishData.category,
+      location: publishData.city.trim(),
       image: listingImageClass(),
-      condition: conditionLabel(data.condition),
-      description: data.description.trim(),
+      condition: conditionLabel(publishData.condition),
+      description: publishData.description.trim(),
       sellerName,
       sellerPhone,
-      world: data.world === "all" ? "base" : data.world,
-      worldLabel: getWorldLabel(data.world),
+      world: publishData.world === "all" ? "base" : publishData.world,
+      worldLabel: getWorldLabel(publishData.world),
     });
     const listingId = createdCatalogListing.id;
     buyer.addListing({
       id: listingId,
-      title: data.title.trim(),
-      price: formatWizardPrice(data),
-      category: data.category,
-      city: data.city.trim(),
+      title: publishData.title.trim(),
+      price: formatWizardPrice(publishData),
+      category: publishData.category,
+      city: publishData.city.trim(),
       image: listingImageClass(),
       status: "active",
     });
-    putPublished(listingId, buildListingForStore(listingId, data, sellerName, sellerPhone));
-    if (data.saleMode === "auction") {
+    putPublished(listingId, buildListingForStore(listingId, publishData, sellerName, sellerPhone));
+    if (publishData.saleMode === "auction") {
       if (!auctionGate.allowed) {
         throw new Error("Feature auction_create is not available");
       }
@@ -690,32 +769,32 @@ export function CreateListingWizard({
           },
         },
         startPrice:
-          Number.parseFloat(data.auctionStartPrice.replace(",", ".")) ||
-          Number.parseFloat(data.price.replace(",", ".")) ||
+          Number.parseFloat(publishData.auctionStartPrice.replace(",", ".")) ||
+          Number.parseFloat(publishData.price.replace(",", ".")) ||
           1,
-        reservePrice: data.auctionReservePrice.trim()
-          ? Number.parseFloat(data.auctionReservePrice.replace(",", "."))
+        reservePrice: publishData.auctionReservePrice.trim()
+          ? Number.parseFloat(publishData.auctionReservePrice.replace(",", "."))
           : undefined,
         startAt: auctionStartAt,
-        endAt: new Date(auctionStartAt.getTime() + data.auctionDurationHours * 60 * 60 * 1000),
-        antiSnipingExtension: data.auctionAntiSnipingEnabled ? 5 : 0,
-        minBidIncrement: data.auctionMinBidIncrement.trim()
-          ? Number.parseFloat(data.auctionMinBidIncrement.replace(",", "."))
+        endAt: new Date(auctionStartAt.getTime() + publishData.auctionDurationHours * 60 * 60 * 1000),
+        antiSnipingExtension: publishData.auctionAntiSnipingEnabled ? 5 : 0,
+        minBidIncrement: publishData.auctionMinBidIncrement.trim()
+          ? Number.parseFloat(publishData.auctionMinBidIncrement.replace(",", "."))
           : undefined,
       });
     }
-    if (promoteGate.allowed && data.wantPromotion) {
+    if (promoteGate.allowed && publishData.wantPromotion) {
       const worldId: HeroBannerWorld | undefined =
-        data.promoteScope === "world"
-          ? data.world === "all"
+        publishData.promoteScope === "world"
+          ? publishData.world === "all"
             ? "electronics"
-            : (data.world as HeroBannerWorld)
+            : (publishData.world as HeroBannerWorld)
           : undefined;
       buyer.promoteListing({
         listingId,
-        listingTitle: data.title,
-        scope: data.promoteScope as HeroBannerScope,
-        period: data.promotePeriod as HeroBannerPeriod,
+        listingTitle: publishData.title,
+        scope: publishData.promoteScope as HeroBannerScope,
+        period: publishData.promotePeriod as HeroBannerPeriod,
         worldId,
         mockPrice: 12000,
       });
@@ -813,22 +892,41 @@ export function CreateListingWizard({
           <Wand2 className="h-3.5 w-3.5 shrink-0 text-slate-600" strokeWidth={1.5} aria-hidden />
           Подсказки AI
         </div>
-        <Button type="button" size="sm" variant="outline" className="h-8 text-xs" onClick={() => setAssistantDrawerOpen(true)}>
+        <Button type="button" size="sm" variant="outline" onClick={() => setAssistantDrawerOpen(true)}>
           Открыть
         </Button>
       </div>
     ) : null;
 
   return (
-    <div className="space-y-4 pb-24 md:pb-0">
+    <div className="space-y-4 pb-6">
       <SectionCard padding="sm" className="border-slate-200/90">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
             Шаг {step + 1} из {progressTotal}
           </p>
-          <Button type="button" variant="outline" size="sm" onClick={persistDraft}>
-            Сохранить черновик
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button type="button" variant="outline" size="sm" onClick={persistDraft}>
+              Сохранить черновик
+            </Button>
+            {isBasicMode ? (
+              <Button type="button" variant="ghost" size="sm" onClick={() => setWizardMode("advanced")}>
+                Расширенный режим
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setWizardMode("basic");
+                  setStep((current) => Math.min(current, BASIC_STEP_LABELS.length - 1));
+                }}
+              >
+                Guided режим
+              </Button>
+            )}
+          </div>
         </div>
         <div className="mt-3 flex gap-1.5">
           {dynamicStepLabels.map((label, i) => (
@@ -846,17 +944,39 @@ export function CreateListingWizard({
             {step === 0 ? (
               <section className="space-y-4">
                 <header className="space-y-1">
-                  <h3 className="text-xl font-semibold text-slate-900">Шаг 1. Фото и ИИ</h3>
+                  <h3 className="text-xl font-semibold text-slate-900">
+                    {isBasicMode ? "Шаг 1. Фото и заголовок" : "Шаг 1. Фото и ИИ"}
+                  </h3>
                   <p className="text-sm text-slate-600">
-                    Заполните объявление по фото или начните с ручного ввода.
+                    {isBasicMode
+                      ? "Добавьте фото и понятный заголовок. Этого достаточно, чтобы быстро стартовать."
+                      : "Заполните объявление по фото или начните с ручного ввода."}
                   </p>
                 </header>
-                <div className="rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700">
-                  <p className="font-medium">Заполнить объявление по фото</p>
-                  <p className="mt-1 text-xs text-slate-600">
-                    ИИ подберёт категорию, заголовок, описание и цену за несколько секунд.
-                  </p>
-                </div>
+                {showVerificationPrompt ? (
+                  <div className="sm:col-span-2">
+                    <VerificationPrompt title={promptTitle} description={promptDescription} bullets={promptBullets} />
+                    <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
+                      <Link
+                        href={!sellerIdentityVerified ? "/verification/identity" : "/verification/business"}
+                        className={cn(buttonVariants({ variant: "primary", size: "md" }), "rounded-xl")}
+                      >
+                        Пройти проверку
+                      </Link>
+                      <p className="text-xs text-slate-500">
+                        Мягкий prompt не блокирует публикацию в демо.
+                      </p>
+                    </div>
+                  </div>
+                ) : null}
+                {!isBasicMode ? (
+                  <div className="rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700">
+                    <p className="font-medium">Заполнить объявление по фото</p>
+                    <p className="mt-1 text-xs text-slate-600">
+                      ИИ подберёт категорию, заголовок, описание и цену за несколько секунд.
+                    </p>
+                  </div>
+                ) : null}
                 <div
                   className="rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 p-8 text-center"
                   onDragOver={(e) => e.preventDefault()}
@@ -892,8 +1012,47 @@ export function CreateListingWizard({
                     ))}
                   </div>
                 ) : null}
+                <div id="wizard-ai-title">
+                  <FormField
+                    label="Заголовок"
+                    htmlFor="title"
+                    required
+                    error={formState.errors.title?.message}
+                    actions={
+                      aiFeature.allowed ? (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          disabled={Boolean(busyKey) || ai.titlesLoading}
+                          onClick={() => void ai.generateTitles(false)}
+                        >
+                          <Wand2 className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
+                          Подсказать
+                        </Button>
+                      ) : undefined
+                    }
+                  >
+                    <Input id="title" {...register("title")} hasError={Boolean(formState.errors.title)} />
+                  </FormField>
+                  {aiFeature.allowed && ai.titlePack ? (
+                    <div className="mt-2">
+                      <AITitleSuggestions
+                        key={ai.titlePack.suggestions.join("|")}
+                        suggestions={ai.titlePack.suggestions}
+                        confidence={ai.titlePack.confidence}
+                        loading={ai.titlesLoading}
+                        disabled={Boolean(busyKey)}
+                        onApply={ai.applyTitle}
+                        onGenerate={() => void ai.generateTitles(false)}
+                        onMore={() => void ai.generateTitles(true)}
+                        onDismiss={ai.dismissTitlePack}
+                      />
+                    </div>
+                  ) : null}
+                </div>
                 <div className="space-y-2">
-                  {aiFeature.allowed ? (
+                  {!isBasicMode && aiFeature.allowed ? (
                     <div className="flex flex-wrap gap-2">
                       <Button type="button" onClick={() => void onSnapAndFill()} disabled={isSnapLoading}>
                         {isSnapLoading ? (
@@ -909,7 +1068,7 @@ export function CreateListingWizard({
                         Заполнить вручную
                       </Button>
                     </div>
-                  ) : (
+                  ) : !isBasicMode ? (
                     <div className="space-y-2 rounded-2xl border border-amber-200 bg-amber-50/70 p-3">
                       <UpgradeBanner feature="ai_listing_assistant" compact />
                       <ul className="list-disc space-y-0.5 pl-5 text-xs text-amber-900">
@@ -922,8 +1081,8 @@ export function CreateListingWizard({
                         Заполнить вручную
                       </Button>
                     </div>
-                  )}
-                  <p className="text-xs text-slate-500">Доступно в тарифах Pro / платных магазинах.</p>
+                  ) : null}
+                  {!isBasicMode ? <p className="text-xs text-slate-500">Доступно в тарифах Pro / платных магазинах.</p> : null}
                 </div>
                 {lastSnapResult && !lastSnapResult.needsClarification ? (
                   <InlineNotice
@@ -946,7 +1105,7 @@ export function CreateListingWizard({
               <section className="space-y-4">
                 <div className="space-y-2">
                   <h3 className="text-lg font-semibold text-slate-900">Шаг 2. Категория и мир</h3>
-                  {renderAiStepEntry()}
+                  {!isBasicMode ? renderAiStepEntry() : null}
                 </div>
                 <div className="grid gap-2 sm:grid-cols-2">
                   {worldCardIds.map((worldId) => {
@@ -987,7 +1146,6 @@ export function CreateListingWizard({
                         type="button"
                         size="sm"
                         variant="ghost"
-                        className="h-8 text-xs"
                         disabled={Boolean(busyKey) || ai.categoryLoading}
                         onClick={() => void ai.suggestCategory()}
                       >
@@ -1008,7 +1166,7 @@ export function CreateListingWizard({
                     ))}
                   </Select>
                 </FormField>
-                {ai.categoryOptions.length > 0 ? (
+                {!isBasicMode && ai.categoryOptions.length > 0 ? (
                   <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
                     <p className="text-xs font-semibold text-slate-600">Варианты ИИ</p>
                     <ul className="mt-2 space-y-1.5">
@@ -1024,7 +1182,7 @@ export function CreateListingWizard({
                               })
                             }
                             className={cn(
-                              "w-full rounded-lg border px-2 py-1.5 text-left text-xs shadow-sm transition",
+                              "min-h-11 w-full rounded-lg border px-3 py-2 text-left text-sm shadow-sm transition",
                               ai.categoryApplyPreview?.categoryId === row.categoryId &&
                                 (ai.categoryApplyPreview?.worldId ?? "") === (row.worldId ?? "")
                                 ? "border-slate-900 bg-slate-50 ring-1 ring-slate-900/10"
@@ -1039,14 +1197,14 @@ export function CreateListingWizard({
                     {ai.catalogHrefFromCategory ? (
                       <Link
                         href={ai.catalogHrefFromCategory}
-                        className="mt-2 inline-block text-xs font-semibold text-slate-900 underline underline-offset-2"
+                        className="mt-2 inline-flex min-h-11 items-center text-sm font-semibold text-slate-900 underline underline-offset-2"
                       >
                         Похожие в каталоге
                       </Link>
                     ) : null}
                   </div>
                 ) : null}
-                {ai.categoryApplyPreview ? (
+                {!isBasicMode && ai.categoryApplyPreview ? (
                   <InlineAISuggestionBlock
                     title="Применить категорию"
                     rationale="Категория и мир обновятся в форме; подбор в каталоге можно открыть после применения."
@@ -1069,7 +1227,7 @@ export function CreateListingWizard({
                     </Select>
                   </FormField>
                 ) : null}
-                <div className="grid gap-2 sm:grid-cols-3">
+                {!isBasicMode ? <div className="grid gap-2 sm:grid-cols-3">
                   {(["fixed", "auction", "free"] as const).map((mode) => (
                     <label
                       key={mode}
@@ -1083,7 +1241,7 @@ export function CreateListingWizard({
                         }
                       }}
                       className={cn(
-                        "cursor-pointer rounded-xl border px-3 py-2 text-sm",
+                        "min-h-11 cursor-pointer rounded-xl border px-3 py-2 text-sm",
                         values.saleMode === mode ? "border-slate-900 bg-slate-900 text-white" : "border-slate-200",
                         mode === "auction" && !auctionGate.allowed && "opacity-60",
                       )}
@@ -1098,14 +1256,14 @@ export function CreateListingWizard({
                       {mode === "fixed" ? "Фиксированная цена" : mode === "auction" ? "Аукцион" : "Бесплатно"}
                     </label>
                   ))}
-                </div>
-                {!auctionGate.allowed ? (
+                </div> : null}
+                {!isBasicMode && !auctionGate.allowed ? (
                   <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
                     <p className="font-medium">Доступ к аукционам зависит от роли и тарифа.</p>
                     <p className="mt-1 text-xs">Частные пользователи: Pro и выше. Магазины: Store Pro и выше.</p>
                   </div>
                 ) : null}
-                {auctionUpsellMessage ? <p className="text-xs text-amber-700">{auctionUpsellMessage}</p> : null}
+                {!isBasicMode && auctionUpsellMessage ? <p className="text-xs text-amber-700">{auctionUpsellMessage}</p> : null}
               </section>
             ) : null}
 
@@ -1113,9 +1271,9 @@ export function CreateListingWizard({
               <section className="space-y-4">
                 <div className="space-y-2">
                   <h3 className="text-lg font-semibold text-slate-900">Шаг 3. Описание и цена</h3>
-                  {renderAiStepEntry()}
+                  {!isBasicMode ? renderAiStepEntry() : null}
                 </div>
-                <div id="wizard-ai-title">
+                {!isBasicMode ? <div id="wizard-ai-title">
                   <FormField
                     label="Заголовок"
                     htmlFor="title"
@@ -1128,14 +1286,14 @@ export function CreateListingWizard({
                             type="button"
                             size="sm"
                             variant="ghost"
-                            className="h-8 gap-1 text-xs"
+                            className="gap-1"
                             disabled={Boolean(busyKey) || ai.titlesLoading}
                             onClick={() => void ai.generateTitles(false)}
                           >
                             <Wand2 className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
                             Варианты
                           </Button>
-                          <Button type="button" size="sm" variant="ghost" className="h-8 text-xs" disabled={Boolean(busyKey)} onClick={() => void ai.improveTitle()}>
+                          <Button type="button" size="sm" variant="ghost" disabled={Boolean(busyKey)} onClick={() => void ai.improveTitle()}>
                             Улучшить
                           </Button>
                         </>
@@ -1173,7 +1331,7 @@ export function CreateListingWizard({
                       </InlineAISuggestionBlock>
                     </div>
                   ) : null}
-                </div>
+                </div> : null}
                 <div id="wizard-ai-description">
                   <FormField
                     label="Описание"
@@ -1187,7 +1345,7 @@ export function CreateListingWizard({
                             type="button"
                             size="sm"
                             variant="ghost"
-                            className="h-8 gap-1 text-xs"
+                            className="gap-1"
                             disabled={Boolean(busyKey) || ai.descLoading}
                             onClick={() => void ai.generateDescription()}
                           >
@@ -1198,7 +1356,6 @@ export function CreateListingWizard({
                             type="button"
                             size="sm"
                             variant="ghost"
-                            className="h-8 text-xs"
                             disabled={Boolean(busyKey)}
                             onClick={() => void ai.improveDescription()}
                           >
@@ -1252,7 +1409,7 @@ export function CreateListingWizard({
                           type="button"
                           size="sm"
                           variant="ghost"
-                          className="h-8 gap-1 text-xs"
+                          className="gap-1"
                           disabled={Boolean(busyKey) || ai.priceLoading}
                           onClick={() => void ai.suggestPrice()}
                         >
@@ -1309,10 +1466,15 @@ export function CreateListingWizard({
                     ))}
                   </Select>
                 </FormField>
+                {isBasicMode ? (
+                  <p className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+                    Город и контакты подставим автоматически из профиля. Полный контроль доступен в расширенном режиме.
+                  </p>
+                ) : null}
               </section>
             ) : null}
 
-            {step === 3 && values.saleMode === "auction" ? (
+            {!isBasicMode && step === 3 && values.saleMode === "auction" ? (
               <section className="space-y-4">
                 <div className="space-y-2">
                   <h3 className="text-lg font-semibold text-slate-900">Шаг 4. Настройки аукциона</h3>
@@ -1376,7 +1538,7 @@ export function CreateListingWizard({
               </section>
             ) : null}
 
-            {step === (values.saleMode === "auction" ? 4 : 3) ? (
+            {!isBasicMode && step === (values.saleMode === "auction" ? 4 : 3) ? (
               <section className="space-y-4" id="wizard-ai-photos">
                 <div className="space-y-2">
                   <h3 className="text-lg font-semibold text-slate-900">
@@ -1469,7 +1631,7 @@ export function CreateListingWizard({
               </section>
             ) : null}
 
-            {step === (values.saleMode === "auction" ? 5 : 4) ? (
+            {!isBasicMode && step === (values.saleMode === "auction" ? 5 : 4) ? (
               <section className="space-y-4">
                 <div className="space-y-2">
                   <h3 className="text-lg font-semibold text-slate-900">
@@ -1527,7 +1689,7 @@ export function CreateListingWizard({
               </section>
             ) : null}
 
-            {step === dynamicStepLabels.length - 1 ? (
+            {!isBasicMode && step === dynamicStepLabels.length - 1 ? (
               <section className="space-y-4">
                 <header className="space-y-2">
                   <div className="space-y-1">
@@ -1588,7 +1750,7 @@ export function CreateListingWizard({
               </section>
             ) : null}
 
-            {showAiAssistantRail ? (
+            {!isBasicMode && showAiAssistantRail ? (
               <div className="space-y-3 lg:hidden">
                 {renderCompactPreviewWidget()}
                 <AIStepSummaryCard
@@ -1607,7 +1769,7 @@ export function CreateListingWizard({
 
           <aside className="hidden lg:block">
             <div className="sticky top-24 space-y-3">
-              {step === 0 ? (
+              {!isBasicMode && step === 0 ? (
                 <>
                   <SectionCard
                     padding="sm"
@@ -1633,7 +1795,7 @@ export function CreateListingWizard({
                 </>
               ) : null}
 
-              {showAiAssistantRail ? (
+              {!isBasicMode && showAiAssistantRail ? (
                 <>
                   <AIStepSummaryCard
                     featureAllowed={aiFeature.allowed}
@@ -1686,7 +1848,7 @@ export function CreateListingWizard({
                 </>
               ) : null}
 
-              {step === dynamicStepLabels.length - 1 ? (
+              {!isBasicMode && step === dynamicStepLabels.length - 1 ? (
                 <>
                   <SectionCard padding="sm" title="Большой предпросмотр">
                     <div className="mb-2 flex gap-2">
@@ -1763,8 +1925,8 @@ export function CreateListingWizard({
         </div>
       ) : null}
 
-      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 p-3 backdrop-blur md:static md:border-0 md:bg-transparent md:p-0">
-        <div className="mx-auto flex max-w-3xl items-center justify-between">
+      <nav className="sticky bottom-2 z-30 rounded-2xl border border-slate-200 bg-white/95 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] pt-3 shadow-sm backdrop-blur md:static md:border-0 md:bg-transparent md:p-0 md:pb-0 md:shadow-none">
+        <div className="mx-auto flex max-w-3xl items-center justify-between gap-3">
           <Button type="button" variant="outline" onClick={goBack} disabled={step === 0}>
             <ChevronLeft className="mr-1 h-4 w-4" />
             Назад
@@ -1792,7 +1954,7 @@ export function CreateListingWizard({
         featureLabel={manualUpgradeFeatureLabel}
       />
       <AIAssistantDrawer
-        open={assistantDrawerOpen}
+        open={!isBasicMode && assistantDrawerOpen}
         onClose={() => setAssistantDrawerOpen(false)}
         context={aiDrawerContext}
         ai={ai}

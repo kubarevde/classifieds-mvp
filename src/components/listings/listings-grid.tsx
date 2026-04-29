@@ -30,6 +30,7 @@ export function ListingsGrid({
         icon={<Search className="h-6 w-6" strokeWidth={1.5} />}
         title={emptyTitle}
         description={emptyMessage}
+        action={{ label: "Открыть каталог", href: "/listings" }}
       />
     );
   }

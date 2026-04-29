@@ -64,7 +64,7 @@ export function SponsorBoardPageClient({
         name,
         typeLabel,
         charityRub: row.charityRub,
-        href: `/sellers/${row.sellerId}`,
+        href: `/stores/${row.sellerId}`,
         tags: [...scopeTags].slice(0, 2),
       };
     });

@@ -130,7 +130,7 @@ export function MobileMenu({
           <button
             type="button"
             onClick={onClose}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50"
+            className="inline-flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50"
             aria-label="Закрыть"
           >
             <X className="h-4.5 w-4.5" strokeWidth={1.5} />
@@ -145,6 +145,8 @@ export function MobileMenu({
               <MenuListItem href="/listings" label="Объявления" onClose={onClose} />
               <MenuListItem href="/requests" label="Запросы" onClose={onClose} />
               <MenuListItem href="/stores" label="Магазины" onClose={onClose} />
+              <MenuListItem href="/safety" label="Безопасность" onClose={onClose} />
+              <MenuListItem href="/support" label="Помощь" onClose={onClose} />
               {role !== "guest" ? <MenuListItem href="/worlds" label="Миры" onClose={onClose} /> : null}
               {role !== "guest" ? (
                 <MenuListItem href="/sponsor-board" label="Герой доски" onClose={onClose} />
@@ -194,7 +196,7 @@ export function MobileMenu({
               <ul className="mt-2 space-y-0.5">
                 {storeNavSellerId ? (
                   <>
-                    <MenuListItem href={`/sellers/${storeNavSellerId}`} label="Мой магазин" onClose={onClose} />
+                    <MenuListItem href={`/stores/${storeNavSellerId}`} label="Мой магазин" onClose={onClose} />
                     <MenuListItem
                       href={`/dashboard/store?sellerId=${storeNavSellerId}`}
                       label="Кабинет"

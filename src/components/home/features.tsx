@@ -1,5 +1,5 @@
-import { features } from "@/lib/mock-data";
 import { Container } from "@/components/ui/container";
+import { getHomeFeaturesSync } from "@/services/listings";
 
 export function Features() {
   return (
@@ -15,7 +15,7 @@ export function Features() {
         </div>
 
         <div className="mt-7 grid gap-3 md:grid-cols-3">
-          {features.slice(0, 3).map((feature) => (
+          {getHomeFeaturesSync().slice(0, 3).map((feature) => (
             <article
               key={feature.title}
               className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-slate-300"

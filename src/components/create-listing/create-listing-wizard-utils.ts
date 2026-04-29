@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react";
 
 import type { Listing } from "@/lib/types";
-import { formatPublishedAtLabel, toDashboardCategory } from "@/services/buyer/mock";
+import { formatPublishedAtLabel, toDashboardCategory } from "@/services/buyer";
 
 import type { WizardCoreValues } from "@/components/create-listing/create-listing-schema";
 

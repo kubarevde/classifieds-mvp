@@ -29,17 +29,17 @@ export type { StoreDashboardPageClientProps } from "@/components/store-dashboard
 
 const StoreAnalyticsSection = dynamic(
   () => import("@/components/store-dashboard/sections/analytics/StoreAnalyticsSection").then((mod) => mod.StoreAnalyticsSection),
-  { loading: () => <div className="h-72 animate-pulse rounded-2xl bg-slate-200" /> },
+  { loading: () => <div className="h-72 animate-pulse rounded-2xl bg-slate-200" />, ssr: false },
 );
 
 const StoreMarketingSection = dynamic(
   () => import("@/components/store-dashboard/sections/marketing/StoreMarketingSection").then((mod) => mod.StoreMarketingSection),
-  { loading: () => <div className="h-72 animate-pulse rounded-2xl bg-slate-200" /> },
+  { loading: () => <div className="h-72 animate-pulse rounded-2xl bg-slate-200" />, ssr: false },
 );
 
 const StoreReputationSection = dynamic(
   () => import("@/components/store-dashboard/sections/reputation/StoreReputationSection").then((mod) => mod.StoreReputationSection),
-  { loading: () => <div className="h-72 animate-pulse rounded-2xl bg-slate-200" /> },
+  { loading: () => <div className="h-72 animate-pulse rounded-2xl bg-slate-200" />, ssr: false },
 );
 
 export function StoreDashboardPageClient({
@@ -215,7 +215,6 @@ export function StoreDashboardPageClient({
         onFilterChange={setFilter}
         getSectionClassName={getSectionClassName}
         onToggleListingVisibility={toggleListingVisibility}
-        onShowMockMessage={showMockMessage}
         listingSoftLimit={getLimit("listing_create")}
       />
 
@@ -238,7 +237,7 @@ export function StoreDashboardPageClient({
       </ErrorBoundary>
 
       <ErrorBoundary context="store-reputation-section" fallback={<div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-600">Репутационный блок временно недоступен.</div>}>
-        <StoreReputationSection sellerId={seller.id} />
+        <StoreReputationSection sellerId={seller.id} storefrontHref={`/stores/${seller.id}#store-reputation`} />
       </ErrorBoundary>
 
       <StoreSettingsSection

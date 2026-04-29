@@ -4,6 +4,23 @@ import type { UnifiedCatalogListing } from "@/lib/listings";
 
 import { toCanonicalUrl } from "./canonical";
 
+/** Главная: сайт + поиск (упрощённый SearchAction для согласования с backend). */
+export function buildWebSiteJsonLd() {
+  const base = toCanonicalUrl("/");
+  return {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "Classify",
+    url: base,
+    description: "Каталог объявлений, запросы покупателей и витрины магазинов.",
+    potentialAction: {
+      "@type": "SearchAction",
+      target: `${toCanonicalUrl("/listings")}?query={search_term_string}`,
+      "query-input": "required name=search_term_string",
+    },
+  };
+}
+
 export function buildListingProductJsonLd(listing: UnifiedCatalogListing, sellerName?: string) {
   return {
     "@context": "https://schema.org",

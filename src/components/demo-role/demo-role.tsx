@@ -1,8 +1,9 @@
 "use client";
 
-import { createContext, ReactNode, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 
 import {
+  DEFAULT_DEMO_ROLE,
   resolveDemoCurrentSellerId,
   type DemoRoleId,
 } from "@/lib/demo-role-constants";
@@ -36,7 +37,7 @@ type DemoRoleGuardProps = {
 };
 
 const STORAGE_KEY = "classifieds-demo-role";
-const DEFAULT_ROLE: DemoRole = "all";
+const DEMO_ROLE_CHANGE_EVENT = "classifieds-demo-role-change";
 
 const roleOptions: DemoRoleOption[] = [
   { id: "all", label: "Всё вместе", shortLabel: "ALL" },
@@ -58,7 +59,7 @@ function normalizeRole(value: string | null): DemoRole {
   if (value === "guest" || value === "buyer" || value === "seller" || value === "all") {
     return value;
   }
-  return DEFAULT_ROLE;
+  return DEFAULT_DEMO_ROLE;
 }
 
 function persistRole(nextRole: DemoRole) {
@@ -66,24 +67,47 @@ function persistRole(nextRole: DemoRole) {
     return;
   }
   window.localStorage.setItem(STORAGE_KEY, nextRole);
+  window.dispatchEvent(new Event(DEMO_ROLE_CHANGE_EVENT));
+}
+
+function getClientRoleSnapshot(): DemoRole {
+  if (typeof window === "undefined") {
+    return DEFAULT_DEMO_ROLE;
+  }
+  return normalizeRole(window.localStorage.getItem(STORAGE_KEY));
+}
+
+function getServerRoleSnapshot(): DemoRole {
+  return DEFAULT_DEMO_ROLE;
+}
+
+function subscribeRoleStore(onStoreChange: () => void) {
+  const onStorage = (event: StorageEvent) => {
+    if (event.key === STORAGE_KEY || event.key === null) {
+      onStoreChange();
+    }
+  };
+  window.addEventListener("storage", onStorage);
+  window.addEventListener(DEMO_ROLE_CHANGE_EVENT, onStoreChange);
+  return () => {
+    window.removeEventListener("storage", onStorage);
+    window.removeEventListener(DEMO_ROLE_CHANGE_EVENT, onStoreChange);
+  };
 }
 
 export function DemoRoleProvider({ children }: DemoRoleProviderProps) {
-  const [role, setRoleState] = useState<DemoRole>(DEFAULT_ROLE);
+  const role = useSyncExternalStore(subscribeRoleStore, getClientRoleSnapshot, getServerRoleSnapshot);
   const [isHydrated, setIsHydrated] = useState(false);
 
   useEffect(() => {
     void Promise.resolve().then(() => {
-      const saved = normalizeRole(window.localStorage.getItem(STORAGE_KEY));
-      setRoleState(saved);
       setIsHydrated(true);
     });
   }, []);
 
-  const setRole = (nextRole: DemoRole) => {
-    setRoleState(nextRole);
+  const setRole = useCallback((nextRole: DemoRole) => {
     persistRole(nextRole);
-  };
+  }, []);
 
   const currentSellerId = useMemo(() => resolveDemoCurrentSellerId(role), [role]);
 
@@ -94,7 +118,7 @@ export function DemoRoleProvider({ children }: DemoRoleProviderProps) {
       currentSellerId,
       setRole,
     }),
-    [role, isHydrated, currentSellerId],
+    [role, isHydrated, currentSellerId, setRole],
   );
 
   return <roleContext.Provider value={value}>{children}</roleContext.Provider>;
@@ -136,7 +160,7 @@ function DemoRoleOptionList({
               type="button"
               onClick={() => setRole(option.id)}
               className={[
-                "flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition",
+                "flex min-h-11 w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition",
                 isActive ? "bg-slate-900 text-white" : "text-slate-700 hover:bg-slate-50",
               ].join(" ")}
             >
@@ -159,13 +183,13 @@ function DemoRoleOptionList({
 
 export function DemoRoleFloatingControl() {
   const { role, isHydrated, setRole } = useDemoRole();
-  const effectiveRole = isHydrated ? role : DEFAULT_ROLE;
+  const effectiveRole = isHydrated ? role : DEFAULT_DEMO_ROLE;
   const activeOption = roleOptions.find((item) => item.id === effectiveRole) ?? roleOptions[0];
 
   return (
     <div className="pointer-events-none fixed bottom-4 right-4 z-50 sm:bottom-6 sm:right-6">
       <details className="pointer-events-auto relative">
-        <summary className="flex h-11 cursor-pointer list-none items-center gap-2 rounded-2xl border border-slate-200 bg-white/95 px-3 text-xs font-medium text-slate-700 shadow-lg shadow-slate-900/10 backdrop-blur">
+        <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-2xl border border-slate-200 bg-white/95 px-3 py-1.5 text-sm font-medium text-slate-700 shadow-lg shadow-slate-900/10 backdrop-blur">
           <span className="hidden text-[11px] font-semibold uppercase tracking-wide text-slate-500 sm:inline">
             Демо-режим
           </span>

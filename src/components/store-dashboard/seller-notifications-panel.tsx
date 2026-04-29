@@ -5,14 +5,14 @@ import { useMemo, useState } from "react";
 import { NotificationFilter, NotificationFilterTabs } from "@/components/notifications/notification-filter-tabs";
 import { NotificationList } from "@/components/notifications/notification-list";
 import { Button, Card } from "@/components/ui";
-import { sellerNotificationsMock } from "@/lib/seller-activity-mock";
+import { getStoreNotificationsSync } from "@/services/stores";
 
 export function SellerNotificationsPanel({
   onUnreadChange,
 }: {
   onUnreadChange: (count: number) => void;
 }) {
-  const [notifications, setNotifications] = useState(() => structuredClone(sellerNotificationsMock));
+  const [notifications, setNotifications] = useState(() => getStoreNotificationsSync());
   const [filter, setFilter] = useState<NotificationFilter>("all");
 
   const unreadCount = useMemo(

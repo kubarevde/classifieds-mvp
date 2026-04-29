@@ -3,9 +3,13 @@
 import { FormEvent, useState } from "react";
 import Link from "next/link";
 
+import { cn } from "@/components/ui/cn";
+import { buttonVariants } from "@/lib/button-styles";
 import type { BuyerRequest } from "@/entities/requests/model";
 import { unifiedCatalogListings } from "@/lib/listings.data";
 import { getStorefrontSellerById } from "@/lib/sellers";
+import { detectMessageRisk } from "@/services/risk";
+import { ScamPatternNotice } from "@/components/risk/ScamPatternNotice";
 
 type RequestResponseComposerProps = {
   request: BuyerRequest;
@@ -50,6 +54,7 @@ export function RequestResponseComposer({
       const text = `${listing.title} ${listing.description} ${listing.categoryId}`.toLowerCase();
       return listing.categoryId === request.categoryId || requestKeywords.split(/\s+/).some((word) => text.includes(word));
     });
+  const messageRiskSignals = detectMessageRisk(message);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -76,7 +81,7 @@ export function RequestResponseComposer({
     <form onSubmit={handleSubmit} className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4">
       <h3 className="text-base font-semibold text-slate-900">Отклик продавца</h3>
       <ol className="space-y-1 rounded-lg bg-slate-50 p-3 text-xs text-slate-600">
-        <li>1. Опишите предложение и условия.</li>
+        <li>1. Опишите отклик и условия.</li>
         <li>2. Прикрепите существующее объявление (если есть).</li>
         <li>3. Укажите цену и отметьте бюджет.</li>
       </ol>
@@ -84,22 +89,23 @@ export function RequestResponseComposer({
         required
         value={message}
         onChange={(e) => setMessage(e.target.value)}
-        className="min-h-[110px] w-full rounded-xl border border-slate-200 px-3 py-2"
-        placeholder="Опишите предложение, сроки и условия"
+        className="min-h-[110px] w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+        placeholder="Опишите отклик, сроки и условия"
       />
+      <ScamPatternNotice signals={messageRiskSignals} />
       <div className="grid gap-3 sm:grid-cols-2">
         <input
           type="number"
           min={0}
           value={price}
           onChange={(e) => setPrice(e.target.value)}
-          className="h-10 rounded-xl border border-slate-200 px-3"
-          placeholder="Цена предложения"
+          className="h-11 min-h-[44px] rounded-xl border border-slate-200 px-3 text-sm"
+          placeholder="Цена в отклике"
         />
         <select
           value={listingId}
           onChange={(e) => setListingId(e.target.value)}
-          className="h-10 rounded-xl border border-slate-200 px-3"
+          className="h-11 min-h-[44px] rounded-xl border border-slate-200 px-3 text-sm"
         >
           <option value="">Без привязки объявления</option>
           {attachableListings.map((listing) => (
@@ -111,7 +117,7 @@ export function RequestResponseComposer({
       </div>
       {attachableListings.length === 0 ? (
         <p className="text-xs text-slate-500">
-          Подходящих активных объявлений не найдено. Можно отправить предложение без привязки и позже подготовить карточку товара.
+          Подходящих активных объявлений не найдено. Можно отправить отклик без привязки и позже подготовить карточку товара.
         </p>
       ) : (
         <p className="text-xs text-slate-500">Найдено релевантных объявлений для привязки: {attachableListings.length}.</p>
@@ -127,12 +133,15 @@ export function RequestResponseComposer({
       <button
         type="submit"
         disabled={isSending}
-        className="inline-flex h-10 items-center justify-center rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+        className={cn(
+          buttonVariants({ variant: "primary", size: "md" }),
+          "justify-center disabled:cursor-not-allowed disabled:opacity-60",
+        )}
       >
         {isSending ? "Отправляем..." : "Отправить отклик"}
       </button>
       {attachableListings.length === 0 ? (
-        <Link href="/create-listing" className="block text-xs font-medium text-slate-500 hover:text-slate-700">
+        <Link href="/create-listing" className="inline-flex min-h-11 items-center text-sm font-medium text-slate-600 hover:text-slate-900">
           Создать новое объявление под запрос
         </Link>
       ) : null}

@@ -5,9 +5,11 @@ import Link from "next/link";
 import { useSavedSearches } from "@/components/saved-searches/saved-searches-provider";
 import { SavedSearchList } from "@/components/saved-searches/saved-search-list";
 import { Card, buttonVariants } from "@/components/ui";
+import { useSavedSearchesNewMatchesTotal } from "@/hooks/data/use-saved-search-matches";
 
 export function SavedSearchesPageClient() {
-  const { searches, getTotalNewMatches } = useSavedSearches();
+  const { searches } = useSavedSearches();
+  const { total: totalNewMatches, loading: matchesLoading } = useSavedSearchesNewMatchesTotal(searches);
 
   return (
     <div className="space-y-4">
@@ -22,7 +24,7 @@ export function SavedSearchesPageClient() {
               фронтенде).
             </p>
             <p className="text-xs font-semibold text-slate-700">
-              Новых объявлений сегодня: {getTotalNewMatches()}
+              Новых объявлений сегодня: {matchesLoading ? "…" : totalNewMatches}
             </p>
           </div>
           <div className="flex flex-wrap gap-2 sm:justify-end">

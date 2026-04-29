@@ -5,9 +5,10 @@ import {
   unifiedCatalogListings,
 } from "@/lib/listings.data";
 import { filterAndSortUnifiedListings } from "@/lib/listings.filters";
+import { categories, features } from "@/lib/mock-data";
 import type { ListingWorld, UnifiedCatalogListing } from "@/lib/listings.types";
 
-import type { ListingDraft, ListingFilters, ListingsService } from "./types";
+import type { HomeCategory, HomeFeature, ListingDraft, ListingFilters, ListingsService } from "./types";
 
 type CatalogFilterInput = Parameters<typeof filterAndSortUnifiedListings>[1];
 
@@ -152,3 +153,19 @@ export const mockListingsService: ListingsService = {
     return Promise.resolve();
   },
 };
+
+export async function getHomeCategoriesMock(): Promise<HomeCategory[]> {
+  return getHomeCategoriesMockSync();
+}
+
+export async function getHomeFeaturesMock(): Promise<HomeFeature[]> {
+  return getHomeFeaturesMockSync();
+}
+
+export function getHomeCategoriesMockSync(): HomeCategory[] {
+  return [...categories];
+}
+
+export function getHomeFeaturesMockSync(): HomeFeature[] {
+  return [...features];
+}

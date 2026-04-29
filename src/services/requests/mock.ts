@@ -7,7 +7,7 @@ import { rankSellerForRequest } from "@/services/requests/matching";
 import type {
   BuyerRequestFilters,
   BuyerRequestsService,
-} from "./index";
+} from "./types";
 
 let requestsStore: BuyerRequest[] = buyerRequestsMock.map((row) => ({ ...row }));
 let responsesStore: RequestResponse[] = requestResponsesMock.map((row) => ({ ...row }));

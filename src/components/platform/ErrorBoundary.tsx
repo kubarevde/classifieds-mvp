@@ -3,7 +3,7 @@
 import type { ErrorInfo, ReactNode } from "react";
 import { Component } from "react";
 
-import { captureError } from "@/lib/observability";
+import { captureException } from "@/lib/monitoring";
 
 type ErrorBoundaryProps = {
   fallback: ReactNode;
@@ -23,7 +23,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    captureError(error, {
+    captureException(error, {
       componentStack: info.componentStack,
       context: this.props.context ?? "unknown-boundary",
     });

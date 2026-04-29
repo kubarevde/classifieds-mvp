@@ -1,21 +1,18 @@
-import { logger } from "./logger";
+/**
+ * @deprecated Импортируйте из `@/lib/monitoring` и `@/lib/logger`.
+ * Оставлено для постепенной миграции.
+ */
+import { captureEvent, captureException } from "@/lib/monitoring";
+import { logger } from "@/lib/logger";
+
 import { trackWebVital } from "./web-vitals";
 
 export function captureError(error: unknown, context?: Record<string, unknown>) {
-  logger.error("captureError", {
-    error: error instanceof Error ? error.message : String(error),
-    stack: error instanceof Error ? error.stack : undefined,
-    ...context,
-  });
+  captureException(error, context);
 }
 
 export function captureMessage(message: string, context?: Record<string, unknown>) {
-  logger.info(message, context);
+  captureEvent("app.message", { message, ...context });
 }
 
-export function trackUiEvent(event: string, payload?: Record<string, unknown>) {
-  logger.info(`ui:${event}`, payload);
-}
-
-export { trackWebVital, logger };
-
+export { captureException, captureEvent, logger, trackWebVital };

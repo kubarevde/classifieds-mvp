@@ -19,6 +19,8 @@ import {
 } from "@/lib/sellers";
 import { ListingsView, ListingWorld } from "@/lib/listings";
 import { withReturnTo } from "@/lib/navigation/return-to";
+import { ReportAbuseButton } from "@/components/safety/ReportAbuseButton";
+import { TransactionSafetyChecklist } from "@/components/risk/TransactionSafetyChecklist";
 
 type StorefrontPageClientProps = {
   seller: SellerStorefront;
@@ -54,7 +56,7 @@ const worldLabels: Record<ListingWorld, string> = {
 };
 
 const viewButtonClassName =
-  "rounded-xl border px-3 py-2 text-sm font-medium transition hover:border-slate-300 hover:bg-slate-50";
+  "min-h-11 rounded-xl border px-3 py-2 text-sm font-medium transition hover:border-slate-300 hover:bg-slate-50";
 
 const StorefrontReputationSection = dynamic(
   () => import("@/components/sellers/storefront-reputation-section").then((mod) => mod.StorefrontReputationSection),
@@ -78,7 +80,7 @@ export function StorefrontPageClient({
   promotionState,
   campaigns,
 }: StorefrontPageClientProps) {
-  const storefrontReturnTo = `/sellers/${seller.id}#seller-listings`;
+  const storefrontReturnTo = `/stores/${seller.id}#seller-listings`;
   const [scope, setScope] = useState<ListingScope>("all");
   const [world, setWorld] = useState<"all" | ListingWorld>("all");
   const [inventoryQuery, setInventoryQuery] = useState("");
@@ -283,7 +285,7 @@ export function StorefrontPageClient({
 
   return (
     <div className="space-y-3 sm:space-y-4">
-      <section className="rounded-2xl border border-slate-200/90 bg-white shadow-sm">
+      <section className="rounded-2xl border border-slate-200/90 bg-white shadow-none">
         <div className="h-1 w-full rounded-t-2xl bg-slate-900/80" aria-hidden />
         <div className="grid gap-4 px-3 py-3 sm:px-4 sm:py-4 lg:grid-cols-[minmax(0,1fr)_280px] lg:gap-6 lg:px-5">
           <div className="min-w-0 space-y-3.5">
@@ -313,7 +315,7 @@ export function StorefrontPageClient({
                     type="button"
                     onClick={toggleFavoriteStore}
                     aria-label={isFavoriteStore ? "Убрать из избранных магазинов" : "Добавить магазин в избранные"}
-                    className={`ml-1 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white transition sm:ml-2 ${
+                    className={`ml-1 inline-flex h-11 w-11 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white transition sm:ml-2 ${
                       isFavoriteStore ? "text-rose-600" : "text-slate-500 hover:bg-slate-50"
                     }`}
                   >
@@ -331,7 +333,7 @@ export function StorefrontPageClient({
                   <span className="text-slate-400"> · </span>
                   На платформе: <span className="font-medium text-slate-700">{seller.memberSinceLabel}</span>
                 </p>
-                <StorefrontHeroTrustHint targetId={seller.id} />
+                <StorefrontHeroTrustHint targetId={seller.id} memberSinceLabel={seller.memberSinceLabel} />
               </div>
             </div>
           </div>
@@ -350,29 +352,38 @@ export function StorefrontPageClient({
                     listingTitle: firstListing?.title ?? seller.storefrontName,
                   },
                 }}
-                className="inline-flex w-full items-center justify-center rounded-lg bg-slate-900 px-3 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
+                className="inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-slate-900 px-3 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
               >
                 Написать продавцу
               </Link>
               <button
                 type="button"
                 onClick={() => setIsPhoneRevealed((previous) => !previous)}
-                className="inline-flex w-full items-center justify-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
+                className="inline-flex min-h-11 w-full items-center justify-center rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
               >
                 {isPhoneRevealed ? seller.phone : "Показать телефон"}
               </button>
               <a
                 href="#seller-listings"
-                className="inline-flex w-full items-center justify-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
+                className="inline-flex min-h-11 w-full items-center justify-center rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
               >
                 Ко всем объявлениям
               </a>
+              <ReportAbuseButton
+                targetType="store"
+                targetId={seller.id}
+                targetLabel={seller.storefrontName}
+                variant="outline"
+                className="w-full justify-center text-sm"
+                label="Сообщить о нарушении"
+              />
             </div>
             <p className="text-[11px] text-slate-500">Откройте каталог, чтобы сразу посмотреть актуальные позиции магазина.</p>
+            <TransactionSafetyChecklist variant="compact" />
             <button
               type="button"
               onClick={toggleSubscription}
-              className={`inline-flex w-full items-center justify-center rounded-lg border px-3 py-2 text-sm font-semibold transition ${
+              className={`inline-flex min-h-11 w-full items-center justify-center rounded-lg border px-3 py-2.5 text-sm font-semibold transition ${
                 isSubscribed
                   ? "border-slate-300 bg-white text-slate-800 hover:bg-slate-50"
                   : "border-slate-900 bg-slate-900 text-white hover:bg-slate-800"
@@ -393,12 +404,12 @@ export function StorefrontPageClient({
       <StorefrontFeaturedSection pinnedListings={pinnedPromoListingsWithReturnTo} campaigns={campaigns} />
 
       {vitrinePopular.length ? (
-        <section className="space-y-4 rounded-3xl border border-slate-200/90 bg-white p-5 shadow-sm sm:p-6">
+        <section className="space-y-4 rounded-3xl border border-slate-200/90 bg-white p-5 shadow-none sm:p-6">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
               <h2 className="text-lg font-semibold tracking-tight text-slate-900">Лучшее</h2>
               <p className="mt-1 max-w-2xl text-sm text-slate-600">
-                Подборка сильных позиций по демо-правилам видимости и релевантности витрины.
+                Подборка сильных позиций по демо-правилам видимости и релевантности магазина.
               </p>
             </div>
             <a
@@ -418,7 +429,7 @@ export function StorefrontPageClient({
       ) : null}
 
       {vitrineNew.length ? (
-        <section className="space-y-4 rounded-3xl border border-slate-200/90 bg-white p-5 shadow-sm sm:p-6">
+        <section className="space-y-4 rounded-3xl border border-slate-200/90 bg-white p-5 shadow-none sm:p-6">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
               <h2 className="text-lg font-semibold tracking-tight text-slate-900">Новое поступление</h2>
@@ -443,10 +454,10 @@ export function StorefrontPageClient({
       ) : null}
 
       {vitrineBudget.length > 0 && vitrineBudgetCap != null ? (
-        <section className="space-y-4 rounded-3xl border border-slate-200/90 bg-white p-5 shadow-sm sm:p-6">
+        <section className="space-y-4 rounded-3xl border border-slate-200/90 bg-white p-5 shadow-none sm:p-6">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
-              <h2 className="text-lg font-semibold tracking-tight text-slate-900">Выгодная витрина</h2>
+              <h2 className="text-lg font-semibold tracking-tight text-slate-900">Выгодные объявления</h2>
               <p className="mt-1 max-w-2xl text-sm text-slate-600">
                 Активные объявления до порога{" "}
                 <span className="font-semibold tabular-nums text-slate-800">
@@ -465,7 +476,7 @@ export function StorefrontPageClient({
           <ListingsGrid
             listings={vitrineBudgetWithReturnTo}
             view="grid"
-            emptyMessage="В этой ценовой витрине пока пусто."
+            emptyMessage="В этом ценовом блоке пока пусто."
             emptyStateClassName="bg-slate-50"
           />
         </section>
@@ -473,12 +484,12 @@ export function StorefrontPageClient({
 
       <section
         id="seller-listings"
-        className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm sm:p-5"
+        className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-none sm:p-5"
       >
         <div className="mb-3 border-b border-slate-100 pb-3">
           <h2 className="text-lg font-semibold tracking-tight text-slate-900">Все объявления</h2>
           <p className="mt-1 text-sm text-slate-600">
-            Локальный поиск по витрине, сортировка и фильтры по статусу и «мирам» каталога.
+            Локальный поиск по магазину, сортировка и фильтры по статусу и мирам каталога.
           </p>
         </div>
 
@@ -490,13 +501,13 @@ export function StorefrontPageClient({
               value={inventoryQuery}
               onChange={(event) => setInventoryQuery(event.target.value)}
               placeholder="Искать в этом магазине…"
-              className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50/50 pl-9 pr-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:bg-white"
+              className="h-11 min-h-[44px] w-full rounded-xl border border-slate-200 bg-slate-50/50 pl-9 pr-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:bg-white"
             />
           </div>
           <select
             value={inventorySort}
             onChange={(event) => setInventorySort(event.target.value as "newest" | "price_asc" | "price_desc")}
-            className="h-10 shrink-0 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none focus:border-slate-400 sm:min-w-[11rem]"
+            className="h-11 min-h-[44px] shrink-0 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none focus:border-slate-400 sm:min-w-[11rem]"
           >
             <option value="newest">Сначала новые</option>
             <option value="price_asc">Сначала дешевле</option>
@@ -517,7 +528,7 @@ export function StorefrontPageClient({
                   key={section}
                   type="button"
                   onClick={() => setScope(section)}
-                  className={`rounded-full border px-3 py-1.5 text-sm font-medium transition ${
+                  className={`min-h-11 rounded-full border px-3 py-2 text-sm font-medium transition ${
                     isActive
                       ? "border-slate-900 bg-slate-900 text-white"
                       : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50"
@@ -551,7 +562,7 @@ export function StorefrontPageClient({
           <button
             type="button"
             onClick={() => setWorld("all")}
-            className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
+            className={`min-h-11 rounded-full border px-3 py-2 text-sm font-medium transition ${
               world === "all"
                 ? "border-slate-900 bg-slate-900 text-white"
                 : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
@@ -564,7 +575,7 @@ export function StorefrontPageClient({
               key={worldOption}
               type="button"
               onClick={() => setWorld(worldOption)}
-              className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
+              className={`min-h-11 rounded-full border px-3 py-2 text-sm font-medium transition ${
                 world === worldOption
                   ? "border-slate-900 bg-slate-900 text-white"
                   : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
@@ -590,13 +601,13 @@ export function StorefrontPageClient({
       </ErrorBoundary>
 
       {activeCoupons.length ? (
-        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-none sm:p-5">
           <h2 className="text-lg font-semibold tracking-tight text-slate-900">Акции и купоны</h2>
           <p className="mt-1 text-sm text-slate-600">
             Магазин может создавать временные предложения и купоны — вы видите их здесь.
           </p>
           {primaryCoupon ? (
-            <div className="relative mt-3 overflow-hidden rounded-2xl border border-slate-200 bg-gradient-to-r from-slate-50 to-white px-5 py-4 shadow-sm">
+            <div className="relative mt-3 overflow-hidden rounded-2xl border border-slate-200 bg-gradient-to-r from-slate-50 to-white px-5 py-4 shadow-none">
               <div className="pointer-events-none absolute -right-6 top-0 h-24 w-24 rounded-full bg-slate-200/40 blur-2xl" />
               <div className="relative flex flex-wrap items-center justify-between gap-3">
                 <div>
@@ -642,21 +653,21 @@ export function StorefrontPageClient({
 
       <section
         id="store-about"
-        className="rounded-3xl border border-slate-200/90 bg-gradient-to-b from-white to-slate-50/90 p-5 shadow-sm sm:p-6"
+        className="rounded-3xl border border-slate-200/90 bg-gradient-to-b from-white to-slate-50/90 p-5 shadow-none sm:p-6"
       >
         <h2 className="text-lg font-semibold tracking-tight text-slate-900">О магазине</h2>
         <p className="mt-1 max-w-2xl text-sm text-slate-600">
           Краткий профиль продавца и контакты — в одном блоке, без лишних экранов.
         </p>
         <div className="mt-5 grid gap-4 lg:grid-cols-3">
-          <div className="space-y-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm shadow-slate-900/5">
+          <div className="space-y-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-none">
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">История и позиционирование</p>
             <p className="text-sm leading-relaxed text-slate-700">{seller.shortDescription}</p>
             <p className="text-xs text-slate-500">
               Тип продавца: <span className="font-medium text-slate-700">{getSellerTypeLabel(seller.type)}</span>
             </p>
           </div>
-          <div className="space-y-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm shadow-slate-900/5">
+          <div className="space-y-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-none">
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Активность</p>
             <ul className="space-y-2 text-sm text-slate-700">
               <li className="flex justify-between gap-2">
@@ -668,7 +679,7 @@ export function StorefrontPageClient({
               Репутация и отзывы — в разделе «Репутация и отзывы» на этой странице.
             </p>
           </div>
-          <div className="space-y-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm shadow-slate-900/5">
+          <div className="space-y-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-none">
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Контакты</p>
             <p className="text-sm text-slate-700">
               Телефон: <span className="font-medium text-slate-900">{seller.phone}</span>

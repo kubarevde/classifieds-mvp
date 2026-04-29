@@ -4,6 +4,8 @@ import { useState } from "react";
 import { Bookmark } from "lucide-react";
 
 import { useSavedSearches } from "@/components/saved-searches/saved-searches-provider";
+import { cn } from "@/components/ui/cn";
+import { buttonVariants } from "@/lib/button-styles";
 import { FeatureGate } from "@/components/platform";
 import { useFeatureGate } from "@/hooks/useFeatureGate";
 import { useToast } from "@/components/ui/toast";
@@ -11,6 +13,8 @@ import type { SearchAlertChannel, SearchIntent } from "@/entities/search/model";
 import {
   createSearchIntentFromFilters,
   defaultSavedSearchFilters,
+  hasPersistableListingFilters,
+  hasPersistableSearchIntent,
   type SavedSearchFilters,
 } from "@/lib/saved-searches";
 
@@ -26,8 +30,13 @@ export function SaveSearchButton({ filters, intent, className = "" }: SaveSearch
   const { canUse } = useFeatureGate();
   const [isOpen, setIsOpen] = useState(false);
   const effectiveIntent = intent ?? createSearchIntentFromFilters(filters ?? defaultSavedSearchFilters);
+  const canSave = intent ? hasPersistableSearchIntent(intent) : hasPersistableListingFilters(filters ?? defaultSavedSearchFilters);
   const [title, setTitle] = useState(effectiveIntent.autoTitle);
   const [channel, setChannel] = useState<SearchAlertChannel>("off");
+
+  if (!canSave) {
+    return null;
+  }
 
   const handleSave = () => {
     addSearch(
@@ -47,14 +56,14 @@ export function SaveSearchButton({ filters, intent, className = "" }: SaveSearch
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 text-sm font-semibold text-slate-800 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
+        className={cn(buttonVariants({ variant: "secondary", size: "md" }), "gap-2 rounded-xl px-3.5")}
       >
         <Bookmark className="h-4 w-4 text-slate-500" strokeWidth={1.5} aria-hidden="true" />
         Сохранить поиск
       </button>
       {isOpen ? (
         <div className="fixed inset-0 z-50 bg-slate-900/35 p-4">
-          <div className="mx-auto mt-24 w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-4 shadow-xl">
+          <div className="mx-auto mt-24 w-full max-w-lg rounded-2xl border border-slate-200/90 bg-white p-4 shadow-lg">
             <h3 className="text-lg font-semibold text-slate-900">Сохранить поиск</h3>
             <p className="mt-1 text-sm text-slate-600">
               Сохраните текущий набор фильтров и включите уведомления о новых совпадениях.

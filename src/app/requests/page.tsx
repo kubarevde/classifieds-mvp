@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 
 import { Navbar } from "@/components/layout/navbar";
 import { RequestsBoardClient } from "@/components/requests/RequestsBoardClient";
 import { StructuredDataScript } from "@/components/seo/structured-data-script";
 import { Container } from "@/components/ui/container";
-import { searchIntentToBuyerRequestDraft } from "@/services/requests/intent-adapter";
-import { mockBuyerRequestsService } from "@/services/requests";
 import { parseIntentFromSearchParams } from "@/lib/saved-searches";
+import { buildCreateRequestHrefFromIntent } from "@/services/requests/intent-adapter";
+import { mockBuyerRequestsService } from "@/services/requests";
 import { buildBreadcrumbListJsonLd } from "@/lib/seo/breadcrumbs";
 import { toCanonicalUrl } from "@/lib/seo/canonical";
 import { buildPageMetadata } from "@/lib/seo/metadata";
@@ -17,8 +18,8 @@ type RequestsPageProps = {
 };
 
 export const metadata: Metadata = buildPageMetadata({
-  title: "Запросы покупателей - Classify",
-  description: "Доска запросов покупателей: публикуйте спрос и получайте отклики от продавцов и магазинов.",
+  title: "Запросы - Classify",
+  description: "Доска запросов: публикуйте запросы и получайте отклики от продавцов и магазинов.",
   path: "/requests",
 });
 
@@ -36,15 +37,17 @@ export default async function RequestsPage({ searchParams }: RequestsPageProps) 
     }
   }
   const intent = parseIntentFromSearchParams(url);
-  const prefillDraft = intent ? searchIntentToBuyerRequestDraft(intent) : undefined;
+  if (intent && intent.target === "listing") {
+    redirect(buildCreateRequestHrefFromIntent(intent));
+  }
 
   return (
     <div className="min-h-screen bg-slate-50">
       <StructuredDataScript
         id="requests-collection-jsonld"
         data={buildCollectionPageJsonLd(
-          "Запросы покупателей",
-          "Публичная доска запросов о покупке с откликами продавцов.",
+          "Запросы",
+          "Публичная доска запросов с откликами продавцов.",
           "/requests",
         )}
       />
@@ -52,19 +55,19 @@ export default async function RequestsPage({ searchParams }: RequestsPageProps) 
         id="requests-breadcrumb-jsonld"
         data={buildBreadcrumbListJsonLd([
           { name: "Главная", url: toCanonicalUrl("/") },
-          { name: "Запросы покупателей", url: toCanonicalUrl("/requests") },
+          { name: "Запросы", url: toCanonicalUrl("/requests") },
         ])}
       />
       <Navbar />
       <main className="py-6 sm:py-8">
         <Container className="space-y-4">
           <header className="space-y-2">
-            <h1 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">Запросы покупателей</h1>
+            <h1 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">Запросы</h1>
             <p className="max-w-3xl text-sm text-slate-600 sm:text-base">
-              Reverse marketplace слой: разместите запрос о покупке и получите структурированные предложения от продавцов и магазинов.
+              Reverse marketplace слой: разместите запрос и получите структурированные отклики от продавцов и магазинов.
             </p>
           </header>
-          <RequestsBoardClient initialRequests={requests} prefillDraft={prefillDraft} />
+          <RequestsBoardClient initialRequests={requests} />
         </Container>
       </main>
     </div>

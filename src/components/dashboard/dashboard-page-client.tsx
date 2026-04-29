@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 import { useBuyer } from "@/components/buyer/buyer-provider";
@@ -12,9 +13,11 @@ import { MyListingsSection } from "@/components/dashboard/my-listings-section";
 import { MyRequestsSection } from "@/components/dashboard/my-requests-section";
 import { DEMO_STOREFRONT_SELLER_ID } from "@/lib/demo-role-constants";
 import { isListingVisibleByFilter } from "@/lib/dashboard";
-import { Card, buttonVariants } from "@/components/ui";
+import { Card, buttonVariants, cn } from "@/components/ui";
 import type { BuyerRequest } from "@/entities/requests/model";
 import { mockBuyerRequestsService } from "@/services/requests";
+import { REQUESTS_NEW_PATH } from "@/services/requests/intent-adapter";
+import { getUserAppeals, getUserEnforcementActions } from "@/services/enforcement";
 
 const defaultFilter: DashboardFilter = "all";
 
@@ -30,12 +33,21 @@ export function DashboardPageClient({
   promoteHeroIntent = false,
 }: DashboardPageClientProps) {
   const buyer = useBuyer();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [filter, setFilter] = useState<DashboardFilter>(defaultFilter);
-  const [publicationType, setPublicationType] = useState<"sale" | "purchase">("sale");
+  const publicationType: "sale" | "purchase" = searchParams.get("publication") === "purchase" ? "purchase" : "sale";
   const [showSponsorBoardHint, setShowSponsorBoardHint] = useState(fromSponsorBoard || promoteHeroIntent);
   const [buyerRequests, setBuyerRequests] = useState<BuyerRequest[]>([]);
   const listings = buyer.myListings;
   const currentBuyerId = "buyer-dmitriy";
+
+  const enforcementCounts = useMemo(() => {
+    const actions = getUserEnforcementActions(currentBuyerId);
+    const activeActionsCount = actions.filter((a) => a.status === "active").length;
+    const appealsCount = getUserAppeals(currentBuyerId).length;
+    return { activeActionsCount, appealsCount };
+  }, [currentBuyerId]);
 
   useEffect(() => {
     void mockBuyerRequestsService.getBuyerRequests({ authorId: currentBuyerId }).then((rows) => {
@@ -74,46 +86,43 @@ export function DashboardPageClient({
   return (
     <div className="space-y-4 sm:space-y-5">
       {showSponsorBoardHint ? (
-        <div className="flex flex-wrap items-start justify-between gap-3 rounded-2xl border border-sky-200 bg-sky-50 p-4 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-3 rounded-2xl border border-slate-200/90 bg-white p-4 shadow-none">
           <div className="min-w-0 space-y-2">
-            <p className="text-sm font-semibold text-sky-950">Продвижение в формате «Герой доски»</p>
+            <p className="text-sm font-semibold text-slate-900">Продвижение в формате «Герой доски»</p>
             {promoteHeroIntent ? (
               <>
-                <p className="text-xs leading-relaxed text-sky-900/90">
+                <p className="text-sm leading-relaxed text-slate-600">
                   Короткий путь для частного продавца (демо): сначала объявление, затем размещение в премиальном слоте
                   через магазин или напрямую из маркетинга.
                 </p>
-                <ol className="list-decimal space-y-1 pl-4 text-xs leading-relaxed text-sky-900/95">
+                <ol className="list-decimal space-y-1 pl-4 text-sm leading-relaxed text-slate-600">
                   <li>При необходимости подайте или обновите объявление.</li>
                   <li>Для hero-слота откройте кабинет магазина — там форма «Герой доски».</li>
-                  <li>Активные размещения всегда видны на витрине /sponsor-board.</li>
+                  <li>Активные размещения всегда видны на странице /sponsor-board.</li>
                 </ol>
-                <div className="flex flex-wrap gap-x-3 gap-y-1">
-                  <Link
-                    href="/create-listing?world=all"
-                    className="text-xs font-semibold text-sky-950 underline decoration-sky-300 underline-offset-2"
-                  >
+                <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-x-3 sm:gap-y-2">
+                  <Link href="/create-listing?world=all" className={cn(buttonVariants({ variant: "secondary", size: "md" }), "justify-center rounded-xl")}>
                     Подать объявление
                   </Link>
                   <Link
                     href={`/dashboard/store?sellerId=${DEMO_STOREFRONT_SELLER_ID}&section=hero-board&from=sponsor-board`}
-                    className="text-xs font-semibold text-sky-950 underline decoration-sky-300 underline-offset-2"
+                    className={cn(buttonVariants({ variant: "secondary", size: "md" }), "justify-center rounded-xl")}
                   >
                     Форма в кабинете магазина
                   </Link>
-                  <Link href="/sponsor-board" className="text-xs font-semibold text-sky-950 underline decoration-sky-300 underline-offset-2">
+                  <Link href="/sponsor-board" className={cn(buttonVariants({ variant: "secondary", size: "md" }), "justify-center rounded-xl")}>
                     Витрина «Герои в эфире»
                   </Link>
                 </div>
               </>
             ) : (
               <>
-                <p className="text-xs leading-relaxed text-sky-900/90">
-                  Вы открыли кабинет со страницы витрины размещений. Для магазина сценарий настраивается в маркетинге.
+                <p className="text-sm leading-relaxed text-slate-600">
+                  Вы открыли кабинет со страницы размещений. Для магазина сценарий настраивается в маркетинге.
                 </p>
                 <Link
                   href={`/dashboard/store?sellerId=${DEMO_STOREFRONT_SELLER_ID}&section=hero-board&from=sponsor-board`}
-                  className="inline-flex text-xs font-semibold text-sky-950 underline decoration-sky-300 underline-offset-2"
+                  className={cn(buttonVariants({ variant: "secondary", size: "md" }), "inline-flex justify-center rounded-xl")}
                 >
                   Открыть форму размещения в кабинете магазина
                 </Link>
@@ -123,7 +132,7 @@ export function DashboardPageClient({
           <button
             type="button"
             onClick={() => setShowSponsorBoardHint(false)}
-            className="shrink-0 rounded-lg border border-sky-300 bg-white px-2.5 py-1 text-xs font-semibold text-sky-900 transition hover:bg-sky-100"
+            className={cn(buttonVariants({ variant: "secondary", size: "md" }), "shrink-0 justify-center rounded-xl")}
           >
             Скрыть
           </button>
@@ -136,6 +145,24 @@ export function DashboardPageClient({
         sold={counts.sold}
         views={views}
       />
+
+      <Card className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+        <div className="min-w-0 space-y-1">
+          <h2 className="text-sm font-semibold text-slate-900">Ограничения и проверки</h2>
+          <p className="text-sm text-slate-600">Ваши активные решения и обращения на пересмотр.</p>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <span className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-xs font-semibold text-slate-700">
+              Активных действий: {enforcementCounts.activeActionsCount}
+            </span>
+            <span className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-xs font-semibold text-slate-700">
+              Обращений: {enforcementCounts.appealsCount}
+            </span>
+          </div>
+        </div>
+        <Link href="/enforcement" className={cn(buttonVariants({ variant: "primary", size: "md" }), "justify-center")}>
+          Открыть центр
+        </Link>
+      </Card>
 
       <Card className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
         <div className="space-y-1">
@@ -156,18 +183,18 @@ export function DashboardPageClient({
               <div className="space-y-1">
                 <h2 className="text-lg font-semibold tracking-tight text-slate-900">Мои публикации</h2>
                 <p className="text-sm text-slate-600">
-                  Выберите сценарий: опубликовать объявление о продаже или разместить запрос о покупке, чтобы получить предложения.
+                  Выберите сценарий: разместить объявление или запрос, чтобы получить отклики.
                 </p>
               </div>
               <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
                 <Link href="/create-listing" className={buttonVariants({ variant: "primary" })}>
-                  Разместить объявление о продаже
+                  Разместить объявление
                 </Link>
                 <Link
-                  href="/requests/new"
+                  href={REQUESTS_NEW_PATH}
                   className={buttonVariants({ variant: "outline", className: "border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100" })}
                 >
-                  Разместить запрос о покупке
+                  Создать запрос
                 </Link>
               </div>
             </div>
@@ -183,8 +210,19 @@ export function DashboardPageClient({
                   <button
                     key={item.id}
                     type="button"
-                    onClick={() => setPublicationType(item.id)}
-                    className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition ${
+                    onClick={() => {
+                      const next = item.id === "purchase" ? "purchase" : "sale";
+                      const params = new URLSearchParams(searchParams.toString());
+                      params.set("tab", "listings");
+                      if (next === "purchase") {
+                        params.set("publication", "purchase");
+                      } else {
+                        params.delete("publication");
+                      }
+                      const qs = params.toString();
+                      router.replace(qs ? `/dashboard?${qs}` : "/dashboard");
+                    }}
+                    className={`inline-flex min-h-11 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition ${
                       active ? "bg-white text-slate-900 shadow-sm ring-1 ring-slate-200" : "text-slate-600 hover:bg-white/70 hover:text-slate-900"
                     }`}
                   >

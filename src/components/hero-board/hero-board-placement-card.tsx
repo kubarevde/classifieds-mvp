@@ -31,7 +31,7 @@ export function HeroBoardPlacementCard({
   visualTier,
 }: HeroBoardPlacementCardProps) {
   const seller = getStorefrontSellerById(placement.sellerId);
-  const destinationHref = placement.ctaHref || `/sellers/${placement.sellerId}`;
+  const destinationHref = placement.ctaHref || `/stores/${placement.sellerId}`;
   const hasImage = Boolean(placement.imageUrl) && !compact;
   const onPhoto = hasImage;
 

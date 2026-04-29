@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { Car, Home, Sprout, Wrench } from "lucide-react";
 
-import { categories } from "@/lib/mock-data";
 import { Container } from "@/components/ui/container";
 import { WORLD_ICONS } from "@/config/icons";
+import { getHomeCategoriesSync } from "@/services/listings";
 
 const homeCategoryLinks = [
-  ...categories.map((category) => ({
+  ...getHomeCategoriesSync().map((category) => ({
     ...category,
     href:
       category.id === "electronics"

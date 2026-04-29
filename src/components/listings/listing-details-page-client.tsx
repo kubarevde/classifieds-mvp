@@ -10,10 +10,10 @@ import { ErrorBoundary } from "@/components/platform";
 import { useToast } from "@/components/ui/toast";
 import { getStorefrontSellerByListingId } from "@/lib/sellers";
 import type { Listing } from "@/lib/types";
+import { useListings } from "@/hooks/data/use-listings";
 import { mockAuctionService } from "@/services/auctions";
-import { mockListingsService } from "@/services/listings";
 import { sanitizeReturnTo } from "@/lib/navigation/return-to";
-import { usePublishedListingStore } from "@/stores/published-listing-store";
+import { usePublishedListing } from "@/hooks/data/use-published-listings-cache";
 
 import { ListingDetails } from "./listing-details";
 import { ListingPreviewCard } from "./listing-preview-card";
@@ -35,8 +35,8 @@ type ListingDetailsPageClientProps = {
 export function ListingDetailsPageClient({ id, staticListing }: ListingDetailsPageClientProps) {
   const router = useRouter();
   const [auction, setAuction] = useState<Awaited<ReturnType<typeof mockAuctionService.getByListing>>>(null);
-  const [catalogListings, setCatalogListings] = useState<Awaited<ReturnType<typeof mockListingsService.getAll>>>([]);
-  const published = usePublishedListingStore((state) => state.listings[id] ?? null);
+  const { data: catalogListings } = useListings();
+  const published = usePublishedListing(id);
   const listing = staticListing ?? published;
   const searchParams = useSearchParams();
   const { showToast } = useToast();
@@ -50,18 +50,6 @@ export function ListingDetailsPageClient({ id, staticListing }: ListingDetailsPa
       window.history.replaceState({}, "", `${next.pathname}${next.search}`);
     }
   }, [searchParams, showToast]);
-
-  useEffect(() => {
-    let cancelled = false;
-    void mockListingsService.getAll().then((items) => {
-      if (!cancelled) {
-        setCatalogListings(items);
-      }
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const relatedListings = useMemo(() => {
     if (!listing) {
@@ -135,7 +123,11 @@ export function ListingDetailsPageClient({ id, staticListing }: ListingDetailsPa
         )}
 
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
-          <ListingDetails listing={listing} />
+          <ListingDetails
+            listing={listing}
+            sellerId={storefrontSeller?.id ?? null}
+            sellerMemberSinceYear={storefrontSeller?.memberSinceYear}
+          />
           {auction ? (
             <ErrorBoundary
               context="auction-detail-panel"

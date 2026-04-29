@@ -4,10 +4,10 @@ import { createContext, ReactNode, useContext, useMemo, useState } from "react";
 
 import { useDemoRole } from "@/components/demo-role/demo-role";
 import { useSubscription } from "@/components/subscription/subscription-provider";
-import { profileAccountMock } from "@/lib/profile-mock";
-import { createMockFeatureGateService } from "@/services/feature-gate/mock";
+import { getProfileAccountSync } from "@/services/auth";
+import { createFeatureGateService } from "@/services/feature-gate";
 import type { BuyerService } from "@/services/buyer/contracts";
-import { createMockBuyerService, makeInitialBuyerState } from "@/services/buyer/mock";
+import { createBuyerService, makeInitialBuyerState } from "@/services/buyer";
 import type { BuyerState } from "@/services/buyer/types";
 
 type BuyerContextValue = BuyerState & {
@@ -75,8 +75,8 @@ function BuyerStateProvider({
   const [state, setState] = useState<BuyerState>(() => makeInitialBuyerState(isBuyerRole));
 
   const buyerService = useMemo(() => {
-    const gate = createMockFeatureGateService(subscriptionSnapshot, role);
-    return createMockBuyerService(setState, {
+    const gate = createFeatureGateService(subscriptionSnapshot, role);
+    return createBuyerService(setState, {
       canUseFeature: (feature) => gate.canUse(feature),
     });
   }, [role, subscriptionSnapshot]);
@@ -136,13 +136,14 @@ export function useBuyerService(): BuyerService {
 }
 
 export function useBuyerProfileMeta() {
+  const profileAccount = getProfileAccountSync();
   return {
-    email: profileAccountMock.email,
-    registeredAtIso: profileAccountMock.registeredAt,
+    email: profileAccount.email,
+    registeredAtIso: profileAccount.registeredAt,
     registeredAtLabel: new Intl.DateTimeFormat("ru-RU", {
       day: "numeric",
       month: "long",
       year: "numeric",
-    }).format(new Date(profileAccountMock.registeredAt)),
+    }).format(new Date(profileAccount.registeredAt)),
   };
 }

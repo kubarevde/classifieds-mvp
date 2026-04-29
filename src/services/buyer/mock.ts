@@ -5,8 +5,9 @@ import type { ListingCategory } from "@/lib/types";
 import { buildAutoSearchLabel, defaultSavedSearchFilters, type SavedSearch, type SavedSearchFilters } from "@/lib/saved-searches";
 import { myListingsMock } from "@/lib/dashboard-mock-data";
 import { mockConversations } from "@/lib/messages";
-import { getDefaultMockNotifications, type Notification } from "@/lib/notifications";
-import { defaultProfileFields } from "@/lib/profile-mock";
+import type { Notification } from "@/lib/notifications";
+import { getDefaultProfileFieldsSync } from "@/services/auth";
+import { getBuyerNotificationsSync } from "@/services/notifications";
 
 import type { AddListingInput, BuyerService } from "./contracts";
 import type { BuyerState, PromoteListingInput } from "./types";
@@ -45,8 +46,8 @@ export function makeInitialBuyerState(isBuyerRole: boolean): BuyerState {
         ]
       : [],
     messages: isBuyerRole ? structuredClone(mockConversations) : [],
-    notifications: isBuyerRole ? getDefaultMockNotifications() : [],
-    profile: { ...defaultProfileFields },
+    notifications: isBuyerRole ? getBuyerNotificationsSync() : [],
+    profile: getDefaultProfileFieldsSync(),
     promotions: [],
   };
 }
@@ -276,3 +277,5 @@ export function createMockBuyerService(
     },
   };
 }
+
+export const createBuyerService = createMockBuyerService;

@@ -36,6 +36,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
     tabValue === "saved-searches" ||
     tabValue === "messages" ||
     tabValue === "notifications" ||
+    tabValue === "support" ||
     tabValue === "profile"
       ? tabValue
       : "listings";
@@ -56,10 +57,10 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                 Личный кабинет
               </p>
               <h1 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
-                Лучший кабинет частного лица
+                Личный кабинет
               </h1>
               <p className="max-w-2xl text-sm text-slate-600 sm:text-base">
-                Все ключевые разделы в одном пространстве: объявления, избранное, сообщения, уведомления и профиль.
+                Все ключевые разделы в одном пространстве: объявления, избранное, сообщения, уведомления, поддержка и профиль.
               </p>
               <DashboardStoreCabinetLink />
             </header>

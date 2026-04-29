@@ -58,10 +58,7 @@ export function StoreMarketingSection({
     <>
       <div
         id="dashboard-store-marketing"
-        className={getSectionClassName(
-          "relative rounded-2xl pl-3 before:pointer-events-none before:absolute before:left-0 before:top-2 before:bottom-2 before:w-1 before:rounded-full before:bg-gradient-to-b before:from-indigo-400 before:to-violet-500 before:opacity-90",
-          "dashboard-store-marketing",
-        )}
+        className={getSectionClassName("rounded-2xl border border-slate-200/90 bg-white", "dashboard-store-marketing")}
       >
         <StoreMarketingWorkspace
           seller={effectiveSeller}
@@ -77,7 +74,7 @@ export function StoreMarketingSection({
         />
       </div>
 
-      <Card className="rounded-2xl border-slate-200 shadow-sm">
+      <Card>
         <CardHeader>
           <h2 className="text-lg font-semibold tracking-tight text-slate-900">Герой доски магазина</h2>
           <p className="mt-1 text-sm text-slate-600">

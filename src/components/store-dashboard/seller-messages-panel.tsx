@@ -7,7 +7,7 @@ import { ConversationList } from "@/components/messages/conversation-list";
 import { MessageBubble } from "@/components/messages/message-bubble";
 import { MessageInput } from "@/components/messages/message-input";
 import { Card } from "@/components/ui";
-import { sellerConversationsMock } from "@/lib/seller-activity-mock";
+import { getStoreConversationsSync } from "@/services/stores";
 
 type MobileView = "list" | "chat";
 
@@ -16,9 +16,9 @@ export function SellerMessagesPanel({
 }: {
   onUnreadChange: (count: number) => void;
 }) {
-  const [conversations, setConversations] = useState(() => structuredClone(sellerConversationsMock));
+  const [conversations, setConversations] = useState(() => getStoreConversationsSync());
   const [activeConversationId, setActiveConversationId] = useState<string | null>(
-    sellerConversationsMock[0]?.id ?? null,
+    getStoreConversationsSync()[0]?.id ?? null,
   );
   const [draftMessage, setDraftMessage] = useState("");
   const [mobileView, setMobileView] = useState<MobileView>("list");

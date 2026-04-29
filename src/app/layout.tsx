@@ -3,6 +3,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 
 import { BuyerProvider } from "@/components/buyer/buyer-provider";
 import { DemoRoleFloatingControl, DemoRoleProvider } from "@/components/demo-role/demo-role";
+import { AppProviders } from "@/components/platform/app-providers";
+import { AppShell } from "@/components/platform/app-shell";
 import { ServiceWorkerRegister } from "@/components/platform/service-worker-register";
 import { SubscriptionProvider } from "@/components/subscription/subscription-provider";
 import { ToastProvider } from "@/components/ui/toast";
@@ -31,7 +33,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "Classify - маркетплейс объявлений",
-    description: "Современный маркетплейс объявлений, запросов покупателей и витрин магазинов.",
+    description: "Современный маркетплейс объявлений, запросов и магазинов.",
     url: "/",
     siteName: "Classify",
     images: [{ url: "/icons/icon-512.svg", width: 512, height: 512, alt: "Classify" }],
@@ -40,7 +42,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Classify - маркетплейс объявлений",
-    description: "Современный маркетплейс объявлений, запросов покупателей и витрин магазинов.",
+    description: "Современный маркетплейс объявлений, запросов и магазинов.",
     images: ["/icons/icon-512.svg"],
   },
 };
@@ -56,11 +58,13 @@ export default function RootLayout({
         <DemoRoleProvider>
           <SubscriptionProvider>
             <BuyerProvider>
-              <ToastProvider>
-                {children}
-                <ServiceWorkerRegister />
-                <DemoRoleFloatingControl />
-              </ToastProvider>
+              <AppProviders>
+                <ToastProvider>
+                  <AppShell>{children}</AppShell>
+                  <ServiceWorkerRegister />
+                  <DemoRoleFloatingControl />
+                </ToastProvider>
+              </AppProviders>
             </BuyerProvider>
           </SubscriptionProvider>
         </DemoRoleProvider>

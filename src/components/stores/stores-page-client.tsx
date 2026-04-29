@@ -1,7 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 
+import { SearchActiveFilterChips, type SearchActiveChip } from "@/components/search/search-active-filter-chips";
 import { UnifiedSearchShell } from "@/components/search/unified-search-shell";
 import { SaveSearchButton } from "@/components/saved-searches/save-search-button";
 import { RecommendedStores } from "@/components/stores/recommended-stores";
@@ -18,7 +20,15 @@ import {
   storefrontSellers,
 } from "@/lib/sellers";
 import { CatalogWorld, getWorldLabel } from "@/lib/listings";
-import { createStoreSearchIntentFromFilters } from "@/lib/saved-searches";
+import { cn } from "@/components/ui/cn";
+import { buttonVariants } from "@/lib/button-styles";
+import {
+  createSearchIntentFromFilters,
+  createStoreSearchIntentFromFilters,
+  defaultSavedSearchFilters,
+  hasPersistableSearchIntent,
+} from "@/lib/saved-searches";
+import { buildCreateRequestHrefFromIntent } from "@/services/requests/intent-adapter";
 
 type StoreCatalogViewModel = StoreCatalogItem & {
   worldHint: CatalogWorld;
@@ -51,7 +61,7 @@ function getLatestListingTimestamp(sellerId: string, fallbackYear: number) {
 function mapToCardModel(seller: SellerStorefront): StoreCatalogViewModel {
   return {
     id: seller.id,
-    href: `/sellers/${seller.id}`,
+    href: `/stores/${seller.id}`,
     avatarLabel: seller.avatarLabel,
     storefrontName: seller.storefrontName,
     specializationLabel: getSellerTypeLabel(seller.type),
@@ -208,6 +218,96 @@ export function StoresPageClient() {
     [query, selectedCity, selectedType, selectedRating, sortBy],
   );
 
+  const storeFilterDrawerCount = useMemo(() => {
+    let n = 0;
+    if (selectedWorld !== "all") {
+      n += 1;
+    }
+    if (selectedType !== "all") {
+      n += 1;
+    }
+    if (selectedRating !== "all") {
+      n += 1;
+    }
+    if (selectedCity !== "all") {
+      n += 1;
+    }
+    if (query.trim().length > 0) {
+      n += 1;
+    }
+    if (sortBy !== "rating_desc") {
+      n += 1;
+    }
+    return n;
+  }, [query, selectedCity, selectedRating, selectedType, selectedWorld, sortBy]);
+
+  const storeActiveChips = useMemo((): SearchActiveChip[] => {
+    const chips: SearchActiveChip[] = [];
+    const q = query.trim();
+    if (q) {
+      chips.push({
+        id: "q",
+        label: `Запрос: ${q.length > 36 ? `${q.slice(0, 36)}…` : q}`,
+        onRemove: () => setQuery(""),
+      });
+    }
+    if (selectedWorld !== "all") {
+      chips.push({
+        id: "world",
+        label: getWorldLabel(selectedWorld as CatalogWorld),
+        onRemove: () => setSelectedWorld("all"),
+      });
+    }
+    if (selectedType !== "all") {
+      chips.push({
+        id: "type",
+        label: getSellerTypeLabel(selectedType as SellerType),
+        onRemove: () => setSelectedType("all"),
+      });
+    }
+    if (selectedRating !== "all") {
+      chips.push({
+        id: "rating",
+        label: `Рейтинг от ${selectedRating}`,
+        onRemove: () => setSelectedRating("all"),
+      });
+    }
+    if (selectedCity !== "all") {
+      chips.push({
+        id: "city",
+        label: selectedCity,
+        onRemove: () => setSelectedCity("all"),
+      });
+    }
+    if (sortBy !== "rating_desc") {
+      const sortLabel =
+        sortBy === "newest_desc" ? "Сортировка: новые" : sortBy === "listings_desc" ? "Сортировка: по объявлениям" : sortBy;
+      chips.push({
+        id: "sort",
+        label: sortLabel,
+        onRemove: () => setSortBy("rating_desc"),
+      });
+    }
+    return chips;
+  }, [query, selectedCity, selectedRating, selectedType, selectedWorld, sortBy]);
+
+  const listingBridgeFromStoreSearch = useMemo(() => {
+    const world =
+      selectedWorld !== "all" && allStores.some((s) => s.worldHint === selectedWorld)
+        ? (selectedWorld as (typeof defaultSavedSearchFilters)["world"])
+        : "all";
+    return createSearchIntentFromFilters(
+      {
+        ...defaultSavedSearchFilters,
+        world,
+        query: query.trim(),
+        category: "all",
+        location: selectedCity,
+      },
+      "keyword",
+    );
+  }, [allStores, query, selectedCity, selectedWorld]);
+
   return (
     <div className="space-y-4">
       <UnifiedSearchShell
@@ -219,22 +319,29 @@ export function StoresPageClient() {
         onQueryChange={setQuery}
         onQuerySubmit={() => {}}
         placeholder="Название магазина, город или описание"
-        extraControls={<SaveSearchButton intent={storeIntent} />}
+        belowQuery={
+          <SearchActiveFilterChips
+            chips={storeActiveChips}
+            onClearAll={storeActiveChips.length ? resetFilters : undefined}
+            clearAllLabel="Сбросить всё"
+          />
+        }
+        extraControls={hasPersistableSearchIntent(storeIntent) ? <SaveSearchButton intent={storeIntent} /> : null}
       />
       <StoreCatalogHero totalStores={allStores.length} />
 
       <RecommendedStores stores={recommendedStores} />
 
       <div className="space-y-1.5">
-        <p className="px-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">Тип магазина</p>
+        <p className="px-1 text-sm font-medium text-slate-600">Тип магазина</p>
         <div className="no-scrollbar -mx-1 flex items-center gap-2 overflow-x-auto px-1 pb-0.5">
           <button
             type="button"
             onClick={() => setSelectedType("all")}
-            className={`whitespace-nowrap rounded-full border px-3 py-1.5 text-xs font-medium transition ${
+            className={`min-h-11 whitespace-nowrap rounded-full border px-3 py-2 text-sm font-medium transition ${
               selectedType === "all"
-                ? "border-slate-400 bg-slate-900 text-white"
-                : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                ? "border-blue-600 bg-blue-600 text-white"
+                : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50"
             }`}
           >
             Все типы
@@ -244,10 +351,10 @@ export function StoresPageClient() {
               key={typeId}
               type="button"
               onClick={() => setSelectedType(typeId)}
-              className={`whitespace-nowrap rounded-full border px-3 py-1.5 text-xs font-medium transition ${
+              className={`min-h-11 whitespace-nowrap rounded-full border px-3 py-2 text-sm font-medium transition ${
                 selectedType === typeId
-                  ? "border-slate-400 bg-slate-900 text-white"
-                  : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                  ? "border-blue-600 bg-blue-600 text-white"
+                  : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50"
               }`}
             >
               {getSellerTypeLabel(typeId as SellerType)}
@@ -273,6 +380,7 @@ export function StoresPageClient() {
         sortBy={sortBy}
         onSortChange={setSortBy}
         onReset={resetFilters}
+        mobileActiveCount={storeFilterDrawerCount}
       />
 
       <p className="text-sm text-slate-600">
@@ -285,24 +393,52 @@ export function StoresPageClient() {
             <StoreCard key={store.id} store={store} />
           ))}
         </section>
-      ) : (
-        <section className="rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-900">Пока нет магазинов по этому набору фильтров</h2>
+      ) : null}
+
+      {sortedStores.length > 0 && sortedStores.length < 3 ? (
+        <section className="rounded-2xl border border-dashed border-slate-200/90 bg-white p-4 shadow-none sm:p-5">
+          <h3 className="text-base font-semibold text-slate-900">Не нашли то, что нужно?</h3>
+          <p className="mt-1 text-sm text-slate-600">
+            Создайте запрос на товар — подставим ваш поиск и город в форму обращения к продавцам.
+          </p>
+          <Link
+            href={buildCreateRequestHrefFromIntent(listingBridgeFromStoreSearch)}
+            className={cn(buttonVariants({ variant: "primary", size: "md" }), "mt-3 inline-flex justify-center rounded-xl")}
+          >
+            Создать запрос
+          </Link>
+        </section>
+      ) : null}
+
+      {!sortedStores.length ? (
+        <section className="rounded-2xl border border-slate-200/90 bg-white p-6 text-center shadow-none">
+          <h2 className="text-lg font-semibold tracking-tight text-slate-900">Пока нет магазинов по этому набору фильтров</h2>
           <p className="mt-2 text-sm text-slate-600">
-            Попробуйте снять ограничение по рейтингу или городу, либо очистить поисковый запрос. Так вы увидите больше релевантных витрин.
+            Попробуйте снять ограничение по рейтингу или городу, либо очистить поисковый запрос. Так вы увидите больше релевантных магазинов.
           </p>
           <button
             type="button"
             onClick={resetFilters}
-            className="mt-4 inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+            className={cn(buttonVariants({ variant: "secondary", size: "md" }), "mt-4 justify-center rounded-xl")}
           >
             Сбросить фильтры и показать все магазины
           </button>
+          {hasActiveFilters ? (
+            <Link
+              href={buildCreateRequestHrefFromIntent(listingBridgeFromStoreSearch)}
+              className={cn(
+                buttonVariants({ variant: "outline", size: "md" }),
+                "mt-3 inline-flex w-full justify-center rounded-xl sm:w-auto",
+              )}
+            >
+              Создать запрос
+            </Link>
+          ) : null}
           {!hasActiveFilters ? (
             <p className="mt-3 text-xs text-slate-500">Каталог пуст только для текущих mock-данных.</p>
           ) : null}
         </section>
-      )}
+      ) : null}
     </div>
   );
 }

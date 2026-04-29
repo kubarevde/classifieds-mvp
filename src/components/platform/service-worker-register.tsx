@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 
-import { captureError, captureMessage } from "@/lib/observability";
+import { captureEvent, captureException } from "@/lib/monitoring";
 
 export function ServiceWorkerRegister() {
   useEffect(() => {
@@ -12,10 +12,10 @@ export function ServiceWorkerRegister() {
     void navigator.serviceWorker
       .register("/sw.js")
       .then(() => {
-        captureMessage("service-worker-registered");
+        captureEvent("service_worker.registered", { path: "/sw.js" });
       })
       .catch((error) => {
-        captureError(error, { area: "service-worker-register" });
+        captureException(error, { area: "service-worker-register" });
       });
   }, []);
 

@@ -5,7 +5,7 @@ import { useMemo } from "react";
 import { useDemoRole } from "@/components/demo-role/demo-role";
 import { useSubscription } from "@/components/subscription/subscription-provider";
 import type { Feature } from "@/entities/billing/model";
-import { createMockFeatureGateService } from "@/services/feature-gate/mock";
+import { createFeatureGateService } from "@/services/feature-gate";
 import type { FeatureGateContext, GateResult } from "@/services/feature-gate";
 
 export type FeatureGateApi = {
@@ -28,7 +28,7 @@ export function useFeatureGate(feature?: Feature): FeatureGateApi | FeatureGateA
 
   const service = useMemo(
     () =>
-      createMockFeatureGateService(
+      createFeatureGateService(
         {
           isPro: subscription.isPro,
           planName: subscription.planName,

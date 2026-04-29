@@ -25,4 +25,4 @@ export interface FeatureGateService {
   getUpgradeReason(feature: Feature): string;
 }
 
-export { createMockFeatureGateService } from "./mock";
+export { createFeatureGateService, createMockFeatureGateService } from "./mock";

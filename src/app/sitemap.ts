@@ -15,7 +15,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const listings = await mockListingsService.getAll();
   const requests = await mockBuyerRequestsService.getBuyerRequests({ status: "active" });
 
-  return [
+  const entries: MetadataRoute.Sitemap = [
     ...staticRoutes.map((path) => ({
       url: `${BASE_URL}${path}`,
       lastModified: new Date(),
@@ -47,4 +47,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.65,
     })),
   ];
+
+  const seen = new Set<string>();
+  return entries.filter((row) => {
+    if (seen.has(row.url)) {
+      return false;
+    }
+    seen.add(row.url);
+    return true;
+  });
 }

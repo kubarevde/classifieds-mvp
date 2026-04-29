@@ -2,6 +2,7 @@ import type { SellerType } from "@/lib/sellers";
 import { storefrontSellers } from "@/lib/sellers";
 
 export type DemoRoleId = "guest" | "buyer" | "seller" | "all";
+export const DEFAULT_DEMO_ROLE: DemoRoleId = "all";
 
 /** Демо-витрина магазина для ролей seller / all и маркетинговых CTA. */
 export const DEMO_STOREFRONT_SELLER_ID = "marina-tech";

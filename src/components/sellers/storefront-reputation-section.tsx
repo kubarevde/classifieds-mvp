@@ -3,14 +3,13 @@
 import { useEffect } from "react";
 
 import { ReviewsList } from "@/components/trust/ReviewsList";
-import { TrustScoreWidget } from "@/components/trust/TrustScoreWidget";
 
 type StorefrontReputationSectionProps = {
   targetId: string;
 };
 
 /**
- * Единый блок «Репутация и отзывы»: TrustScore слева, полный ReviewsList справа (без превью и без expand).
+ * Репутация витрины: единый полный список отзывов без дубля trust-summary из hero.
  */
 export function StorefrontReputationSection({ targetId }: StorefrontReputationSectionProps) {
   useEffect(() => {
@@ -39,15 +38,8 @@ export function StorefrontReputationSection({ targetId }: StorefrontReputationSe
         </p>
       </header>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,320px)_1fr] lg:items-start">
-        <div className="space-y-3">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">Доверие к продавцу</h3>
-          <TrustScoreWidget targetId={targetId} />
-        </div>
-
-        <div className="min-w-0">
-          <ReviewsList targetId={targetId} compactHeader sectionId="store-reviews-full" />
-        </div>
+      <div className="min-w-0">
+        <ReviewsList targetId={targetId} compactHeader sectionId="store-reviews-full" />
       </div>
     </section>
   );

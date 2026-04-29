@@ -2,6 +2,9 @@
 
 import { useState } from "react";
 
+import { cn } from "@/components/ui/cn";
+import { buttonVariants } from "@/lib/button-styles";
+
 type FilterOption = {
   value: string;
   label: string;
@@ -27,6 +30,8 @@ type StoreFiltersBarProps = {
   sortBy: StoreSortOption;
   onSortChange: (value: StoreSortOption) => void;
   onReset: () => void;
+  /** Mobile: primary button label includes count when filters are active. */
+  mobileActiveCount?: number;
 };
 
 function FilterSelect({
@@ -44,11 +49,11 @@ function FilterSelect({
 }) {
   return (
     <label className="space-y-1.5">
-      <span className="text-xs font-medium text-slate-500">{label}</span>
+      <span className="text-sm font-medium text-slate-600">{label}</span>
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none transition focus:border-slate-400"
+        className="h-11 min-h-[44px] w-full rounded-xl border border-slate-200/90 bg-white px-3 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-200"
       >
         {options.map((option, index) => (
           <option key={`${optionKeyPrefix}-${option.value}-${index}`} value={option.value}>
@@ -77,19 +82,30 @@ export function StoreFiltersBar({
   sortBy,
   onSortChange,
   onReset,
+  mobileActiveCount,
 }: StoreFiltersBarProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const mobileLabel =
+    typeof mobileActiveCount === "number"
+      ? isOpen
+        ? "Свернуть"
+        : `Фильтры${mobileActiveCount > 0 ? ` (${mobileActiveCount})` : ""}`
+      : isOpen
+        ? "Скрыть"
+        : "Показать";
 
   return (
-    <section className="rounded-xl border border-slate-100 bg-slate-50/70 p-3 shadow-none sm:p-4">
+    <section className="rounded-2xl border border-slate-200/90 bg-white p-3 shadow-none sm:p-4">
       <div className="flex items-center justify-between gap-3 md:hidden">
-        <p className="text-sm font-semibold text-slate-900">Фильтры и сортировка</p>
+        <p className="text-sm font-semibold text-slate-900">
+          {typeof mobileActiveCount === "number" ? "Уточнение выдачи" : "Фильтры и сортировка"}
+        </p>
         <button
           type="button"
           onClick={() => setIsOpen((prev) => !prev)}
-          className="inline-flex items-center rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+          className={cn(buttonVariants({ variant: "secondary", size: "sm" }), "rounded-xl px-3")}
         >
-          {isOpen ? "Скрыть" : "Показать"}
+          {mobileLabel}
         </button>
       </div>
 
@@ -130,7 +146,7 @@ export function StoreFiltersBar({
           <button
             type="button"
             onClick={onReset}
-            className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+            className={cn(buttonVariants({ variant: "secondary", size: "md" }), "rounded-xl")}
           >
             Сбросить фильтры
           </button>

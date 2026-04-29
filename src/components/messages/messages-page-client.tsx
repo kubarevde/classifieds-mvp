@@ -7,11 +7,14 @@ import { useSearchParams } from "next/navigation";
 import { useBuyer } from "@/components/buyer/buyer-provider";
 import { ChatHeader } from "@/components/messages/chat-header";
 import { ConversationList } from "@/components/messages/conversation-list";
+import { ReportAbuseButton } from "@/components/safety/ReportAbuseButton";
 import { MessageBubble } from "@/components/messages/message-bubble";
 import { MessageInput } from "@/components/messages/message-input";
+import { ScamPatternNotice } from "@/components/risk/ScamPatternNotice";
 import { UnifiedCatalogListing } from "@/lib/listings";
 import { Listing, ListingCategory } from "@/lib/types";
 import { mockListingsService } from "@/services/listings";
+import { detectMessageRisk } from "@/services/risk";
 
 type MobileView = "list" | "chat";
 
@@ -132,6 +135,7 @@ export function MessagesPageClient() {
 
   const showConversationList = mobileView === "list";
   const showConversationPanel = mobileView === "chat" || !activeConversation;
+  const messageRiskSignals = detectMessageRisk(draftMessage);
 
   return (
     <section className="grid gap-3 lg:grid-cols-[340px_minmax(0,1fr)]">
@@ -160,11 +164,33 @@ export function MessagesPageClient() {
               />
 
               <div className="flex-1 space-y-3 overflow-y-auto bg-slate-50/50 p-4">
+                <p className="rounded-lg border border-amber-100 bg-amber-50/80 px-3 py-2 text-xs leading-relaxed text-amber-950">
+                  Если вас просят уйти в сторонний мессенджер или оплатить вне платформы — это повод насторожиться и при
+                  необходимости{" "}
+                  <a href="/safety" className="font-semibold underline underline-offset-2">
+                    оформить жалобу
+                  </a>
+                  .
+                </p>
                 {activeConversation.messages.map((message) => (
                   <MessageBubble key={message.id} message={message} />
                 ))}
               </div>
 
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 px-3 py-2">
+                <ReportAbuseButton
+                  targetType="message"
+                  targetId={activeConversation.id}
+                  targetLabel={`Чат: ${activeConversation.participantName}`}
+                  variant="ghost"
+                  className="text-xs sm:text-sm"
+                  label="Сообщить о нарушении"
+                />
+              </div>
+
+              <div className="px-3 pb-1 sm:px-4">
+                <ScamPatternNotice signals={messageRiskSignals} />
+              </div>
               <MessageInput value={draftMessage} onChange={setDraftMessage} onSubmit={sendMessage} />
             </>
           ) : (

@@ -30,7 +30,7 @@ export function MyListingsSection({
         </p>
         <div className="mt-4">
           <Link href="/create-listing">
-            <Button>Разместить объявление о продаже</Button>
+            <Button>Разместить объявление</Button>
           </Link>
         </div>
       </section>

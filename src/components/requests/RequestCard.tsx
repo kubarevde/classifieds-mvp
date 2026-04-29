@@ -1,10 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { MessageSquare, MapPin, Sparkles } from "lucide-react";
+import { MapPin } from "lucide-react";
 
 import type { BuyerRequest } from "@/entities/requests/model";
 import type { RequestMatchResult } from "@/services/requests/matching";
+import { buildListingsHrefFromIntent } from "@/lib/saved-searches";
+import { cn } from "@/components/ui/cn";
+import { buttonVariants } from "@/lib/button-styles";
 
 import {
   formatRequestBudget,
@@ -36,7 +39,7 @@ export function RequestCard({ request, role, match }: RequestCardProps) {
     match?.fitLevel === "high" ? "Высокое совпадение" : match?.fitLevel === "medium" ? "Подходит" : "Частично подходит";
 
   return (
-    <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+    <article className="rounded-2xl border border-slate-200/90 bg-white p-4 shadow-none transition hover:border-slate-300 hover:shadow-md">
       <div className="flex flex-wrap items-center gap-2 text-xs">
         <span className="rounded-full border border-slate-200 bg-slate-100 px-2.5 py-1 font-semibold text-slate-700">
           {getRequestWorldLabel(request.worldId)}
@@ -68,15 +71,15 @@ export function RequestCard({ request, role, match }: RequestCardProps) {
 
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
         <span>Опубликовано: {formatRequestDate(request.createdAt)}</span>
-        <span className="inline-flex items-center gap-1">
-          <MessageSquare className="h-3.5 w-3.5" strokeWidth={1.5} /> {request.responseCount} откликов
+        <span>
+          {request.responseCount} откликов
         </span>
         <span>{request.viewCount} просмотров</span>
       </div>
 
       {role === "seller" && match ? (
-        <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Почему вам подходит</p>
+        <div className="mt-3 rounded-xl border border-slate-200/90 bg-slate-50 p-3">
+          <p className="text-sm font-medium text-slate-600">Почему вам подходит</p>
           <div className="mt-1 flex items-center justify-between">
             <p className="text-sm font-semibold text-slate-900">{fitLabel}</p>
             <span className="rounded-full bg-white px-2 py-0.5 text-xs font-semibold text-slate-700">
@@ -91,44 +94,40 @@ export function RequestCard({ request, role, match }: RequestCardProps) {
         </div>
       ) : null}
 
-      <div className="mt-4 flex items-center justify-between">
+      <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
         {isClosed && role === "seller" ? (
-          <span className="inline-flex h-9 items-center justify-center rounded-lg bg-slate-200 px-3.5 text-sm font-semibold text-slate-500">
+          <span className="inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-slate-200 px-3.5 text-sm font-semibold text-slate-500 sm:w-auto">
             {actionLabel}
           </span>
         ) : (
           <Link
             href={detailsHref}
-            className="inline-flex h-9 items-center justify-center rounded-lg bg-slate-900 px-3.5 text-sm font-semibold text-white transition hover:bg-slate-700"
+            className={cn(buttonVariants({ variant: "primary", size: "md" }), "w-full justify-center rounded-xl px-3.5 sm:w-auto")}
           >
             {actionLabel}
           </Link>
         )}
-        <div className="flex items-center gap-2">
+        <div className="hidden w-full flex-col gap-1 border-t border-slate-100 pt-3 text-sm sm:ml-auto sm:flex sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end sm:border-0 sm:pt-0">
           {role === "seller" && match?.relevantListingIds.length ? (
-            <Link
-              href={detailsHref}
-              className="inline-flex items-center gap-1 text-xs font-medium text-slate-600 hover:text-slate-900"
-            >
-              <Sparkles className="h-3.5 w-3.5" strokeWidth={1.5} />
+            <Link href={detailsHref} className="font-medium text-slate-600 underline-offset-2 hover:text-slate-900 hover:underline">
               Предложить объявление
             </Link>
           ) : null}
           {role === "seller" && !match?.relevantListingIds.length ? (
-            <Link href="/create-listing" className="text-xs font-medium text-slate-500 hover:text-slate-700">
-              Создать объявление под запрос
+            <Link href={detailsHref} className="font-medium text-slate-600 underline-offset-2 hover:text-slate-900 hover:underline">
+              Отклик без готового лота
             </Link>
           ) : null}
           {request.searchIntent ? (
             <Link
-              href={`/listings?q=${encodeURIComponent(request.searchIntent.rawQuery)}&category=${request.categoryId}&location=${encodeURIComponent(request.location)}`}
-              className="inline-flex items-center gap-1 text-xs font-medium text-slate-600 hover:text-slate-900"
+              href={buildListingsHrefFromIntent(request.searchIntent)}
+              className="font-medium text-slate-600 underline-offset-2 hover:text-slate-900 hover:underline"
             >
-              <Sparkles className="h-3.5 w-3.5" strokeWidth={1.5} />
-              Похожие объявления
+              Похожие в каталоге
             </Link>
           ) : null}
         </div>
+        <p className="text-center text-xs text-slate-500 sm:hidden">Доп. действия — в карточке запроса</p>
       </div>
     </article>
   );

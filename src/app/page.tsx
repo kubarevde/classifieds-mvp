@@ -4,7 +4,6 @@ import {
   ChevronRight,
   Compass,
   Heart,
-  Search,
   ShieldCheck,
   Sparkles,
   Star,
@@ -13,22 +12,19 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
+import { HomeUnifiedSearch } from "@/components/home/home-unified-search";
 import { Navbar } from "@/components/layout/navbar";
+import { SiteFooter } from "@/components/layout/site-footer";
+import { StructuredDataScript } from "@/components/seo/structured-data-script";
 import { formatRequestBudget, getRequestUrgencyLabel } from "@/components/requests/request-format";
 import { PageShell } from "@/components/platform";
 import { WorldCard } from "@/components/worlds/world-identity";
 import { WORLD_ICONS } from "@/config/icons";
 import { CatalogWorld, worldOptions } from "@/lib/listings";
 import { getWorldAudienceChips, getWorldOnlineStats } from "@/lib/worlds.community";
+import { buildWebSiteJsonLd } from "@/lib/seo/structured-data";
 import { mockListingsService } from "@/services/listings";
 import { mockBuyerRequestsService } from "@/services/requests";
-
-const quickFilters: { label: string; href: string }[] = [
-  { label: "Новые сегодня", href: "/listings?sort=newest" },
-  { label: "С доставкой", href: "/listings?q=доставка" },
-  { label: "До 50 000 ₽", href: "/listings?sort=price_asc&q=50000" },
-  { label: "Только аукционы", href: "/listings?saleMode=auction" },
-];
 
 const quickCategories = worldOptions
   .filter((world): world is (typeof worldOptions)[number] & { id: Exclude<CatalogWorld, "all"> } => world.id !== "all")
@@ -47,20 +43,20 @@ const stats = [
 
 const differentiators = [
   {
-    title: "Worlds вместо хаоса категорий",
+    title: "Миры вместо хаоса категорий",
     description: "Каждый мир имеет свой контекст, аудиторию и понятные точки входа в каталог.",
     href: "/worlds",
     icon: Compass,
   },
   {
-    title: "Витрины магазинов с репутацией",
-    description: "Проверенные stores с рейтингом, историей и постоянным ассортиментом.",
+    title: "Магазины с репутацией",
+    description: "Проверенные магазины с рейтингом, историей и постоянным ассортиментом.",
     href: "/stores",
     icon: Store,
   },
   {
     title: "Доска спроса покупателей",
-    description: "Reverse marketplace: продавец видит, что хотят купить прямо сейчас.",
+    description: "Reverse marketplace: продавец видит, что покупатели хотят купить прямо сейчас.",
     href: "/requests",
     icon: Users2,
   },
@@ -72,7 +68,7 @@ const differentiators = [
   },
   {
     title: "Trust-first механики",
-    description: "Прозрачные рейтинги, проверяемые витрины и заметные сигналы доверия.",
+    description: "Прозрачные рейтинги, проверяемые магазины и заметные сигналы доверия.",
     href: "/stores",
     icon: ShieldCheck,
   },
@@ -82,7 +78,7 @@ const stores = [
   {
     name: "ФермаПро",
     category: "Агро",
-    tagline: "Фирменная агровитрина с поставками по РФ",
+    tagline: "Фирменный агромагазин с поставками по РФ",
     rating: "4.9",
     count: "124 товара",
     since: "2023",
@@ -102,7 +98,7 @@ const stores = [
   {
     name: "АвтоДетали",
     category: "Авто",
-    tagline: "Крупная витрина запчастей и комплектующих",
+    tagline: "Крупный магазин запчастей и комплектующих",
     rating: "4.7",
     count: "203 товара",
     since: "2021",
@@ -161,6 +157,7 @@ export default async function Home() {
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-slate-50 text-slate-950">
+      <StructuredDataScript id="home-website-jsonld" data={buildWebSiteJsonLd()} />
       <Navbar />
       <main>
         <section className="border-b border-slate-200/70 bg-gradient-to-b from-white via-slate-50 to-white py-10 sm:py-12">
@@ -176,7 +173,7 @@ export default async function Home() {
                     Маркетплейс, где спрос и предложение встречаются быстрее.
                   </h1>
                   <p className="max-w-2xl text-base text-slate-600 sm:text-lg">
-                    Classify объединяет объявления, витрины магазинов, доску запросов покупателей и AI-инструменты в единую продуктовую систему.
+                    Classify объединяет объявления, магазины, доску запросов и AI-инструменты в единую продуктовую систему.
                   </p>
                 </div>
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -206,7 +203,7 @@ export default async function Home() {
                     <ChevronRight className="h-4 w-4 text-slate-500" strokeWidth={1.5} />
                   </Link>
                   <Link
-                    href="/dashboard?tab=favorites"
+                    href="/dashboard?tab=listings&publication=purchase"
                     className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 transition hover:border-slate-300 hover:bg-white"
                   >
                     <span>Личный кабинет — О покупке</span>
@@ -223,52 +220,7 @@ export default async function Home() {
               </div>
             </div>
 
-            <form
-              action="/listings"
-              method="get"
-              className="space-y-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4"
-            >
-              <div className="grid gap-3 md:grid-cols-[1fr_auto_auto]">
-                <label className="relative">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" strokeWidth={1.7} />
-                  <input
-                    type="text"
-                    name="q"
-                    placeholder="Что вы ищете?"
-                    className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white"
-                  />
-                </label>
-                <select
-                  name="world"
-                  defaultValue=""
-                  className="h-11 rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:bg-white"
-                >
-                  <option value="">Все миры</option>
-                  {quickCategories.map((world) => (
-                    <option key={world.id} value={world.id}>
-                      {world.label}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  type="submit"
-                  className="h-11 rounded-xl bg-slate-900 px-6 text-sm font-semibold text-white transition hover:bg-slate-800"
-                >
-                  Начать поиск
-                </button>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {quickFilters.map((filter) => (
-                  <Link
-                    key={filter.label}
-                    href={filter.href}
-                    className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:border-slate-300 hover:bg-white"
-                  >
-                    {filter.label}
-                  </Link>
-                ))}
-              </div>
-            </form>
+            <HomeUnifiedSearch worldOptions={quickCategories.map(({ id, label }) => ({ id, label }))} />
 
             <div className="flex flex-wrap gap-2">
               {quickCategories.map((category) => {
@@ -331,8 +283,8 @@ export default async function Home() {
         <PageShell
           id="worlds"
           className="py-14"
-          title="Открой нужный world и заходи сразу в свой контекст"
-          subtitle="Worlds структурируют каталог по реальным сценариям, а не по случайным рубрикам."
+          title="Открой нужный мир и заходи сразу в свой контекст"
+          subtitle="Миры структурируют каталог по реальным сценариям, а не по случайным рубрикам."
           titleClassName="text-3xl font-black tracking-tight text-slate-950"
           subtitleClassName="text-slate-600"
         >
@@ -350,7 +302,7 @@ export default async function Home() {
                   shopsOnline={online.shopsOnline}
                   chips={chips}
                   href={world.href}
-                  ctaLabel="Войти в world"
+                  ctaLabel="Войти в мир"
                 />
               );
             })}
@@ -369,14 +321,14 @@ export default async function Home() {
               <p className="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">Я покупаю</p>
               <h3 className="mt-3 text-xl font-semibold text-slate-900">Быстро найти и сравнить предложения</h3>
               <p className="mt-2 text-sm text-slate-600">
-                Идите через поиск, worlds и доску запросов, если хотите получить отклики от продавцов.
+                Идите через поиск, миры и доску запросов, если хотите получить отклики от продавцов.
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
                 <Link href="/listings" className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800">
                   В каталог
                 </Link>
                 <Link href="/requests" className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
-                  Опубликовать запрос
+                  Разместить запрос
                 </Link>
               </div>
             </article>
@@ -385,7 +337,7 @@ export default async function Home() {
               <p className="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">Я продаю</p>
               <h3 className="mt-3 text-xl font-semibold text-slate-900">Запустить продажи и укрепить доверие</h3>
               <p className="mt-2 text-sm text-slate-600">
-                Размещайте объявления, открывайте store-витрину и управляйте потоком лидов из кабинета.
+                Размещайте объявления, развивайте магазин и управляйте потоком лидов из кабинета.
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
                 <Link href="/create-listing" className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700">
@@ -402,7 +354,7 @@ export default async function Home() {
         <PageShell
           className="py-14"
           title="Проверенные магазины"
-          subtitle="Продавцы с витриной, рейтингом и постоянными покупателями"
+          subtitle="Продавцы с магазином, рейтингом и постоянными покупателями"
           titleClassName="text-2xl font-semibold tracking-tight text-slate-900"
           subtitleClassName="text-sm text-slate-600"
           actions={
@@ -446,7 +398,7 @@ export default async function Home() {
                       href={store.href}
                       className="mt-4 block w-full rounded-xl bg-slate-900 py-2.5 text-center text-sm font-semibold text-white transition hover:bg-slate-700"
                     >
-                      Открыть витрину
+                      Открыть магазин
                     </Link>
                   </div>
                 </div>
@@ -458,7 +410,7 @@ export default async function Home() {
         <PageShell
           className="py-14"
           title="Покупатели ищут прямо сейчас"
-          subtitle="Живой слой спроса: размещайте запросы о покупке и получайте предложения от магазинов и продавцов."
+          subtitle="Живой слой спроса: размещайте запросы и получайте отклики от магазинов и продавцов."
           titleClassName="text-2xl font-semibold tracking-tight text-slate-900"
           subtitleClassName="text-sm text-slate-600"
           actions={
@@ -563,9 +515,9 @@ export default async function Home() {
                 <div className="rounded-2xl border border-white/15 bg-white/10 p-5 backdrop-blur">
                   <p className="text-sm text-slate-200">Почему это работает</p>
                   <div className="mt-4 space-y-2 text-sm text-slate-100">
-                    <p>• Discovery через worlds + поиск</p>
+                    <p>• Discovery через миры + поиск</p>
                     <p>• Trust через verified stores и рейтинг</p>
-                    <p>• Спрос через live buyer requests</p>
+                    <p>• Спрос через live requests</p>
                     <p>• Управление в личном кабинете</p>
                   </div>
                 </div>
@@ -574,6 +526,7 @@ export default async function Home() {
           </PageShell>
         </section>
       </main>
+      <SiteFooter />
     </div>
   );
 }

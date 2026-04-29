@@ -39,7 +39,7 @@ export function CtaBlock() {
                 Открыть кабинет магазина
               </Link>
               <Link
-                href={`/sellers/${DEMO_STOREFRONT_SELLER_ID}`}
+                href={`/stores/${DEMO_STOREFRONT_SELLER_ID}`}
                 className="rounded-xl border border-white/20 bg-white/5 px-6 py-3 text-center text-sm font-semibold text-white transition hover:bg-white/10"
               >
                 Посмотреть пример магазина

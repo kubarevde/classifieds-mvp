@@ -110,7 +110,7 @@ export default function HeroBoardManager({ initialPlacements, sellerId, onSave }
           <input
             value={formState.ctaHref}
             onChange={(event) => setFormState((prev) => ({ ...prev, ctaHref: event.target.value }))}
-            placeholder="/sellers/marina-tech"
+            placeholder="/stores/marina-tech"
             className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-slate-400"
             required
           />

@@ -386,3 +386,5 @@ export function createMockFeatureGateService(
 
   return { canUse, getGateResult, getLimit, getUpgradeReason };
 }
+
+export const createFeatureGateService = createMockFeatureGateService;

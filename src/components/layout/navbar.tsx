@@ -13,17 +13,18 @@ import { useSellerActivity } from "@/components/seller/use-seller-activity";
 import { useFavorites } from "@/components/favorites/favorites-provider";
 import { useNotifications } from "@/components/notifications/notifications-provider";
 import { Container } from "@/components/ui/container";
-import { resolveDemoStoreNavSellerId } from "@/lib/demo-role-constants";
+import { DEFAULT_DEMO_ROLE, resolveDemoStoreNavSellerId } from "@/lib/demo-role-constants";
 
 const guestNavLinks = [
   { label: "Главная", href: "/" },
   { label: "Объявления", href: "/listings" },
-  { label: "Запросы", href: "/requests" },
   { label: "Магазины", href: "/stores" },
 ] as const;
 
 const authenticatedNavLinks = [
-  ...guestNavLinks,
+  { label: "Главная", href: "/" },
+  { label: "Объявления", href: "/listings" },
+  { label: "Магазины", href: "/stores" },
   { label: "Миры", href: "/worlds" },
   { label: "Герой доски", href: "/sponsor-board" },
 ] as const;
@@ -43,7 +44,7 @@ export function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const mobileMenuTriggerRef = useRef<HTMLButtonElement | null>(null);
   const { role, isHydrated: roleHydrated } = useDemoRole();
-  const effectiveRole = roleHydrated ? role : "all";
+  const effectiveRole = roleHydrated ? role : DEFAULT_DEMO_ROLE;
   const buyer = useBuyer();
   const sellerActivity = useSellerActivity();
   const { favoritesCount, isHydrated: favoritesHydrated } = useFavorites();
@@ -102,7 +103,7 @@ export function Navbar() {
             {effectiveRole === "guest" ? (
               <Link
                 href="/profile"
-                className="hidden h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 sm:inline-flex"
+                className="hidden min-h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 sm:inline-flex"
               >
                 Войти
               </Link>
@@ -129,7 +130,7 @@ export function Navbar() {
               ref={mobileMenuTriggerRef}
               type="button"
               onClick={() => setIsMobileMenuOpen(true)}
-              className="relative z-[60] inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50 sm:hidden"
+              className="relative z-[60] inline-flex h-11 w-11 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50 sm:hidden"
               aria-label="Открыть меню"
             >
               <BurgerIcon />

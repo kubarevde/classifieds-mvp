@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import { useSavedSearches } from "@/components/saved-searches/saved-searches-provider";
 import { FeatureGate } from "@/components/platform";
+import { useSavedSearchMatchSummary } from "@/hooks/data/use-saved-search-matches";
 import { useFeatureGate } from "@/hooks/useFeatureGate";
 import type { SavedSearch } from "@/entities/search/model";
 import { buildSearchHrefFromIntent, formatSavedSearchCreatedAt } from "@/lib/saved-searches";
@@ -15,7 +16,8 @@ type SavedSearchCardProps = {
 };
 
 export function SavedSearchCard({ search }: SavedSearchCardProps) {
-  const { removeSearch, updateSearch, updateAlertPreference, getNewMatchesCount } = useSavedSearches();
+  const { removeSearch, updateSearch, updateAlertPreference } = useSavedSearches();
+  const { summary: matchSummary, loading: matchLoading } = useSavedSearchMatchSummary(search);
   const alertsGate = useFeatureGate();
   const [isEditingName, setIsEditingName] = useState(false);
   const [draftName, setDraftName] = useState(search.title ?? search.intent.autoTitle);
@@ -25,7 +27,7 @@ export function SavedSearchCard({ search }: SavedSearchCardProps) {
   const summary = search.intent.chips.map((chip) => `${chip.label}: ${chip.value ?? "—"}`).join(" · ");
   const modeLabel =
     search.intent.mode === "natural_language" ? "AI" : search.intent.mode === "image" ? "photo" : "keyword";
-  const newMatches = getNewMatchesCount(search.id);
+  const newMatchesLabel = matchLoading ? "…" : `+${matchSummary?.newMatches ?? 0} новых`;
 
   const commitRename = () => {
     updateSearch(search.id, { title: draftName });
@@ -73,7 +75,7 @@ export function SavedSearchCard({ search }: SavedSearchCardProps) {
                 {modeLabel}
               </span>
               <span className="inline-flex items-center rounded-full bg-sky-50 px-2 py-0.5 text-[11px] font-semibold text-sky-700">
-                +{newMatches} новых
+                {newMatchesLabel}
               </span>
               <span
                 className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ${
@@ -103,7 +105,7 @@ export function SavedSearchCard({ search }: SavedSearchCardProps) {
               href={requestHref}
               className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-3.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
             >
-              Разместить запрос о покупке
+              Разместить запрос
             </Link>
             <button
               type="button"

@@ -8,6 +8,9 @@ import {
   type SavedSearchFilters,
 } from "@/lib/saved-searches";
 
+/** Единая точка создания запроса (prefill через query string из поиска). */
+export const REQUESTS_NEW_PATH = "/requests/new" as const;
+
 export type BuyerRequestDraft = {
   worldId?: string;
   categoryId: string;
@@ -74,6 +77,11 @@ export function buildCreateRequestHrefFromIntent(intent: SearchIntent) {
   const params = serializeFiltersToSearchParams(filters);
   params.set("target", "listing");
   params.set("mode", intent.mode);
-  return `/requests/new?${params.toString()}`;
+  return `${REQUESTS_NEW_PATH}?${params.toString()}`;
+}
+
+/** Prefill формы «ещё один запрос» из уже опубликованного запроса. */
+export function buildRecreateRequestHrefFromBuyerRequest(request: BuyerRequest) {
+  return buildCreateRequestHrefFromIntent(buyerRequestToSearchIntent(request));
 }
 

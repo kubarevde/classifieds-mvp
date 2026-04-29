@@ -1,37 +1,21 @@
-import type { BuyerRequest, RequestResponse } from "@/entities/requests/model";
-import type { RequestMatchResult } from "@/services/requests/matching";
+import { mockBuyerRequestsService } from "./mock";
 
-export type BuyerRequestFilters = {
-  worldId?: string;
-  categoryId?: string;
-  location?: string;
-  urgency?: BuyerRequest["urgency"];
-  minBudget?: number;
-  maxBudget?: number;
-  authorId?: string;
-  sellerId?: string;
-  status?: BuyerRequest["status"];
-};
+export type {
+  BuyerRequestFilters,
+  BuyerRequestsService,
+  CreateBuyerRequestInput,
+  RespondToBuyerRequestInput,
+} from "./types";
 
-export type CreateBuyerRequestInput = Omit<
-  BuyerRequest,
-  "id" | "createdAt" | "expiresAt" | "responseCount" | "viewCount" | "status"
-> & {
-  expiresInDays?: number;
-};
+export const getBuyerRequests = mockBuyerRequestsService.getBuyerRequests.bind(mockBuyerRequestsService);
+export const getBuyerRequestById = mockBuyerRequestsService.getBuyerRequestById.bind(mockBuyerRequestsService);
+export const createBuyerRequest = mockBuyerRequestsService.createBuyerRequest.bind(mockBuyerRequestsService);
+export const updateBuyerRequestStatus = mockBuyerRequestsService.updateBuyerRequestStatus.bind(mockBuyerRequestsService);
+export const respondToBuyerRequest = mockBuyerRequestsService.respondToBuyerRequest.bind(mockBuyerRequestsService);
+export const getMatchingRequestsForSeller = mockBuyerRequestsService.getMatchingRequestsForSeller.bind(mockBuyerRequestsService);
+export const getMatchingRequestsForSellerDetailed =
+  mockBuyerRequestsService.getMatchingRequestsForSellerDetailed.bind(mockBuyerRequestsService);
+export const getResponsesForRequest = mockBuyerRequestsService.getResponsesForRequest.bind(mockBuyerRequestsService);
 
-export type RespondToBuyerRequestInput = Omit<RequestResponse, "id" | "createdAt" | "status">;
-
-export interface BuyerRequestsService {
-  getBuyerRequests(filters?: BuyerRequestFilters): Promise<BuyerRequest[]>;
-  getBuyerRequestById(id: string, options?: { incrementView?: boolean }): Promise<BuyerRequest | null>;
-  createBuyerRequest(input: CreateBuyerRequestInput): Promise<BuyerRequest>;
-  updateBuyerRequestStatus(id: string, status: BuyerRequest["status"]): Promise<BuyerRequest | null>;
-  respondToBuyerRequest(input: RespondToBuyerRequestInput): Promise<RequestResponse>;
-  getMatchingRequestsForSeller(sellerId: string): Promise<BuyerRequest[]>;
-  getMatchingRequestsForSellerDetailed(sellerId: string): Promise<RequestMatchResult[]>;
-  getResponsesForRequest(requestId: string): Promise<RequestResponse[]>;
-}
-
-export { mockBuyerRequestsService } from "./mock";
+export { mockBuyerRequestsService };
 

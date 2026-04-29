@@ -12,14 +12,20 @@ export default function NotFound() {
         </p>
         <h1 className="mt-4 text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">Страница не найдена</h1>
         <p className="mt-3 max-w-2xl text-sm text-slate-600 sm:text-base">
-          Возможно, ссылка устарела или объект уже снят с публикации. Попробуйте поискать нужное в каталоге, мирах или запросах покупателей.
+          Возможно, ссылка устарела или объект уже снят с публикации. Попробуйте поискать нужное в каталоге, мирах или запросах.
         </p>
         <div className="mt-8 grid w-full max-w-xl gap-2 sm:grid-cols-2">
-          <Link href="/listings" className="inline-flex h-10 items-center justify-center rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white transition hover:bg-slate-700">
+          <Link
+            href="/"
+            className="inline-flex h-10 items-center justify-center rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white transition hover:bg-slate-700"
+          >
+            На главную
+          </Link>
+          <Link href="/listings" className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
             Открыть каталог
           </Link>
           <Link href="/requests" className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
-            Запросы покупателей
+            К запросам
           </Link>
           <Link href="/stores" className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
             Магазины

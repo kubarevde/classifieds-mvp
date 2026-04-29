@@ -1,11 +1,14 @@
 import Link from "next/link";
 
 import { FavoriteButton } from "@/components/favorites/favorite-button";
-import { TrustScoreWidget } from "@/components/trust";
+import { TrustSummary } from "@/components/trust";
+import { VerificationBadgeForListing } from "@/components/verification/VerificationBadgeForListing";
+import { RiskIndicator } from "@/components/risk/RiskIndicator";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/components/ui/cn";
 import { getListingBadges, ListingsView, UnifiedCatalogListing } from "@/lib/listings";
 import { getListingMarketingBadgeData, getStorefrontSellerByListingId } from "@/lib/sellers";
+import { detectListingRisk } from "@/services/risk";
 
 type ListingPreviewCardProps = {
   listing: UnifiedCatalogListing;
@@ -17,6 +20,17 @@ export function ListingPreviewCard({ listing, view }: ListingPreviewCardProps) {
   const badges = getListingBadges(listing);
   const marketing = getListingMarketingBadgeData(listing.id);
   const seller = getStorefrontSellerByListingId(listing.id);
+  const sellerReviewsCount = seller ? Math.max(8, Math.round(seller.followersCount * 0.16)) : null;
+  const sellerVerified = seller ? seller.trustBadges.some((badge) => badge.id === "verified") : false;
+  const highRiskSignal = detectListingRisk(
+    {
+      id: listing.id,
+      title: listing.title,
+      priceValue: listing.priceValue,
+      categoryId: listing.categoryId,
+    },
+    seller ? { id: seller.id, memberSinceYear: seller.memberSinceYear } : null,
+  ).find((s) => s.level === "high");
   const promotionBadges = [
     marketing.coupon
       ? `Купон ${marketing.coupon.discountType === "percent" ? `${marketing.coupon.discountValue}%` : `${marketing.coupon.discountValue} ₽`}`
@@ -27,17 +41,17 @@ export function ListingPreviewCard({ listing, view }: ListingPreviewCardProps) {
   const catalogBadgeClass = (tone: "agriculture" | "electronics") =>
     tone === "agriculture"
       ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-      : "border-slate-300 bg-[linear-gradient(to_bottom,#ffffff,#eef3fa)] text-slate-700 shadow-sm";
+      : "border-slate-200/90 bg-slate-50 text-slate-700";
   const cardToneClass = marketing.isSuper
-    ? "border-amber-300 bg-[linear-gradient(to_bottom,#ffffff,#fff9eb)] shadow-[0_6px_16px_rgba(245,158,11,0.18)]"
-    : "border-slate-200 bg-white";
+    ? "border-amber-200/90 bg-amber-50/40"
+    : "border-slate-200/90 bg-white";
 
   if (view === "list") {
     if (listing.detailsHref) {
       return (
         <Link
           href={listing.detailsHref}
-          className={`group flex gap-4 rounded-2xl border p-3 shadow-sm transition hover:border-slate-300 hover:shadow-md ${cardToneClass}`}
+          className={`group flex gap-4 rounded-2xl border p-3 shadow-none transition hover:border-slate-300 hover:shadow-md ${cardToneClass}`}
         >
           <div className={`h-28 w-28 shrink-0 rounded-xl bg-gradient-to-br ${listing.image}`} />
           <div className="min-w-0 space-y-1.5">
@@ -55,7 +69,18 @@ export function ListingPreviewCard({ listing, view }: ListingPreviewCardProps) {
               <span>{listing.location}</span>
               <span>•</span>
               <span>{listing.publishedAt}</span>
-              {seller ? <TrustScoreWidget targetId={seller.id} compact /> : null}
+              {highRiskSignal ? <RiskIndicator level="high" /> : null}
+              {seller ? (
+                <>
+                  <TrustSummary
+                    variant="compact"
+                    verified={sellerVerified}
+                    rating={seller.metrics.rating}
+                    reviewsCount={sellerReviewsCount}
+                  />
+                  <VerificationBadgeForListing storeId={seller.id} />
+                </>
+              ) : null}
             </div>
             {badges.length ? (
               <div className="flex flex-wrap gap-1.5">
@@ -86,7 +111,7 @@ export function ListingPreviewCard({ listing, view }: ListingPreviewCardProps) {
     }
 
     return (
-      <article className={`group flex gap-4 rounded-2xl border p-3 shadow-sm transition hover:border-slate-300 hover:shadow-md ${cardToneClass}`}>
+      <article className={`group flex gap-4 rounded-2xl border p-3 shadow-none transition hover:border-slate-300 hover:shadow-md ${cardToneClass}`}>
         <div className={`h-28 w-28 shrink-0 rounded-xl bg-gradient-to-br ${listing.image}`} />
         <div className="min-w-0 space-y-1.5">
           <div className="flex items-start justify-between gap-2">
@@ -101,7 +126,18 @@ export function ListingPreviewCard({ listing, view }: ListingPreviewCardProps) {
             <span>{listing.location}</span>
             <span>•</span>
             <span>{listing.publishedAt}</span>
-            {seller ? <TrustScoreWidget targetId={seller.id} compact /> : null}
+            {highRiskSignal ? <RiskIndicator level="high" /> : null}
+            {seller ? (
+              <>
+                <TrustSummary
+                  variant="compact"
+                  verified={sellerVerified}
+                  rating={seller.metrics.rating}
+                  reviewsCount={sellerReviewsCount}
+                />
+                <VerificationBadgeForListing storeId={seller.id} />
+              </>
+            ) : null}
           </div>
           {badges.length ? (
             <div className="flex flex-wrap gap-1.5">
@@ -135,7 +171,7 @@ export function ListingPreviewCard({ listing, view }: ListingPreviewCardProps) {
     return (
       <Link
         href={listing.detailsHref}
-        className={`group flex h-full flex-col overflow-hidden rounded-2xl border shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-lg ${cardToneClass}`}
+        className={`group flex h-full flex-col overflow-hidden rounded-2xl border shadow-none transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md ${cardToneClass}`}
       >
         <div className={`relative h-44 bg-gradient-to-br ${listing.image} p-4`}>
           <div className="flex items-start justify-between gap-2">
@@ -154,8 +190,19 @@ export function ListingPreviewCard({ listing, view }: ListingPreviewCardProps) {
           <div className="mt-auto flex items-center justify-between text-xs text-slate-500">
             <span>{listing.location}</span>
             <span>{listing.publishedAt}</span>
+            {highRiskSignal ? <RiskIndicator level="high" /> : null}
           </div>
-          {seller ? <TrustScoreWidget targetId={seller.id} compact /> : null}
+          {seller ? (
+            <>
+              <TrustSummary
+                variant="compact"
+                verified={sellerVerified}
+                rating={seller.metrics.rating}
+                reviewsCount={sellerReviewsCount}
+              />
+              <VerificationBadgeForListing storeId={seller.id} />
+            </>
+          ) : null}
           {badges.length ? (
             <div className="flex flex-wrap gap-1.5">
               {badges.map((badge) => (
@@ -185,7 +232,7 @@ export function ListingPreviewCard({ listing, view }: ListingPreviewCardProps) {
   }
 
   return (
-    <article className={`group flex h-full flex-col overflow-hidden rounded-2xl border shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-lg ${cardToneClass}`}>
+    <article className={`group flex h-full flex-col overflow-hidden rounded-2xl border shadow-none transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md ${cardToneClass}`}>
       <div className={`relative h-44 bg-gradient-to-br ${listing.image} p-4`}>
         <div className="flex items-start justify-between gap-2">
           <span className="inline-flex rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-slate-700">
@@ -201,8 +248,19 @@ export function ListingPreviewCard({ listing, view }: ListingPreviewCardProps) {
         <div className="mt-auto flex items-center justify-between text-xs text-slate-500">
           <span>{listing.location}</span>
           <span>{listing.publishedAt}</span>
+          {highRiskSignal ? <RiskIndicator level="high" /> : null}
         </div>
-        {seller ? <TrustScoreWidget targetId={seller.id} compact /> : null}
+        {seller ? (
+          <>
+            <TrustSummary
+              variant="compact"
+              verified={sellerVerified}
+              rating={seller.metrics.rating}
+              reviewsCount={sellerReviewsCount}
+            />
+            <VerificationBadgeForListing storeId={seller.id} />
+          </>
+        ) : null}
         {badges.length ? (
           <div className="flex flex-wrap gap-1.5">
             {badges.map((badge) => (

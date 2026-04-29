@@ -1,6 +1,6 @@
 import type { AuctionEvent, AuctionState, Bid } from "@/entities/auction/model";
 import { auctionMocks } from "@/mocks/auctions";
-import { createMockFeatureGateService } from "@/services/feature-gate/mock";
+import { createFeatureGateService } from "@/services/feature-gate";
 
 import type { AuctionService, PlaceBidInput } from "./index";
 import { canPlaceBid, deriveAuctionStatus, isValidBidAmount, resolveProxyBids } from "./rules";
@@ -70,7 +70,7 @@ function emit<T>(value: T): Promise<T> {
 
 export const mockAuctionService: AuctionService = {
   async createAuction(input) {
-    const featureGate = createMockFeatureGateService(input.creator.subscription, input.creator.role);
+    const featureGate = createFeatureGateService(input.creator.subscription, input.creator.role);
     if (!featureGate.canUse("auction_create")) {
       throw new Error(featureGate.getUpgradeReason("auction_create") || "Feature auction_create is not available");
     }

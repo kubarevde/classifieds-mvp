@@ -11,18 +11,18 @@ import { buildCollectionPageJsonLd } from "@/lib/seo/structured-data";
 
 export const metadata: Metadata = buildPageMetadata({
   title: "Магазины - Classify",
-  description: "Проверенные магазины и витрины продавцов с рейтингом, отзывами и каталогом объявлений.",
+  description: "Проверенные магазины с рейтингом, отзывами и каталогом объявлений.",
   path: "/stores",
 });
 
 export default function StoresPage() {
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,#f8fafc_0%,#f2f5f9_55%,#f6f7f9_100%)]">
+    <div className="min-h-screen bg-slate-50">
       <StructuredDataScript
         id="stores-collection-jsonld"
         data={buildCollectionPageJsonLd(
           "Магазины",
-          "Каталог магазинов и витрин продавцов Classify.",
+          "Каталог магазинов Classify.",
           "/stores",
         )}
       />

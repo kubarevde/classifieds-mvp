@@ -1,3 +1,4 @@
+export { AppShell } from "./app-shell";
 export { PageShell, type PageShellBreadcrumb, type PageShellProps } from "./PageShell";
 export { SectionCard, type SectionCardPadding, type SectionCardProps } from "./SectionCard";
 export { StatTile, type StatTileProps, type StatTileTrend } from "./StatTile";
