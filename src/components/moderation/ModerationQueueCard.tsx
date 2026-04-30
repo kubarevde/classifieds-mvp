@@ -1,7 +1,6 @@
 "use client";
 
-import Link from "next/link";
-
+import { AdminInternalLink } from "@/components/admin/AdminInternalLink";
 import type { ModerationQueueItem } from "@/services/moderation";
 
 function priorityClass(priority: ModerationQueueItem["priority"]) {
@@ -14,12 +13,24 @@ function priorityClass(priority: ModerationQueueItem["priority"]) {
 export function ModerationQueueCard({
   item,
   href,
+  selectable,
+  selected,
+  onToggleSelected,
 }: {
   item: ModerationQueueItem;
   href: string;
+  selectable?: boolean;
+  selected?: boolean;
+  onToggleSelected?: () => void;
 }) {
   return (
     <article className="rounded-xl border border-slate-200 bg-white p-3">
+      {selectable ? (
+        <label className="mb-2 flex cursor-pointer items-center gap-2 text-xs font-medium text-slate-600">
+          <input type="checkbox" checked={!!selected} onChange={onToggleSelected} className="rounded border-slate-300" />
+          Выбрать для массовых действий
+        </label>
+      ) : null}
       <div className="grid gap-2 md:grid-cols-[minmax(0,1fr)_auto_auto] md:items-center">
         <div className="min-w-0">
           <p className="text-sm font-semibold text-slate-900">{item.targetLabel}</p>
@@ -36,9 +47,9 @@ export function ModerationQueueCard({
         <span>Обновлено: {new Date(item.updatedAt).toLocaleDateString("ru-RU")}</span>
       </div>
       <div className="mt-3">
-        <Link href={href} className="inline-flex h-9 items-center rounded-lg bg-slate-900 px-3 text-sm font-semibold text-white">
+        <AdminInternalLink href={href} className="inline-flex h-9 items-center rounded-lg bg-slate-900 px-3 text-sm font-semibold text-white">
           Открыть кейс
-        </Link>
+        </AdminInternalLink>
       </div>
     </article>
   );

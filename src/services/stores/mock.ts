@@ -1,30 +1,4 @@
-import type { StoreConversation, StoreNotification } from "./types";
-
-const sellerConversationsMock: StoreConversation[] = [
-  {
-    id: "seller-conv-1",
-    participantName: "Ирина К.",
-    participantRole: "Покупатель",
-    listingId: "2",
-    unreadCount: 2,
-    messages: [
-      { id: "seller-m-1", author: "other", text: "Здравствуйте, ноутбук ещё в наличии?", sentAtIso: "2026-04-24T09:10:00+03:00" },
-      { id: "seller-m-2", author: "me", text: "Да, в наличии. Могу отправить доп. фото.", sentAtIso: "2026-04-24T09:13:00+03:00" },
-      { id: "seller-m-3", author: "other", text: "Отлично, пришлите пожалуйста.", sentAtIso: "2026-04-24T09:18:00+03:00" },
-    ],
-  },
-  {
-    id: "seller-conv-2",
-    participantName: "Максим П.",
-    participantRole: "Покупатель",
-    listingId: "8",
-    unreadCount: 1,
-    messages: [
-      { id: "seller-m-4", author: "other", text: "Добрый день! Можно самовывоз завтра?", sentAtIso: "2026-04-24T08:45:00+03:00" },
-      { id: "seller-m-5", author: "me", text: "Да, после 12:00 удобно.", sentAtIso: "2026-04-24T08:51:00+03:00" },
-    ],
-  },
-];
+import type { StoreNotification } from "./types";
 
 const sellerNotificationsMock: StoreNotification[] = [
   {
@@ -56,16 +30,8 @@ const sellerNotificationsMock: StoreNotification[] = [
   },
 ];
 
-export async function getStoreConversations(): Promise<StoreConversation[]> {
-  return getStoreConversationsSync();
-}
-
 export async function getStoreNotifications(): Promise<StoreNotification[]> {
   return getStoreNotificationsSync();
-}
-
-export function getStoreConversationsSync(): StoreConversation[] {
-  return structuredClone(sellerConversationsMock);
 }
 
 export function getStoreNotificationsSync(): StoreNotification[] {

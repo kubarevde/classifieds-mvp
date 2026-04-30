@@ -15,6 +15,7 @@ export {
   getModerationQueue,
   getModerationItem,
   assignModerationCase,
+  assignModerationCasesBulk,
   resolveModerationCase,
   addModerationNote,
   getModerationNotes,

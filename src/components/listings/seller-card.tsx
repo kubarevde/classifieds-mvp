@@ -1,12 +1,16 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 import { TrustSummary } from "@/components/trust";
+import { useDemoRole } from "@/components/demo-role/demo-role";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/components/ui/cn";
+import { resolvePrimaryActorId } from "@/lib/messages-actors";
 import { buttonVariants } from "@/lib/button-styles";
 import { SellerStorefront, getSellerTypeLabel } from "@/lib/sellers";
+import { messagesService } from "@/services/messages";
 import { getVerificationProfile } from "@/services/verification";
 import { VerificationBadgeFromTarget } from "@/components/verification/VerificationBadgeFromTarget";
 
@@ -14,7 +18,6 @@ type SellerCardProps = {
   sellerName: string;
   sellerPhone: string;
   listingId: string;
-  listingTitle: string;
   storefront?: SellerStorefront | null;
 };
 
@@ -22,14 +25,16 @@ export function SellerCard({
   sellerName,
   sellerPhone,
   listingId,
-  listingTitle,
   storefront,
 }: SellerCardProps) {
+  const router = useRouter();
+  const { role, currentSellerId } = useDemoRole();
   const isVerified = storefront ? storefront.trustBadges.some((badge) => badge.id === "verified") : false;
   const reviewsCount = storefront ? Math.max(8, Math.round(storefront.followersCount * 0.16)) : null;
   const activeListings = storefront?.listingRefs.filter((item) => item.status === "active").length ?? 1;
   const allListingsHref = storefront ? `/stores/${storefront.id}#seller-listings` : "/listings";
   const storeHref = storefront ? `/stores/${storefront.id}` : "/listings";
+  const threadTargetSellerId = storefront?.id ?? null;
 
   const sellerIdentityProfile = storefront ? getVerificationProfile(storefront.id, "seller") : null;
   const storeBusinessProfile = storefront ? getVerificationProfile(storefront.id, "store") : null;
@@ -105,13 +110,21 @@ export function SellerCard({
 
         <section className="space-y-2 border-t border-slate-100 pt-4">
           <Link
-            href={{
-              pathname: "/messages",
-              query: {
+            href="#"
+            onClick={async (event) => {
+              event.preventDefault();
+              if (!threadTargetSellerId) {
+                router.push("/messages");
+                return;
+              }
+              const starterId = resolvePrimaryActorId(role, currentSellerId);
+              const thread = await messagesService.createThread({
+                starterId,
+                otherUserId: `seller-account:${threadTargetSellerId}`,
                 listingId,
-                sellerName,
-                listingTitle,
-              },
+                storeId: threadTargetSellerId,
+              });
+              router.push(`/messages/${encodeURIComponent(thread.id)}`);
             }}
             className={cn(buttonVariants({ variant: "primary", size: "md" }), "w-full text-center")}
           >

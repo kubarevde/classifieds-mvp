@@ -1,5 +1,6 @@
 export type NotificationType =
   | "message"
+  | "new_message"
   | "favorite"
   | "listing_status"
   | "tip"

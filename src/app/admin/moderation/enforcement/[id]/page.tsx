@@ -4,6 +4,8 @@ import { useParams } from "next/navigation";
 import { useState } from "react";
 
 import Link from "next/link";
+
+import { AdminInternalLink } from "@/components/admin/AdminInternalLink";
 import { AdminDetailPageShell } from "@/components/admin/AdminDetailPageShell";
 import { AdminEntityMeta } from "@/components/admin/AdminEntityMeta";
 import { AdminPageSection } from "@/components/admin/AdminPageSection";
@@ -14,6 +16,7 @@ import { ModerationTimeline } from "@/components/moderation/ModerationTimeline";
 import { ReviewerNotesPanel } from "@/components/moderation/ReviewerNotesPanel";
 import { getDemoBuyerPersonaSellerId, DEMO_STOREFRONT_SELLER_ID } from "@/lib/demo-role-constants";
 import { getAppealById, getEnforcementActionById, getUserAppeals } from "@/services/enforcement";
+import { moderationTargetToAdminHref } from "@/lib/admin-moderation-cross-links";
 import { addModerationNote, getModerationNotes, getModerationTimeline } from "@/services/moderation";
 
 const reviewer = "moderator.ivan";
@@ -33,27 +36,35 @@ export default function AdminModerationEnforcementDetailPage() {
   if (!action) {
     return (
       <ModerationShell>
-        <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-700">Проверьте id решения.</div>
+        <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-700">
+          <p className="font-medium text-slate-900">Решение не найдено</p>
+          <p className="mt-1 text-slate-600">Проверьте идентификатор в URL.</p>
+          <AdminInternalLink href="/admin/moderation/enforcement" className="mt-3 inline-flex h-9 items-center rounded-lg bg-slate-900 px-3 text-sm font-semibold text-white">
+            К очереди enforcement
+          </AdminInternalLink>
+        </div>
       </ModerationShell>
     );
   }
+
+  const targetAdminHref = moderationTargetToAdminHref(action.targetType, action.targetId);
 
   return (
     <ModerationShell>
       <AdminDetailPageShell
         breadcrumbs={[
           { label: "Модерация", href: "/admin/moderation" },
-          { label: "Enforcement", href: "/admin/moderation/enforcement" },
+          { label: "Санкции", href: "/admin/moderation/enforcement" },
           { label: `#${action.id}` },
         ]}
-        title={`Enforcement ${action.id}`}
-        subtitle="Lifecycle решения: статус, appeal context, reviewer history."
+        title={`Санкция ${action.id}`}
+        subtitle="Жизненный цикл решения: статус, апелляция, история разбора."
         summaryMeta={
           <AdminEntityMeta
             items={[
               { label: "Статус", value: action.status },
               { label: "Тип", value: action.actionType },
-              { label: "Target", value: action.targetType },
+              { label: "Тип объекта", value: action.targetType },
               { label: "Причина", value: action.reasonTitle },
             ]}
           />
@@ -68,9 +79,9 @@ export default function AdminModerationEnforcementDetailPage() {
               rerender((x) => x + 1);
             }}
             actions={[
-              { decision: "approve", label: "Lift action" },
-              { decision: "request_more_info", label: "Extend action" },
-              { decision: "escalate", label: "Escalate" },
+              { decision: "approve", label: "Снять санкцию" },
+              { decision: "request_more_info", label: "Продлить / уточнить" },
+              { decision: "escalate", label: "Эскалировать" },
             ]}
           />
         }
@@ -98,19 +109,34 @@ export default function AdminModerationEnforcementDetailPage() {
             <p className="mt-1">reason: {action.reasonTitle}</p>
             <p className="mt-1">createdAt: {new Date(action.createdAt).toLocaleString("ru-RU")}</p>
             <p className="mt-1">
-              expiresAt: {action.expiresAt ? new Date(action.expiresAt).toLocaleString("ru-RU") : "n/a"}
+              Истекает: {action.expiresAt ? new Date(action.expiresAt).toLocaleString("ru-RU") : "—"}
             </p>
-            <p className="mt-2 font-semibold text-slate-900">Related appeal</p>
+            <p className="mt-2 font-semibold text-slate-900">Связанная апелляция</p>
             <p className="mt-1 text-slate-600">
               {relatedAppeal
                 ? `${relatedAppeal.id} · ${relatedAppeal.status}`
                 : "Связанного обращения на пересмотр не найдено."}
             </p>
-            {relatedAppeal ? <p className="mt-1 text-xs text-slate-500">message: {getAppealById(relatedAppeal.id)?.message}</p> : null}
+            {relatedAppeal ? <p className="mt-1 text-xs text-slate-500">Текст: {getAppealById(relatedAppeal.id)?.message}</p> : null}
             <div className="mt-3 flex flex-wrap gap-2">
-              <Link href={`/enforcement/actions/${action.id}`} className="inline-flex h-9 items-center rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-700">Детали решения (public)</Link>
-              {relatedAppeal ? <Link href={`/enforcement/appeals/${relatedAppeal.id}`} className="inline-flex h-9 items-center rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-700">Связанный appeal</Link> : null}
-              {action.targetType === "listing" ? <Link href={`/listings/${action.targetId}`} className="inline-flex h-9 items-center rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-700">Открыть объявление</Link> : null}
+              <Link href={`/enforcement/actions/${action.id}`} className="inline-flex h-9 items-center rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-700">
+                Публичная карточка решения
+              </Link>
+              {relatedAppeal ? (
+                <Link href={`/enforcement/appeals/${relatedAppeal.id}`} className="inline-flex h-9 items-center rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-700">
+                  Публичная апелляция
+                </Link>
+              ) : null}
+              {targetAdminHref ? (
+                <AdminInternalLink href={targetAdminHref} className="inline-flex h-9 items-center rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700">
+                  Объект в консоли
+                </AdminInternalLink>
+              ) : null}
+              {action.targetType === "listing" ? (
+                <Link href={`/listings/${action.targetId}`} className="inline-flex h-9 items-center rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-700">
+                  Публичное объявление
+                </Link>
+              ) : null}
             </div>
           </AdminPageSection>
           </>

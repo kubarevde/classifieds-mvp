@@ -263,6 +263,20 @@ export function assignModerationCase(id: string, reviewer: string): ModerationQu
   return next;
 }
 
+export function assignModerationCasesBulk(ids: string[], reviewer: string): { updated: number; skipped: number } {
+  let updated = 0;
+  let skipped = 0;
+  for (const id of ids) {
+    const r = assignModerationCase(id, reviewer);
+    if (r) {
+      updated += 1;
+    } else {
+      skipped += 1;
+    }
+  }
+  return { updated, skipped };
+}
+
 export function resolveModerationCase(input: ModerationDecisionInput): ModerationQueueItem | null {
   const index = queueState.findIndex((item) => item.id === input.caseId);
   if (index < 0) return null;

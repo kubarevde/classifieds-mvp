@@ -1,5 +1,17 @@
-import { getBuyerNotifications, getBuyerNotificationsSync } from "./mock";
+import {
+  addMessageNotification,
+  getBuyerNotifications,
+  getBuyerNotificationsSync,
+  getNotificationsForUser,
+  getNotificationsForUserSync,
+} from "./mock";
 
 export type { Notification } from "./types";
 
-export { getBuyerNotifications, getBuyerNotificationsSync };
+export {
+  addMessageNotification,
+  getBuyerNotifications,
+  getBuyerNotificationsSync,
+  getNotificationsForUser,
+  getNotificationsForUserSync,
+};

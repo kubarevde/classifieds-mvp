@@ -13,6 +13,7 @@ type NotificationItemProps = {
 function getTypeLabel(type: NotificationType) {
   switch (type) {
     case "message":
+    case "new_message":
       return "Сообщения";
     case "favorite":
       return "Избранное";
@@ -32,6 +33,7 @@ function getTypeLabel(type: NotificationType) {
 function getTypeAccent(type: NotificationType) {
   switch (type) {
     case "message":
+    case "new_message":
       return { dot: "bg-sky-500", pill: "bg-sky-50 text-sky-700 ring-sky-100" };
     case "favorite":
       return { dot: "bg-rose-500", pill: "bg-rose-50 text-rose-700 ring-rose-100" };

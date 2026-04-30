@@ -301,6 +301,8 @@ function seedTickets(): SupportTicket[] {
     subject: "Не приходит письмо для входа",
     message: "Пробовал три раза, почта на Gmail.",
     status: "open",
+    priority: "high",
+    assignedTo: null,
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 26).toISOString(),
     updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
     messages: [
@@ -328,6 +330,9 @@ function seedTickets(): SupportTicket[] {
     subject: "Вопрос по счёту за тариф",
     message: "Нужен акт за прошлый месяц.",
     status: "in_progress",
+    priority: "normal",
+    assignedTo: "Мария · L2",
+    threadId: "thread-1001",
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 72).toISOString(),
     updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(),
     messages: [
@@ -355,6 +360,9 @@ function seedTickets(): SupportTicket[] {
     subject: "Подключение купонов к категории",
     message: "Хотим ограничить купон только миром «Электроника».",
     status: "resolved",
+    priority: "low",
+    assignedTo: "Иван · L1",
+    threadId: "thread-1004",
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 200).toISOString(),
     updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 190).toISOString(),
     messages: [
@@ -466,6 +474,11 @@ export function getTicketById(ticketId: string): SupportTicket | null {
   return t ? { ...t, messages: t.messages.slice() } : null;
 }
 
+/** Полный список тикетов для админ-консоли (in-memory mock). */
+export function listAllSupportTicketsForAdmin(): SupportTicket[] {
+  return ticketsState.map((t) => ({ ...t, messages: t.messages.slice() })).sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+}
+
 export type CreateSupportTicketInput = {
   userId: string;
   category: SupportCategory;
@@ -495,6 +508,8 @@ export function createSupportTicket(input: CreateSupportTicketInput): SupportTic
     subject: input.subject.trim(),
     message: input.message.trim(),
     status: "open",
+    priority: "normal",
+    assignedTo: null,
     createdAt: now,
     updatedAt: now,
     messages: [msg],
@@ -544,4 +559,42 @@ export function addSupportTicketMessage(
 /** Для тестов: сбросить in-memory тикеты */
 export function resetSupportTicketsForTests() {
   ticketsState = seedTickets();
+}
+
+export function adminAssignTicket(ticketId: string, assignedTo: string | null): SupportTicket | null {
+  const idx = ticketsState.findIndex((t) => t.id === ticketId);
+  if (idx === -1) {
+    return null;
+  }
+  const now = new Date().toISOString();
+  const prev = ticketsState[idx];
+  const next: SupportTicket = { ...prev, assignedTo, updatedAt: now };
+  ticketsState = [...ticketsState.slice(0, idx), next, ...ticketsState.slice(idx + 1)];
+  return { ...next, messages: next.messages.slice() };
+}
+
+export function adminSetTicketStatus(ticketId: string, status: SupportTicket["status"]): SupportTicket | null {
+  const idx = ticketsState.findIndex((t) => t.id === ticketId);
+  if (idx === -1) {
+    return null;
+  }
+  const now = new Date().toISOString();
+  const prev = ticketsState[idx];
+  const next: SupportTicket = { ...prev, status, updatedAt: now };
+  ticketsState = [...ticketsState.slice(0, idx), next, ...ticketsState.slice(idx + 1)];
+  return { ...next, messages: next.messages.slice() };
+}
+
+export function adminBulkSetTicketStatus(ticketIds: string[], status: SupportTicket["status"]): { updated: number; skipped: number } {
+  let updated = 0;
+  let skipped = 0;
+  for (const ticketId of ticketIds) {
+    const r = adminSetTicketStatus(ticketId, status);
+    if (r) {
+      updated += 1;
+    } else {
+      skipped += 1;
+    }
+  }
+  return { updated, skipped };
 }

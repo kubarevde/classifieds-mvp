@@ -1,10 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Menu } from "lucide-react";
 
-import { useBuyer } from "@/components/buyer/buyer-provider";
 import { getDemoDisplayName, useDemoRole } from "@/components/demo-role/demo-role";
 import { AccountMenu } from "@/components/layout/account-menu";
 import { HeaderActions } from "@/components/layout/header-actions";
@@ -13,7 +12,9 @@ import { useSellerActivity } from "@/components/seller/use-seller-activity";
 import { useFavorites } from "@/components/favorites/favorites-provider";
 import { useNotifications } from "@/components/notifications/notifications-provider";
 import { Container } from "@/components/ui/container";
+import { resolveActorIdsForRole } from "@/lib/messages-actors";
 import { DEFAULT_DEMO_ROLE, resolveDemoStoreNavSellerId } from "@/lib/demo-role-constants";
+import { messagesService } from "@/services/messages";
 
 const guestNavLinks = [
   { label: "Главная", href: "/" },
@@ -45,17 +46,27 @@ export function Navbar() {
   const mobileMenuTriggerRef = useRef<HTMLButtonElement | null>(null);
   const { role, isHydrated: roleHydrated } = useDemoRole();
   const effectiveRole = roleHydrated ? role : DEFAULT_DEMO_ROLE;
-  const buyer = useBuyer();
   const sellerActivity = useSellerActivity();
+  const storeNavSellerId = resolveDemoStoreNavSellerId(effectiveRole);
   const { favoritesCount, isHydrated: favoritesHydrated } = useFavorites();
   const { unreadCount: notificationsUnreadCount, isHydrated: notificationsHydrated } =
     useNotifications();
-  const unreadCount =
-    effectiveRole === "seller"
-      ? sellerActivity.messagesUnreadCount
-      : effectiveRole === "all"
-        ? buyer.unreadCounts.messages + sellerActivity.messagesUnreadCount
-        : buyer.unreadCounts.messages;
+  const [serviceUnreadCount, setServiceUnreadCount] = useState(0);
+  useEffect(() => {
+    const actorIds = resolveActorIdsForRole(effectiveRole, storeNavSellerId);
+    if (actorIds.length === 0) {
+      return;
+    }
+    let alive = true;
+    void Promise.all(actorIds.map((id) => messagesService.getUnreadCount(id))).then((counts) => {
+      if (!alive) return;
+      setServiceUnreadCount(counts.reduce((sum, value) => sum + value, 0));
+    });
+    return () => {
+      alive = false;
+    };
+  }, [effectiveRole, storeNavSellerId]);
+  const unreadCount = resolveActorIdsForRole(effectiveRole, storeNavSellerId).length === 0 ? 0 : serviceUnreadCount;
   const effectiveNotificationsUnreadCount =
     effectiveRole === "seller"
       ? sellerActivity.notificationsUnreadCount
@@ -67,7 +78,6 @@ export function Navbar() {
   const primaryNavLinks = navByRole[effectiveRole];
   const isActivityVisible =
     effectiveRole === "buyer" || effectiveRole === "seller" || effectiveRole === "all";
-  const storeNavSellerId = resolveDemoStoreNavSellerId(effectiveRole);
   const isAccountVisible = effectiveRole !== "guest";
   const displayName = getDemoDisplayName(effectiveRole);
   const accountMode: "buyer" | "seller" | "all" =

@@ -12,6 +12,8 @@ export type TicketMessage = {
   createdAt: string;
 };
 
+export type TicketPriority = "low" | "normal" | "high";
+
 export type SupportTicket = {
   id: string;
   userId: string;
@@ -22,6 +24,10 @@ export type SupportTicket = {
   createdAt: string;
   updatedAt: string;
   messages: TicketMessage[];
+  /** Для админ-консоли (mock). */
+  priority?: TicketPriority;
+  assignedTo?: string | null;
+  threadId?: string | null;
 };
 
 export type HelpArticle = {

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { useDemoRole } from "@/components/demo-role/demo-role";
 import { RequestResponseComposer } from "@/components/requests/RequestResponseComposer";
@@ -20,6 +21,8 @@ import { mockBuyerRequestsService } from "@/services/requests";
 import { buildRecreateRequestHrefFromBuyerRequest, buyerRequestToSearchIntent } from "@/services/requests/intent-adapter";
 import { cn } from "@/components/ui/cn";
 import { buttonVariants } from "@/lib/button-styles";
+import { resolvePrimaryActorId } from "@/lib/messages-actors";
+import { messagesService } from "@/services/messages";
 import { getStorefrontSellerById } from "@/lib/sellers";
 import { ReportAbuseButton } from "@/components/safety/ReportAbuseButton";
 import { detectRequestRisk } from "@/services/risk";
@@ -32,6 +35,7 @@ type RequestDetailsClientProps = {
 };
 
 export function RequestDetailsClient({ request, initialResponses }: RequestDetailsClientProps) {
+  const router = useRouter();
   const { role, currentSellerId } = useDemoRole();
   const [currentRequest, setCurrentRequest] = useState(request);
   const [responses, setResponses] = useState(initialResponses);
@@ -157,7 +161,19 @@ export function RequestDetailsClient({ request, initialResponses }: RequestDetai
                 Предложить объявление
               </a>
               <Link
-                href="/messages"
+                href="#"
+                onClick={async (event) => {
+                  event.preventDefault();
+                  const starterId = resolvePrimaryActorId(role, currentSellerId);
+                  const otherUserId = currentRequest.authorId;
+                  const thread = await messagesService.createThread({
+                    starterId,
+                    otherUserId,
+                    requestId: currentRequest.id,
+                    storeId: currentSellerId ?? undefined,
+                  });
+                  router.push(`/messages/${encodeURIComponent(thread.id)}`);
+                }}
                 className={cn(buttonVariants({ variant: "outline", size: "md" }), "w-full justify-center rounded-xl")}
               >
                 Написать автору

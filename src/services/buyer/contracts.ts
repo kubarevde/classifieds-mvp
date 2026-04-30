@@ -24,13 +24,6 @@ export interface BuyerService {
   removeSavedSearch(id: string): void;
   renameSavedSearch(id: string, name: string): void;
   setSavedSearchAlerts(id: string, enabled: boolean): void;
-  markConversationRead(id: string): void;
-  ensureConversation(input: {
-    listingId: string;
-    sellerName?: string | null;
-    listingTitle?: string | null;
-  }): string | null;
-  sendMessage(conversationId: string, text: string): void;
   markNotificationRead(id: string): void;
   markAllNotificationsRead(): void;
   addNotification(notification: Omit<Notification, "id">): void;

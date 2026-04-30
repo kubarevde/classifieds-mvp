@@ -2,11 +2,13 @@
 
 import Link from "next/link";
 import dynamic from "next/dynamic";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { CheckCircle2, Heart, Search } from "lucide-react";
 
 import { ListingsGrid } from "@/components/listings/listings-grid";
 import { ErrorBoundary } from "@/components/platform";
+import { useDemoRole } from "@/components/demo-role/demo-role";
 import { StorefrontFeaturedSection } from "@/components/sellers/storefront-featured-section";
 import { StorefrontHeroTrustHint } from "@/components/sellers/storefront-hero-trust-hint";
 import {
@@ -18,9 +20,11 @@ import {
   getSellerTypeLabel,
 } from "@/lib/sellers";
 import { ListingsView, ListingWorld } from "@/lib/listings";
+import { resolvePrimaryActorId } from "@/lib/messages-actors";
 import { withReturnTo } from "@/lib/navigation/return-to";
 import { ReportAbuseButton } from "@/components/safety/ReportAbuseButton";
 import { TransactionSafetyChecklist } from "@/components/risk/TransactionSafetyChecklist";
+import { messagesService } from "@/services/messages";
 
 type StorefrontPageClientProps = {
   seller: SellerStorefront;
@@ -80,6 +84,8 @@ export function StorefrontPageClient({
   promotionState,
   campaigns,
 }: StorefrontPageClientProps) {
+  const router = useRouter();
+  const { role, currentSellerId } = useDemoRole();
   const storefrontReturnTo = `/stores/${seller.id}#seller-listings`;
   const [scope, setScope] = useState<ListingScope>("all");
   const [world, setWorld] = useState<"all" | ListingWorld>("all");
@@ -344,13 +350,17 @@ export function StorefrontPageClient({
             </p>
             <div className="space-y-1.5">
               <Link
-                href={{
-                  pathname: "/messages",
-                  query: {
-                    listingId: firstListing?.id ?? "",
-                    sellerName: seller.displayName,
-                    listingTitle: firstListing?.title ?? seller.storefrontName,
-                  },
+                href="#"
+                onClick={async (event) => {
+                  event.preventDefault();
+                  const starterId = resolvePrimaryActorId(role, currentSellerId);
+                  const thread = await messagesService.createThread({
+                    starterId,
+                    otherUserId: `seller-account:${seller.id}`,
+                    listingId: firstListing?.id ?? null,
+                    storeId: seller.id,
+                  });
+                  router.push(`/messages/${encodeURIComponent(thread.id)}`);
                 }}
                 className="inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-slate-900 px-3 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
               >

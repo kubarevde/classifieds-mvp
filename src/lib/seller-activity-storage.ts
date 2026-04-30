@@ -1,4 +1,3 @@
-import { getMockUnreadMessagesCount } from "@/lib/messages";
 import { getDefaultMockNotifications } from "@/lib/notifications";
 
 export const SELLER_ACTIVITY_STORAGE_KEY = "classifieds-mvp:seller-activity";
@@ -12,7 +11,7 @@ export type SellerActivityState = {
 };
 
 const DEFAULT_NUMBERS: SellerActivityState = {
-  messagesUnreadCount: getMockUnreadMessagesCount(),
+  messagesUnreadCount: 0,
   notificationsUnreadCount: getDefaultMockNotifications().reduce(
     (sum, item) => sum + (item.isRead ? 0 : 1),
     0,

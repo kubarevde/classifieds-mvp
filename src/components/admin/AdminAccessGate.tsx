@@ -4,16 +4,20 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { useDemoRole } from "@/components/demo-role/demo-role";
-import { canAccessModerationConsole } from "@/services/moderation";
+import { canAccessModerationPersona, defaultAdminPersonaFromDemoRole } from "@/lib/admin-access";
+
+import { useOptionalAdminConsole } from "./admin-console-context";
 
 export function AdminAccessGate({ children }: { children: ReactNode }) {
   const { role, isHydrated, setRole } = useDemoRole();
+  const adminCtx = useOptionalAdminConsole();
+  const persona = adminCtx?.persona ?? defaultAdminPersonaFromDemoRole(role);
 
   if (!isHydrated) {
     return <div className="p-6 text-sm text-slate-500">Проверяем внутренний доступ…</div>;
   }
 
-  if (canAccessModerationConsole({ role })) {
+  if (canAccessModerationPersona(persona)) {
     return <>{children}</>;
   }
 
@@ -21,7 +25,8 @@ export function AdminAccessGate({ children }: { children: ReactNode }) {
     <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center">
       <p className="text-lg font-semibold text-slate-900">Нет доступа к internal console</p>
       <p className="mt-1 text-sm text-slate-600">
-        Раздел доступен только moderator/admin (в демо используйте роль `all`).
+        Раздел доступен персонам «Админ» и «Модератор» (в демо: роль «Всё вместе» или «Продавец», либо параметр URL{" "}
+        <code className="rounded bg-slate-100 px-1">?internalAccess=moderator</code>).
       </p>
       <div className="mt-3 flex flex-wrap justify-center gap-2">
         <button

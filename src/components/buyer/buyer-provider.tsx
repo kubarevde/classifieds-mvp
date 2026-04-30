@@ -1,11 +1,13 @@
 "use client";
 
-import { createContext, ReactNode, useContext, useMemo, useState } from "react";
+import { createContext, ReactNode, useContext, useEffect, useMemo, useState } from "react";
 
 import { useDemoRole } from "@/components/demo-role/demo-role";
 import { useSubscription } from "@/components/subscription/subscription-provider";
+import { resolveActorIdsForRole } from "@/lib/messages-actors";
 import { getProfileAccountSync } from "@/services/auth";
 import { createFeatureGateService } from "@/services/feature-gate";
+import { messagesService } from "@/services/messages";
 import type { BuyerService } from "@/services/buyer/contracts";
 import { createBuyerService, makeInitialBuyerState } from "@/services/buyer";
 import type { BuyerState } from "@/services/buyer/types";
@@ -23,9 +25,6 @@ type BuyerContextValue = BuyerState & {
   removeSavedSearch: BuyerService["removeSavedSearch"];
   renameSavedSearch: BuyerService["renameSavedSearch"];
   setSavedSearchAlerts: BuyerService["setSavedSearchAlerts"];
-  markConversationRead: BuyerService["markConversationRead"];
-  ensureConversation: BuyerService["ensureConversation"];
-  sendMessage: BuyerService["sendMessage"];
   markNotificationRead: BuyerService["markNotificationRead"];
   markAllNotificationsRead: BuyerService["markAllNotificationsRead"];
   addNotification: BuyerService["addNotification"];
@@ -46,6 +45,7 @@ export function BuyerProvider({ children }: { children: ReactNode }) {
       key={sessionKey}
       isBuyerRole={isBuyerRole}
       role={role}
+      currentSellerId={currentSellerId}
       subscriptionSnapshot={{
         isPro: subscription.isPro,
         planName: subscription.planName,
@@ -61,11 +61,13 @@ function BuyerStateProvider({
   children,
   isBuyerRole,
   role,
+  currentSellerId,
   subscriptionSnapshot,
 }: {
   children: ReactNode;
   isBuyerRole: boolean;
   role: ReturnType<typeof useDemoRole>["role"];
+  currentSellerId: string | null;
   subscriptionSnapshot: {
     isPro: boolean;
     planName: ReturnType<typeof useSubscription>["planName"];
@@ -73,6 +75,8 @@ function BuyerStateProvider({
   };
 }) {
   const [state, setState] = useState<BuyerState>(() => makeInitialBuyerState(isBuyerRole));
+  const [messagesUnread, setMessagesUnread] = useState(0);
+  const actorIds = useMemo(() => resolveActorIdsForRole(role, currentSellerId), [role, currentSellerId]);
 
   const buyerService = useMemo(() => {
     const gate = createFeatureGateService(subscriptionSnapshot, role);
@@ -81,9 +85,23 @@ function BuyerStateProvider({
     });
   }, [role, subscriptionSnapshot]);
 
+  useEffect(() => {
+    if (actorIds.length === 0) {
+      return;
+    }
+    let alive = true;
+    void Promise.all(actorIds.map((id) => messagesService.getUnreadCount(id))).then((counts) => {
+      if (!alive) return;
+      setMessagesUnread(counts.reduce((sum, x) => sum + x, 0));
+    });
+    return () => {
+      alive = false;
+    };
+  }, [actorIds]);
+
   const value = useMemo<BuyerContextValue>(() => {
     const unreadCounts = {
-      messages: state.messages.reduce((sum, conversation) => sum + conversation.unreadCount, 0),
+      messages: actorIds.length === 0 ? 0 : messagesUnread,
       notifications: state.notifications.reduce((sum, item) => sum + (item.isRead ? 0 : 1), 0),
     };
 
@@ -101,16 +119,13 @@ function BuyerStateProvider({
       removeSavedSearch: (id) => buyerService.removeSavedSearch(id),
       renameSavedSearch: (id, name) => buyerService.renameSavedSearch(id, name),
       setSavedSearchAlerts: (id, enabled) => buyerService.setSavedSearchAlerts(id, enabled),
-      markConversationRead: (id) => buyerService.markConversationRead(id),
-      ensureConversation: (input) => buyerService.ensureConversation(input),
-      sendMessage: (conversationId, text) => buyerService.sendMessage(conversationId, text),
       markNotificationRead: (id) => buyerService.markNotificationRead(id),
       markAllNotificationsRead: () => buyerService.markAllNotificationsRead(),
       addNotification: (notification) => buyerService.addNotification(notification),
       saveProfile: (next) => buyerService.saveProfile(next),
       promoteListing: (input) => buyerService.promoteListing(input),
     };
-  }, [state, buyerService]);
+  }, [state, buyerService, messagesUnread, actorIds.length]);
 
   return (
     <BuyerServiceContext.Provider value={buyerService}>

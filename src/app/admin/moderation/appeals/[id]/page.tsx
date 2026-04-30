@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState } from "react";
 
+import { AdminInternalLink } from "@/components/admin/AdminInternalLink";
 import { AdminDetailPageShell } from "@/components/admin/AdminDetailPageShell";
 import { AdminEntityMeta } from "@/components/admin/AdminEntityMeta";
 import { AdminPageSection } from "@/components/admin/AdminPageSection";
@@ -20,6 +21,7 @@ import {
   getModerationTimeline,
   resolveModerationCase,
 } from "@/services/moderation";
+import { moderationTargetToAdminHref } from "@/lib/admin-moderation-cross-links";
 
 const reviewer = "moderator.alina";
 
@@ -34,28 +36,36 @@ export default function AdminModerationAppealDetailPage() {
   if (!item) {
     return (
       <ModerationShell>
-        <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-700">Проверьте id обращения.</div>
+        <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-700">
+          <p className="font-medium text-slate-900">Кейс не найден</p>
+          <p className="mt-1 text-slate-600">Проверьте идентификатор в URL.</p>
+          <AdminInternalLink href="/admin/moderation/appeals" className="mt-3 inline-flex h-9 items-center rounded-lg bg-slate-900 px-3 text-sm font-semibold text-white">
+            К списку апелляций
+          </AdminInternalLink>
+        </div>
       </ModerationShell>
     );
   }
+
+  const targetAdminHref = moderationTargetToAdminHref(item.targetType, item.targetId);
 
   return (
     <ModerationShell>
       <AdminDetailPageShell
         breadcrumbs={[
           { label: "Модерация", href: "/admin/moderation" },
-          { label: "Appeals", href: "/admin/moderation/appeals" },
+          { label: "Апелляции", href: "/admin/moderation/appeals" },
           { label: `#${item.id}` },
         ]}
-        title={`Appeal ${item.id}`}
-        subtitle="Отдельный review обращения на пересмотр с контекстом исходного решения."
+        title={`Апелляция ${item.id}`}
+        subtitle="Разбор обращения на пересмотр с контекстом исходного решения."
         summaryMeta={
           <AdminEntityMeta
             items={[
               { label: "Статус", value: item.status },
               { label: "Приоритет", value: item.priority },
               { label: "Назначено", value: item.assignedTo ?? "—" },
-              { label: "Target", value: item.targetLabel },
+              { label: "Объект", value: item.targetLabel },
             ]}
           />
         }
@@ -66,20 +76,20 @@ export default function AdminModerationAppealDetailPage() {
               rerender((x) => x + 1);
             }}
             actions={[
-              { decision: "uphold_action", label: "Uphold action" },
-              { decision: "reverse_action", label: "Reverse action" },
-              { decision: "request_more_info", label: "Request more info" },
-              { decision: "escalate", label: "Escalate" },
+              { decision: "uphold_action", label: "Оставить решение" },
+              { decision: "reverse_action", label: "Отменить действие" },
+              { decision: "request_more_info", label: "Запросить данные" },
+              { decision: "escalate", label: "Эскалировать" },
             ]}
           />
         }
         main={
           <>
             <CaseReviewPanel item={item} />
-            <AdminPageSection title="Appeal context">
-            <h3 className="text-sm font-semibold text-slate-900">Appeal context</h3>
+            <AdminPageSection title="Контекст апелляции">
+            <h3 className="text-sm font-semibold text-slate-900">Материалы</h3>
             <p className="mt-1 text-sm text-slate-600">
-              На этой странице собран контекст обращения и исходного решения платформы.
+              Контекст обращения и исходного решения платформы (mock).
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
               <button
@@ -90,13 +100,18 @@ export default function AdminModerationAppealDetailPage() {
                 }}
                 className="inline-flex h-9 items-center rounded-lg bg-slate-900 px-3 text-sm font-semibold text-white"
               >
-                Взять в review
+                Взять в разбор
               </button>
+              {targetAdminHref ? (
+                <AdminInternalLink href={targetAdminHref} className="inline-flex h-9 items-center rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700">
+                  Открыть объект в консоли
+                </AdminInternalLink>
+              ) : null}
               <Link href="/enforcement/appeals" className="inline-flex h-9 items-center rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-700">
-                Appeals (public)
+                Публичные апелляции
               </Link>
               <Link href="/enforcement/actions" className="inline-flex h-9 items-center rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-700">
-                Enforcement actions
+                Публичные санкции
               </Link>
             </div>
             </AdminPageSection>

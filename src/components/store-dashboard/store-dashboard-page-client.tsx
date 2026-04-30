@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { FormEvent, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { FormEvent, useEffect, useState } from "react";
 import { CircleHelp } from "lucide-react";
 
 import { InlineNotice } from "@/components/platform";
 import { useSubscription } from "@/components/subscription/subscription-provider";
 import { useFeatureGate } from "@/hooks/useFeatureGate";
-import { SellerMessagesPanel } from "@/components/store-dashboard/seller-messages-panel";
+import { MessagesSplitView } from "@/components/messages/messages-split-view";
 import { SellerNotificationsPanel } from "@/components/store-dashboard/seller-notifications-panel";
 import { useSellerActivity } from "@/components/seller/use-seller-activity";
 import { StoreListingsSection } from "@/components/store-dashboard/sections/listings/StoreListingsSection";
@@ -24,6 +25,7 @@ import {
 } from "@/components/store-dashboard/store-dashboard-shared";
 import { useStoreDashboardModals } from "@/components/store-dashboard/useStoreDashboardModals";
 import type { SellerPost } from "@/lib/sellers";
+import { messagesService, type MessageThread } from "@/services/messages";
 
 export type { StoreDashboardPageClientProps } from "@/components/store-dashboard/store-dashboard-shared";
 
@@ -54,6 +56,7 @@ export function StoreDashboardPageClient({
   initialMarketingScreen,
   initialSection,
 }: StoreDashboardPageClientProps) {
+  const searchParams = useSearchParams();
   const sellerActivity = useSellerActivity();
   const subscription = useSubscription();
   const { getLimit } = useFeatureGate();
@@ -80,6 +83,13 @@ export function StoreDashboardPageClient({
     telegram: seller.contactLinks.telegram,
     vk: seller.contactLinks.vk,
   });
+  const [latestThreads, setLatestThreads] = useState<MessageThread[]>([]);
+
+  useEffect(() => {
+    void messagesService.getMyThreads(`seller-account:${seller.id}`).then((rows) => {
+      setLatestThreads(rows.slice(0, 3));
+    });
+  }, [seller.id]);
 
   const {
     isTariffModalOpen,
@@ -150,6 +160,7 @@ export function StoreDashboardPageClient({
   }
 
   const baseStoreHref = `/dashboard/store?sellerId=${seller.id}`;
+  const selectedThreadId = searchParams.get("thread");
   const currentSubscriptionTier = subscription.storePlan;
 
   if (initialSection === "messages") {
@@ -161,7 +172,27 @@ export function StoreDashboardPageClient({
         >
           ← Назад в кабинет
         </Link>
-        <SellerMessagesPanel onUnreadChange={sellerActivity.setMessagesUnreadCount} />
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
+          <MessagesSplitView
+            actorIds={[`seller-account:${seller.id}`]}
+            title="Переписки с покупателями"
+            subtitle="Здесь вы видите все диалоги по вашим объявлениям и запросам."
+            fullscreenHref={`/messages?actor=store&from=store-dashboard`}
+            backHref={baseStoreHref}
+            backLabel="Назад в кабинет магазина"
+            isSellerWorkspace
+            selectedThreadId={selectedThreadId}
+            onSelectedThreadChange={(threadId) => {
+              const params = new URLSearchParams(searchParams.toString());
+              params.set("sellerId", seller.id);
+              params.set("section", "messages");
+              if (threadId) params.set("thread", threadId);
+              else params.delete("thread");
+              const query = params.toString();
+              window.history.replaceState(null, "", `/dashboard/store?${query}`);
+            }}
+          />
+        </div>
       </div>
     );
   }
@@ -203,6 +234,33 @@ export function StoreDashboardPageClient({
         onOpenTariffModal={() => setIsTariffModalOpen(true)}
         subscription={subscription}
       />
+
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 className="text-sm font-semibold text-slate-900">Сообщения</h2>
+            <p className="text-sm text-slate-600">Переписки с покупателями по карточкам и запросам.</p>
+          </div>
+          <Link href={`/dashboard/store?sellerId=${seller.id}&section=messages`} className="inline-flex rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-50">
+            Открыть все сообщения
+          </Link>
+        </div>
+        {latestThreads.length === 0 ? (
+          <p className="mt-3 text-sm text-slate-500">Диалогов пока нет.</p>
+        ) : (
+          <ul className="mt-3 space-y-2">
+            {latestThreads.map((thread) => (
+              <li key={thread.id} className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-2">
+                <Link href={`/messages/${encodeURIComponent(thread.id)}`} className="line-clamp-1 text-sm font-semibold text-slate-900 hover:underline">
+                  {thread.lastMessage}
+                </Link>
+                <p className="text-xs text-slate-500">{new Date(thread.lastMessageAt).toLocaleString("ru-RU")}</p>
+              </li>
+            ))}
+          </ul>
+        )}
+        <p className="mt-3 text-xs text-slate-500">Полная история чатов доступна в разделе «Сообщения» кабинета и в полноэкранном режиме.</p>
+      </div>
 
       <ErrorBoundary context="store-analytics-section" fallback={<div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-600">Раздел аналитики временно недоступен.</div>}>
         <StoreAnalyticsSection seller={seller} listings={listings} />

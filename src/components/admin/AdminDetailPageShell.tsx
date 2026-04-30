@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { AdminInternalLink } from "./AdminInternalLink";
 import { AdminPageSection } from "./AdminPageSection";
 
 type Breadcrumb = { label: string; href?: string };
@@ -31,7 +32,19 @@ export function AdminDetailPageShell({
       <nav className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
         {breadcrumbs.map((crumb, index) => (
           <span key={`${crumb.label}-${index}`} className="inline-flex items-center gap-2">
-            {crumb.href ? <Link href={crumb.href} className="text-slate-600 hover:text-slate-900">{crumb.label}</Link> : <span className="text-slate-900">{crumb.label}</span>}
+            {crumb.href ? (
+              crumb.href.startsWith("/admin") ? (
+                <AdminInternalLink href={crumb.href} className="text-slate-600 hover:text-slate-900">
+                  {crumb.label}
+                </AdminInternalLink>
+              ) : (
+                <Link href={crumb.href} className="text-slate-600 hover:text-slate-900">
+                  {crumb.label}
+                </Link>
+              )
+            ) : (
+              <span className="text-slate-900">{crumb.label}</span>
+            )}
             {index < breadcrumbs.length - 1 ? <span>/</span> : null}
           </span>
         ))}

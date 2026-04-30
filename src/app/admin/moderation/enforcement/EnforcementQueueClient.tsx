@@ -1,9 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useMemo } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
+import { AdminInternalLink } from "@/components/admin/AdminInternalLink";
 import { AdminFiltersBar } from "@/components/admin/AdminFiltersBar";
 import { AdminListPageShell } from "@/components/admin/AdminListPageShell";
 import { ModerationShell } from "@/components/moderation/ModerationShell";
@@ -123,12 +123,12 @@ export default function EnforcementQueueClient() {
                 </span>
               </div>
               <p className="mt-1 text-sm text-slate-600">{action.reasonTitle}</p>
-              <Link
+              <AdminInternalLink
                 href={`/admin/moderation/enforcement/${action.id}`}
                 className="mt-3 inline-flex h-9 items-center rounded-lg bg-slate-900 px-3 text-sm font-semibold text-white"
               >
                 Открыть кейс
-              </Link>
+              </AdminInternalLink>
             </article>
           ))}
         </div>

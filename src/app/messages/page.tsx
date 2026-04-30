@@ -1,46 +1,58 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useMemo } from "react";
+import { useSearchParams } from "next/navigation";
 
 import { useDemoRole } from "@/components/demo-role/demo-role";
-import { resolveDemoStoreNavSellerId } from "@/lib/demo-role-constants";
+import { Navbar } from "@/components/layout/navbar";
+import { MessagesSplitView } from "@/components/messages/messages-split-view";
+import { Container } from "@/components/ui/container";
+import { resolveActorIdsForRole } from "@/lib/messages-actors";
 
-export default function MessagesPage() {
-  const router = useRouter();
-  const { role, isHydrated } = useDemoRole();
-  const didRedirectRef = useRef(false);
+export default function MessagesInboxPage() {
+  return (
+    <Suspense fallback={null}>
+      <MessagesInboxContent />
+    </Suspense>
+  );
+}
 
-  useEffect(() => {
-    if (!isHydrated || didRedirectRef.current) {
-      return;
-    }
-    const id = window.setTimeout(() => {
-      didRedirectRef.current = true;
-      if (role === "seller") {
-        const sellerId = resolveDemoStoreNavSellerId(role);
-        if (sellerId) {
-          router.replace(`/dashboard/store?sellerId=${sellerId}&section=messages`);
-          return;
-        }
-      }
-      if (role === "guest") {
-        router.replace("/");
-        return;
-      }
+function MessagesInboxContent() {
+  const searchParams = useSearchParams();
+  const { role, currentSellerId, isHydrated } = useDemoRole();
+  const actorIds = useMemo(() => resolveActorIdsForRole(role, currentSellerId), [role, currentSellerId]);
+  const selectedThreadId = searchParams.get("thread");
+  const from = searchParams.get("from");
+  const actor = searchParams.get("actor");
+  const isStoreActor = actor === "store" || role === "seller";
+  const backHref = from === "dashboard" ? "/dashboard?section=messages" : from === "store-dashboard" || isStoreActor ? `/dashboard/store?sellerId=${currentSellerId ?? ""}&section=messages` : undefined;
+  const backLabel = from === "dashboard" ? "Вернуться в кабинет" : from === "store-dashboard" || isStoreActor ? "Вернуться в кабинет магазина" : undefined;
 
-      const next = new URLSearchParams({ tab: "messages" });
-      const params = new URLSearchParams(window.location.search);
-      ["conversationId", "listingId", "sellerName", "listingTitle"].forEach((key) => {
-        const value = params.get(key);
-        if (value) {
-          next.set(key, value);
-        }
-      });
-      router.replace(`/dashboard?${next.toString()}`);
-    }, 0);
-    return () => window.clearTimeout(id);
-  }, [isHydrated, role, router]);
+  if (isHydrated && role === "guest") {
+    return null;
+  }
 
-  return null;
+  return (
+    <div className="min-h-screen bg-slate-50/60">
+      <Navbar />
+      <main className="py-6 sm:py-8">
+        <Container className="space-y-4">
+          <header className="space-y-1">
+            <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Сообщения</h1>
+            <p className="text-sm text-slate-600">Все диалоги по объявлениям, запросам и магазинам.</p>
+          </header>
+          <MessagesSplitView
+            actorIds={actorIds}
+            title="Сообщения"
+            subtitle={isStoreActor ? "Рабочий inbox продавца: лиды и диалоги с покупателями." : "Общайтесь с продавцами по объявлениям, запросам и заказам."}
+            fullscreenHref="/messages"
+            selectedThreadId={selectedThreadId}
+            backHref={backHref}
+            backLabel={backLabel}
+            isSellerWorkspace={isStoreActor}
+          />
+        </Container>
+      </main>
+    </div>
+  );
 }

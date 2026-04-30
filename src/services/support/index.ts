@@ -5,6 +5,7 @@ export type {
   SupportTicket,
   TicketMessage,
   TicketMessageAuthorRole,
+  TicketPriority,
   TicketStatus,
 } from "./types";
 export type { CreateSupportTicketInput } from "./mock";
@@ -13,6 +14,9 @@ export {
   HELP_CATEGORIES,
   addSupportTicketMessage,
   addTicketReply,
+  adminAssignTicket,
+  adminBulkSetTicketStatus,
+  adminSetTicketStatus,
   createTicket,
   createSupportTicket,
   getArticle,
@@ -26,6 +30,7 @@ export {
   getTicketForUser,
   getTicketsForUser,
   getUserTickets,
+  listAllSupportTicketsForAdmin,
   resetSupportTicketsForTests,
   searchArticles,
   searchHelpArticles,

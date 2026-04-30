@@ -140,7 +140,6 @@ export function ListingDetailsPageClient({ id, staticListing }: ListingDetailsPa
               sellerName={listing.sellerName}
               sellerPhone={listing.sellerPhone}
               listingId={listing.id}
-              listingTitle={listing.title}
               storefront={storefrontSeller}
             />
           )}

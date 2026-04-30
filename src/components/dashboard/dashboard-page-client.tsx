@@ -9,15 +9,20 @@ import { DashboardFilters } from "@/components/dashboard/dashboard-filters";
 import { DashboardProfileCard } from "@/components/dashboard/dashboard-profile-card";
 import { DashboardSummaryCards } from "@/components/dashboard/dashboard-summary-cards";
 import { DashboardFilter } from "@/components/dashboard/types";
+import { useDemoRole } from "@/components/demo-role/demo-role";
+import { MessagesSplitView } from "@/components/messages/messages-split-view";
 import { MyListingsSection } from "@/components/dashboard/my-listings-section";
 import { MyRequestsSection } from "@/components/dashboard/my-requests-section";
 import { DEMO_STOREFRONT_SELLER_ID } from "@/lib/demo-role-constants";
+import { DEMO_BUYER_USER_ID } from "@/lib/messages-actors";
+import { resolveActorIdsForRole } from "@/lib/messages-actors";
 import { isListingVisibleByFilter } from "@/lib/dashboard";
 import { Card, buttonVariants, cn } from "@/components/ui";
 import type { BuyerRequest } from "@/entities/requests/model";
 import { mockBuyerRequestsService } from "@/services/requests";
 import { REQUESTS_NEW_PATH } from "@/services/requests/intent-adapter";
 import { getUserAppeals, getUserEnforcementActions } from "@/services/enforcement";
+import { messagesService, type MessageThread } from "@/services/messages";
 
 const defaultFilter: DashboardFilter = "all";
 
@@ -35,12 +40,17 @@ export function DashboardPageClient({
   const buyer = useBuyer();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { role, currentSellerId } = useDemoRole();
   const [filter, setFilter] = useState<DashboardFilter>(defaultFilter);
   const publicationType: "sale" | "purchase" = searchParams.get("publication") === "purchase" ? "purchase" : "sale";
   const [showSponsorBoardHint, setShowSponsorBoardHint] = useState(fromSponsorBoard || promoteHeroIntent);
   const [buyerRequests, setBuyerRequests] = useState<BuyerRequest[]>([]);
+  const [latestThreads, setLatestThreads] = useState<MessageThread[]>([]);
+  const actorIds = useMemo(() => resolveActorIdsForRole(role, currentSellerId), [role, currentSellerId]);
   const listings = buyer.myListings;
   const currentBuyerId = "buyer-dmitriy";
+  const section = searchParams.get("section");
+  const selectedThreadId = searchParams.get("thread");
 
   const enforcementCounts = useMemo(() => {
     const actions = getUserEnforcementActions(currentBuyerId);
@@ -52,6 +62,9 @@ export function DashboardPageClient({
   useEffect(() => {
     void mockBuyerRequestsService.getBuyerRequests({ authorId: currentBuyerId }).then((rows) => {
       setBuyerRequests(rows.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+    });
+    void messagesService.getMyThreads(DEMO_BUYER_USER_ID).then((rows) => {
+      setLatestThreads(rows.slice(0, 3));
     });
   }, []);
 
@@ -82,6 +95,32 @@ export function DashboardPageClient({
     }),
     [listings.length, buyerRequests.length],
   );
+
+  if (section === "messages") {
+    return (
+      <div className="space-y-4 sm:space-y-5">
+        <Link href="/dashboard" className="inline-flex text-sm font-medium text-slate-600 transition hover:text-slate-900">
+          ← Назад в кабинет
+        </Link>
+        <MessagesSplitView
+          actorIds={actorIds.length > 0 ? actorIds : [DEMO_BUYER_USER_ID]}
+          title="Сообщения"
+          subtitle="Общайтесь с продавцами по объявлениям, запросам и заказам."
+          fullscreenHref="/messages?from=dashboard"
+          backHref="/dashboard"
+          backLabel="Назад в кабинет"
+          selectedThreadId={selectedThreadId}
+          onSelectedThreadChange={(threadId) => {
+            const params = new URLSearchParams(searchParams.toString());
+            params.set("section", "messages");
+            if (threadId) params.set("thread", threadId);
+            else params.delete("thread");
+            router.replace(`/dashboard?${params.toString()}`);
+          }}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4 sm:space-y-5">
@@ -174,6 +213,38 @@ export function DashboardPageClient({
         <Link href="/dashboard?tab=saved-searches" className={buttonVariants({ variant: "primary" })}>
           Открыть
         </Link>
+      </Card>
+
+      <Card className="p-4 sm:p-5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="space-y-1">
+            <h2 className="text-sm font-semibold text-slate-900">Сообщения</h2>
+            <p className="text-sm text-slate-600">Последние диалоги по объявлениям и запросам.</p>
+          </div>
+          <Link href="/messages?from=dashboard" className={buttonVariants({ variant: "secondary", size: "md" })}>
+            Все сообщения
+          </Link>
+        </div>
+        {latestThreads.length === 0 ? (
+          <p className="mt-3 text-sm text-slate-500">Диалогов пока нет.</p>
+        ) : (
+          <ul className="mt-3 space-y-2">
+            {latestThreads.map((thread) => (
+              <li key={thread.id} className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-2">
+                <Link href={`/messages/${encodeURIComponent(thread.id)}`} className="line-clamp-1 text-sm font-semibold text-slate-900 hover:underline">
+                  {thread.lastMessage}
+                </Link>
+                <p className="text-xs text-slate-500">{new Date(thread.lastMessageAt).toLocaleString("ru-RU")}</p>
+              </li>
+            ))}
+          </ul>
+        )}
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+          <p className="text-xs text-slate-500">Полная история переписки доступна в режиме split‑view и на странице «Сообщения».</p>
+          <Link href="/dashboard?section=messages" className={buttonVariants({ variant: "outline", size: "sm" })}>
+            Открыть в кабинете
+          </Link>
+        </div>
       </Card>
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_280px]">

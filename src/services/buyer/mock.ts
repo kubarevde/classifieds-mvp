@@ -4,7 +4,6 @@ import type { ProfilePersistedFields } from "@/components/profile/types";
 import type { ListingCategory } from "@/lib/types";
 import { buildAutoSearchLabel, defaultSavedSearchFilters, type SavedSearch, type SavedSearchFilters } from "@/lib/saved-searches";
 import { myListingsMock } from "@/lib/dashboard-mock-data";
-import { mockConversations } from "@/lib/messages";
 import type { Notification } from "@/lib/notifications";
 import { getDefaultProfileFieldsSync } from "@/services/auth";
 import { getBuyerNotificationsSync } from "@/services/notifications";
@@ -45,7 +44,6 @@ export function makeInitialBuyerState(isBuyerRole: boolean): BuyerState {
           },
         ]
       : [],
-    messages: isBuyerRole ? structuredClone(mockConversations) : [],
     notifications: isBuyerRole ? getBuyerNotificationsSync() : [],
     profile: getDefaultProfileFieldsSync(),
     promotions: [],
@@ -146,78 +144,6 @@ export function createMockBuyerService(
       setState((prev) => ({
         ...prev,
         savedSearches: prev.savedSearches.map((item) => (item.id === id ? { ...item, alertsEnabled: enabled } : item)),
-      }));
-    },
-
-    markConversationRead(id) {
-      setState((prev) => ({
-        ...prev,
-        messages: prev.messages.map((conversation) =>
-          conversation.id === id ? { ...conversation, unreadCount: 0 } : conversation,
-        ),
-      }));
-    },
-
-    ensureConversation({ listingId, sellerName, listingTitle }) {
-      let result: string | null = null;
-      setState((prev) => {
-        const existing = prev.messages.find((item) => item.listingId === listingId);
-        if (existing) {
-          result = existing.id;
-          return prev;
-        }
-        if (!sellerName && !listingTitle) {
-          result = null;
-          return prev;
-        }
-        const id = uid("conv");
-        result = id;
-        return {
-          ...prev,
-          messages: [
-            {
-              id,
-              listingId,
-              participantName: sellerName ?? "Пользователь",
-              participantRole: "Продавец",
-              unreadCount: 0,
-              messages: [
-                {
-                  id: uid("m"),
-                  author: "other",
-                  text: `Здравствуйте! По объявлению "${listingTitle ?? "товар"}" на связи.`,
-                  sentAtIso: new Date().toISOString(),
-                },
-              ],
-            },
-            ...prev.messages,
-          ],
-        };
-      });
-      return result;
-    },
-
-    sendMessage(conversationId, text) {
-      setState((prev) => ({
-        ...prev,
-        messages: [...prev.messages]
-          .map((conversation) =>
-            conversation.id === conversationId
-              ? {
-                  ...conversation,
-                  unreadCount: 0,
-                  messages: [
-                    ...conversation.messages,
-                    { id: uid("m"), author: "me" as const, text: text.trim(), sentAtIso: new Date().toISOString() },
-                  ],
-                }
-              : conversation,
-          )
-          .sort((left, right) => {
-            const leftTime = new Date(left.messages[left.messages.length - 1]?.sentAtIso ?? 0).getTime();
-            const rightTime = new Date(right.messages[right.messages.length - 1]?.sentAtIso ?? 0).getTime();
-            return rightTime - leftTime;
-          }),
       }));
     },
 
