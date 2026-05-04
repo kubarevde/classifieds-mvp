@@ -133,6 +133,7 @@ export function Navbar() {
                 displayName={displayName}
                 mode={accountMode}
                 storeNavSellerId={storeNavSellerId}
+                messagesUnreadCount={unreadCount}
               />
             ) : null}
 

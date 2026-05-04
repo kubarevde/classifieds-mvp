@@ -13,11 +13,19 @@ export function StoreReputationSection({ sellerId, storefrontHref }: StoreReputa
       <div className="space-y-1">
         <h2 className="text-lg font-semibold tracking-tight text-slate-900">Репутация</h2>
         <p className="text-sm text-slate-600">Единая trust-модель: Verified, Trust Score, рейтинг и response rate.</p>
-        {storefrontHref ? (
-          <a href={storefrontHref} className="inline-flex text-xs font-semibold text-slate-700 underline underline-offset-2 hover:text-slate-900">
-            Смотреть отзывы на витрине магазина
+        <div className="flex flex-wrap gap-3">
+          {storefrontHref ? (
+            <a href={storefrontHref} className="inline-flex text-xs font-semibold text-slate-700 underline underline-offset-2 hover:text-slate-900">
+              Смотреть отзывы на витрине магазина
+            </a>
+          ) : null}
+          <a
+            href={`/dashboard/store?sellerId=${encodeURIComponent(sellerId)}&section=reviews`}
+            className="inline-flex text-xs font-semibold text-sky-800 underline underline-offset-2 hover:text-sky-950"
+          >
+            Центр отзывов в кабинете
           </a>
-        ) : null}
+        </div>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">

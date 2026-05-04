@@ -10,6 +10,7 @@ import { AdminStatusBadge } from "@/components/admin/AdminStatusBadge";
 import { buildAdminBreadcrumbs } from "@/config/admin-routes";
 import { getAdminListings, getAdminPayouts, getAdminStoreById, getAdminSubscriptions } from "@/services/admin";
 import { listPromotionsForStore } from "@/services/promotions";
+import { reviewsService } from "@/services/reviews";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -23,6 +24,11 @@ export default async function AdminStoreDetailPage({ params }: Props) {
   const sub = getAdminSubscriptions().find((s) => s.accountRefId === id);
   const payout = getAdminPayouts().find((p) => p.storeId === id);
   const promos = listPromotionsForStore(id);
+  const storeReviewSummary = reviewsService.getReviewSummary(id, "store");
+  const storeReviewsRecent = reviewsService
+    .getReviewsForTarget(id, "store")
+    .filter((r) => r.status === "published")
+    .slice(0, 8);
 
   return (
     <div className="space-y-6">
@@ -79,6 +85,33 @@ export default async function AdminStoreDetailPage({ params }: Props) {
             </div>
           ) : null}
         </dl>
+      </AdminPageSection>
+
+      <AdminPageSection title="Отзывы магазина (P33)">
+        <p className="text-sm text-slate-600">
+          Средняя оценка: <span className="font-semibold text-slate-900">{storeReviewSummary.avgRating.toFixed(1)}</span> / 5 · всего{" "}
+          {storeReviewSummary.totalCount} (mock, только опубликованные на витрине).
+        </p>
+        {storeReviewsRecent.length === 0 ? (
+          <p className="mt-2 text-sm text-slate-500">Нет опубликованных отзывов.</p>
+        ) : (
+          <ul className="mt-3 space-y-2 text-sm">
+            {storeReviewsRecent.map((r) => (
+              <li key={r.id} className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-2">
+                <AdminInternalLink href={`/admin/reviews/${encodeURIComponent(r.id)}`} className="font-semibold text-sky-900 hover:underline">
+                  {r.id}
+                </AdminInternalLink>{" "}
+                <span className="text-xs text-amber-700">{r.rating}★</span>
+                <span className="mt-1 block text-slate-700 line-clamp-2">{r.text}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+        <p className="mt-2 text-xs">
+          <AdminInternalLink href="/admin/reviews" className="font-semibold text-sky-800 hover:underline">
+            Очередь жалоб на отзывы
+          </AdminInternalLink>
+        </p>
       </AdminPageSection>
 
       <AdminPageSection title="Активные продвижения">

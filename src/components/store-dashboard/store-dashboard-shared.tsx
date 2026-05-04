@@ -33,7 +33,7 @@ export type StoreDashboardPageClientProps = {
   initialPriceAnalytics: PriceAnalyticsSnapshot[];
   initialHeroBoardPlacements: HeroBannerPlacement[];
   initialMarketingScreen?: MarketingMenuKey;
-  initialSection?: "messages" | "notifications";
+  initialSection?: "messages" | "notifications" | "reviews";
 };
 
 export type ListingFilter = "all" | "active" | "paused" | "sold";

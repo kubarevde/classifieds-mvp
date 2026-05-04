@@ -151,7 +151,6 @@ export function StorefrontPageClient({
     [storefrontReturnTo, visibleListings],
   );
 
-  const firstListing = visibleListings[0] ?? listings[0];
   const activeCoupons = useMemo(() => coupons.filter((coupon) => coupon.status === "active"), [coupons]);
   const activeCampaigns = useMemo(() => campaigns.filter((campaign) => campaign.status === "active"), [campaigns]);
   const featuredListings = useMemo(() => {
@@ -357,14 +356,14 @@ export function StorefrontPageClient({
                   const thread = await messagesService.createThread({
                     starterId,
                     otherUserId: `seller-account:${seller.id}`,
-                    listingId: firstListing?.id ?? null,
+                    listingId: null,
                     storeId: seller.id,
                   });
-                  router.push(`/messages/${encodeURIComponent(thread.id)}`);
+                  router.push(`/messages?thread=${encodeURIComponent(thread.id)}`);
                 }}
                 className="inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-slate-900 px-3 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
               >
-                Написать продавцу
+                Связаться с магазином
               </Link>
               <button
                 type="button"

@@ -66,6 +66,13 @@ function TicketDetailBody() {
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{statusLabel[ticket.status]}</p>
         <h1 className="text-2xl font-semibold text-slate-900">{ticket.subject}</h1>
         <p className="text-sm text-slate-600">Категория: {ticket.category}</p>
+        {ticket.threadId ? (
+          <p className="text-sm">
+            <Link href={`/messages/${encodeURIComponent(ticket.threadId)}`} className="font-semibold text-sky-800 hover:underline">
+              Открыть связанный диалог в сообщениях
+            </Link>
+          </p>
+        ) : null}
       </header>
       <TicketThread ticket={ticket} onUpdated={setTicket} />
     </div>

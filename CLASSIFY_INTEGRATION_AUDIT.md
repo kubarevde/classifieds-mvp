@@ -238,8 +238,7 @@ flowchart LR
   E --> K[memoryAuctions]
   F --> K
   G -.not using service uniformly.-> J
-
-  L[/worlds and /worlds/[slug]] --> G
+    L[/worlds and /worlds/[slug]] --> G
   L -.query contract drift.-> G
 
   M[FeatureGate Service] --> A

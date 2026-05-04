@@ -303,6 +303,7 @@ function seedTickets(): SupportTicket[] {
     status: "open",
     priority: "high",
     assignedTo: null,
+    threadId: "thread-support-ticket-1",
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 26).toISOString(),
     updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
     messages: [

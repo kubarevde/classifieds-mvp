@@ -39,7 +39,7 @@ export function StorefrontReputationSection({ targetId }: StorefrontReputationSe
       </header>
 
       <div className="min-w-0">
-        <ReviewsList targetId={targetId} compactHeader sectionId="store-reviews-full" />
+        <ReviewsList targetId={targetId} compactHeader sectionId="store-reviews-full" hideWriteReview />
       </div>
     </section>
   );

@@ -3,12 +3,15 @@
 import Link from "next/link";
 import { ChevronDown, User } from "lucide-react";
 
+import { UnreadBadge } from "@/components/messages/UnreadBadge";
+
 type AccountMenuProps = {
   favoritesCount: number;
   favoritesHydrated: boolean;
   displayName: string;
   mode: "buyer" | "seller" | "all";
   storeNavSellerId: string | null;
+  messagesUnreadCount?: number;
 };
 
 function ChevronDownIcon() {
@@ -25,6 +28,7 @@ export function AccountMenu({
   displayName,
   mode,
   storeNavSellerId,
+  messagesUnreadCount = 0,
 }: AccountMenuProps) {
   return (
     <details className="group relative hidden sm:block">
@@ -68,9 +72,10 @@ export function AccountMenu({
               <li>
                 <Link
                   href={mode === "seller" && storeNavSellerId ? `/dashboard/store?sellerId=${storeNavSellerId}&section=messages` : "/messages"}
-                  className="flex items-center rounded-lg px-3 py-2 hover:bg-slate-50"
+                  className="relative flex items-center rounded-lg px-3 py-2 hover:bg-slate-50"
                 >
                   Сообщения
+                  <UnreadBadge count={messagesUnreadCount} />
                 </Link>
               </li>
               <li>

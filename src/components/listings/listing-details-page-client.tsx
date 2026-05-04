@@ -5,9 +5,15 @@ import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
+import { useBuyer } from "@/components/buyer/buyer-provider";
+import { ListingOfferSheet } from "@/components/deals/ListingOfferSheet";
+import { useDemoRole } from "@/components/demo-role/demo-role";
 import { Container } from "@/components/ui/container";
 import { ErrorBoundary } from "@/components/platform";
 import { useToast } from "@/components/ui/toast";
+import { cn } from "@/components/ui/cn";
+import { buttonVariants } from "@/lib/button-styles";
+import { DEMO_BUYER_USER_ID } from "@/lib/messages-actors";
 import { getStorefrontSellerByListingId } from "@/lib/sellers";
 import type { Listing } from "@/lib/types";
 import { useListings } from "@/hooks/data/use-listings";
@@ -34,7 +40,10 @@ type ListingDetailsPageClientProps = {
 
 export function ListingDetailsPageClient({ id, staticListing }: ListingDetailsPageClientProps) {
   const router = useRouter();
+  const buyer = useBuyer();
+  const { role, currentSellerId } = useDemoRole();
   const [auction, setAuction] = useState<Awaited<ReturnType<typeof mockAuctionService.getByListing>>>(null);
+  const [offerOpen, setOfferOpen] = useState(false);
   const { data: catalogListings } = useListings();
   const published = usePublishedListing(id);
   const listing = staticListing ?? published;
@@ -80,6 +89,20 @@ export function ListingDetailsPageClient({ id, staticListing }: ListingDetailsPa
   }, [listing]);
 
   const storefrontSeller = listing ? getStorefrontSellerByListingId(listing.id) : null;
+
+  const isOwner = useMemo(() => {
+    if (!listing) return false;
+    if (buyer.myListings.some((l) => l.id === listing.id)) return true;
+    if (storefrontSeller && (role === "seller" || role === "all") && currentSellerId === storefrontSeller.id) {
+      return true;
+    }
+    return false;
+  }, [buyer.myListings, currentSellerId, listing, role, storefrontSeller]);
+
+  const showOfferCta = useMemo(() => {
+    if (!listing) return false;
+    return !auction && Boolean(storefrontSeller) && listing.listingSaleMode !== "auction" && !isOwner;
+  }, [auction, isOwner, listing, storefrontSeller]);
 
   if (!listing) {
     return (
@@ -128,21 +151,47 @@ export function ListingDetailsPageClient({ id, staticListing }: ListingDetailsPa
             sellerId={storefrontSeller?.id ?? null}
             sellerMemberSinceYear={storefrontSeller?.memberSinceYear}
           />
-          {auction ? (
-            <ErrorBoundary
-              context="auction-detail-panel"
-              fallback={<div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-600">Панель аукциона временно недоступна.</div>}
-            >
-              <AuctionDetailPanel auction={auction} />
-            </ErrorBoundary>
-          ) : (
-            <SellerCard
-              sellerName={listing.sellerName}
-              sellerPhone={listing.sellerPhone}
-              listingId={listing.id}
-              storefront={storefrontSeller}
-            />
-          )}
+          <div className="space-y-3">
+            {auction ? (
+              <ErrorBoundary
+                context="auction-detail-panel"
+                fallback={<div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-600">Панель аукциона временно недоступна.</div>}
+              >
+                <AuctionDetailPanel auction={auction} />
+              </ErrorBoundary>
+            ) : (
+              <SellerCard
+                sellerName={listing.sellerName}
+                sellerPhone={listing.sellerPhone}
+                listingId={listing.id}
+                storefront={storefrontSeller}
+              />
+            )}
+            {showOfferCta && storefrontSeller ? (
+              <>
+                <button
+                  type="button"
+                  className={cn(buttonVariants({ variant: "primary", size: "md" }), "w-full rounded-xl")}
+                  onClick={() => setOfferOpen(true)}
+                >
+                  Предложить цену
+                </button>
+                <ListingOfferSheet
+                  open={offerOpen}
+                  onOpenChange={setOfferOpen}
+                  listingId={listing.id}
+                  listingTitle={listing.title}
+                  referencePrice={listing.priceValue}
+                  buyerId={DEMO_BUYER_USER_ID}
+                  sellerAccountId={`seller-account:${storefrontSeller.id}`}
+                  onSubmitted={(threadId) => {
+                    showToast("Предложение отправлено — открываем чат", "success");
+                    router.push(`/messages?thread=${encodeURIComponent(threadId)}`);
+                  }}
+                />
+              </>
+            ) : null}
+          </div>
         </div>
 
         <section className="space-y-3">

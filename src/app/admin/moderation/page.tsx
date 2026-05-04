@@ -41,6 +41,9 @@ export default function AdminModerationOverviewPage() {
           <AdminInternalLink href="/admin/moderation/enforcement" className="inline-flex h-9 items-center rounded-lg bg-slate-900 px-3 text-sm font-semibold text-white">
             Enforcement
           </AdminInternalLink>
+          <AdminInternalLink href="/admin/reviews" className="inline-flex h-9 items-center rounded-lg border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-900">
+            Отзывы (flags)
+          </AdminInternalLink>
         </div>
         <p className="mt-2 text-xs text-slate-500">Сначала разбирайте urgent и high priority.</p>
       </section>

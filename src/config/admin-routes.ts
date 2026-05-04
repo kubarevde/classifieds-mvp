@@ -44,6 +44,7 @@ export const ADMIN_NAV_TREE: AdminNavNode[] = [
       { id: "moderation-verification", label: "Верификация", href: "/admin/moderation/verification", icon: "shield", accessId: "moderation" },
       { id: "moderation-appeals", label: "Апелляции", href: "/admin/moderation/appeals", icon: "shield", accessId: "moderation" },
       { id: "moderation-enforcement", label: "Enforcement", href: "/admin/moderation/enforcement", icon: "shield", accessId: "moderation" },
+      { id: "moderation-reviews", label: "Отзывы (flags)", href: "/admin/reviews", icon: "shield", accessId: "moderation" },
     ],
   },
   {
@@ -145,6 +146,7 @@ export function buildAdminBreadcrumbs(pathname: string): BreadcrumbItem[] {
   crumbs.push({ label: node.label, href: node.href });
 
   const dyn =
+    normalized.match(/^\/admin\/reviews\/([^/]+)$/) ??
     normalized.match(/^\/admin\/users\/([^/]+)$/) ??
     normalized.match(/^\/admin\/listings\/([^/]+)$/) ??
     normalized.match(/^\/admin\/stores\/([^/]+)$/) ??
@@ -221,6 +223,9 @@ export function getRouteAccessIdForPathname(pathname: string): string {
     return "subscriptions-detail";
   }
   if (/^\/admin\/moderation\//.test(normalized)) {
+    return "moderation";
+  }
+  if (/^\/admin\/reviews(\/[^/]+)?$/.test(normalized)) {
     return "moderation";
   }
   if (/^\/admin\/cases(\/[^/]+)?$/.test(normalized)) {

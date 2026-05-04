@@ -1,6 +1,8 @@
 import type { Review } from "@/entities/trust/model";
 import { trustReviewsMock } from "@/mocks/trust/reviews";
 import { trustScoresMock } from "@/mocks/trust/trust-scores";
+import { reviewsService } from "@/services/reviews";
+import { inferReviewTargetType, mergeServiceReviewsForTrust, serviceSummaryToStatsPartial } from "@/services/reviews/trust-adapter";
 
 import type { NewReviewInput, ReviewFilters, ReviewStats, TrustService } from "./index";
 
@@ -51,6 +53,35 @@ function emit<T>(value: T): Promise<T> {
   return Promise.resolve(value);
 }
 
+function mergeReviewStats(
+  dealBacked: Pick<ReviewStats, "overallRating" | "total" | "distribution">,
+  legacy: ReviewStats,
+): ReviewStats {
+  const total = dealBacked.total + legacy.total;
+  if (total === 0) {
+    return {
+      overallRating: 0,
+      total: 0,
+      distribution: ([5, 4, 3, 2, 1] as const).map((rating) => ({ rating, count: 0 })),
+      verifiedCount: 0,
+    };
+  }
+  const dist = ([5, 4, 3, 2, 1] as const).map((rating) => ({
+    rating,
+    count:
+      (dealBacked.distribution.find((d) => d.rating === rating)?.count ?? 0) +
+      (legacy.distribution.find((d) => d.rating === rating)?.count ?? 0),
+  }));
+  const weighted =
+    (dealBacked.overallRating * dealBacked.total + legacy.overallRating * legacy.total) / total;
+  return {
+    overallRating: Number(weighted.toFixed(1)),
+    total,
+    distribution: dist,
+    verifiedCount: legacy.verifiedCount + dealBacked.total,
+  };
+}
+
 export const mockTrustService: TrustService = {
   async getScore(targetId) {
     const score = scoreMemory.find((item) => item.userId === targetId) ?? null;
@@ -67,10 +98,19 @@ export const mockTrustService: TrustService = {
     );
   },
   async getReviews(targetId, filters) {
-    return emit(withFilters(reviewsMemory.filter((review) => review.targetId === targetId), filters).map(cloneReview));
+    const t = inferReviewTargetType(targetId);
+    const fromDeal = mergeServiceReviewsForTrust(targetId, reviewsService.getReviewsForTarget(targetId, t), filters);
+    const legacy = withFilters(reviewsMemory.filter((review) => review.targetId === targetId), filters).map(cloneReview);
+    const merged = [...fromDeal, ...legacy];
+    merged.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    return emit(merged.map(cloneReview));
   },
   async getReviewStats(targetId) {
-    return emit(toStats(reviewsMemory.filter((review) => review.targetId === targetId)));
+    const t = inferReviewTargetType(targetId);
+    const sum = reviewsService.getReviewSummary(targetId, t);
+    const dealBacked = serviceSummaryToStatsPartial(sum.avgRating, sum.totalCount, sum.distribution);
+    const legacy = toStats(reviewsMemory.filter((review) => review.targetId === targetId));
+    return emit(mergeReviewStats(dealBacked, legacy));
   },
   async addReview(input: NewReviewInput) {
     const review: Review = {
@@ -94,6 +134,9 @@ export const mockTrustService: TrustService = {
     return emit(cloneReview(review));
   },
   async markHelpful(reviewId) {
+    if (reviewId.startsWith("rv-")) {
+      return emit(undefined);
+    }
     reviewsMemory = reviewsMemory.map((review) =>
       review.id === reviewId ? { ...review, helpful: review.helpful + 1 } : review,
     );

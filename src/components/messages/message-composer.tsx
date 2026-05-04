@@ -15,11 +15,13 @@ export function MessageComposer({
   placeholder,
   onSend,
   suggestMode = "dropdown",
+  suggestedContext,
 }: {
   role: MessageSenderRole;
   placeholder?: string;
   onSend: (input: { content: string; attachments: MessageAttachment[] }) => Promise<void> | void;
   suggestMode?: "dropdown" | "chips";
+  suggestedContext?: { hasListingContext?: boolean; hasRequestContext?: boolean };
 }) {
   const [draft, setDraft] = useState("");
   const [attachments, setAttachments] = useState<MessageAttachment[]>([]);
@@ -31,9 +33,13 @@ export function MessageComposer({
   useEffect(() => {
     void messageTemplatesService.getTemplatesForRole(role).then(setTemplates);
     void messageTemplatesService
-      .getSuggestedTemplates({ role, hasListingContext: true })
+      .getSuggestedTemplates({
+        role,
+        hasListingContext: suggestedContext?.hasListingContext,
+        hasRequestContext: suggestedContext?.hasRequestContext,
+      })
       .then(setSuggested);
-  }, [role]);
+  }, [role, suggestedContext?.hasListingContext, suggestedContext?.hasRequestContext]);
 
   const canSend = draft.trim().length > 0 || attachments.length > 0;
 
@@ -52,8 +58,17 @@ export function MessageComposer({
       {suggestMode === "chips" && suggested.length > 0 ? (
         <div className="mb-2 flex flex-wrap gap-2">
           {suggested.map((item) => (
-            <button key={item.id} type="button" onClick={() => setDraft(item.text)} className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs text-slate-700 hover:bg-slate-100">
-              {item.title}
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => setDraft(item.body)}
+              className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                role === "store_owner" || role === "seller"
+                  ? "border-sky-300 bg-sky-50 text-sky-900 hover:bg-sky-100"
+                  : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100"
+              }`}
+            >
+              {item.label}
             </button>
           ))}
         </div>
@@ -120,9 +135,9 @@ export function MessageComposer({
       {openQuickReplies ? (
         <div className="mt-2 max-h-44 overflow-y-auto rounded-xl border border-slate-200 bg-white p-2">
           {templates.map((item) => (
-            <button key={item.id} type="button" onClick={() => { setDraft(item.text); setOpenQuickReplies(false); }} className="block w-full rounded-lg px-2 py-2 text-left text-sm text-slate-700 hover:bg-slate-50">
-              <span className="block font-medium text-slate-900">{item.title}</span>
-              <span className="line-clamp-1 text-xs">{item.text}</span>
+            <button key={item.id} type="button" onClick={() => { setDraft(item.body); setOpenQuickReplies(false); }} className="block w-full rounded-lg px-2 py-2 text-left text-sm text-slate-700 hover:bg-slate-50">
+              <span className="block font-medium text-slate-900">{item.label}</span>
+              <span className="line-clamp-1 text-xs">{item.body}</span>
             </button>
           ))}
         </div>

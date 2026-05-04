@@ -10,6 +10,7 @@ import { DashboardProfileCard } from "@/components/dashboard/dashboard-profile-c
 import { DashboardSummaryCards } from "@/components/dashboard/dashboard-summary-cards";
 import { DashboardFilter } from "@/components/dashboard/types";
 import { useDemoRole } from "@/components/demo-role/demo-role";
+import { BuyerDealsSection } from "@/components/dashboard/buyer-deals-section";
 import { MessagesSplitView } from "@/components/messages/messages-split-view";
 import { MyListingsSection } from "@/components/dashboard/my-listings-section";
 import { MyRequestsSection } from "@/components/dashboard/my-requests-section";
@@ -23,6 +24,7 @@ import { mockBuyerRequestsService } from "@/services/requests";
 import { REQUESTS_NEW_PATH } from "@/services/requests/intent-adapter";
 import { getUserAppeals, getUserEnforcementActions } from "@/services/enforcement";
 import { messagesService, type MessageThread } from "@/services/messages";
+import { reviewsService } from "@/services/reviews";
 
 const defaultFilter: DashboardFilter = "all";
 
@@ -51,6 +53,12 @@ export function DashboardPageClient({
   const currentBuyerId = "buyer-dmitriy";
   const section = searchParams.get("section");
   const selectedThreadId = searchParams.get("thread");
+
+  const buyerReputationPreview = useMemo(() => {
+    const rows = reviewsService.getReviewsForTarget(DEMO_BUYER_USER_ID, "buyer").filter((r) => r.status === "published");
+    const sum = reviewsService.getReviewSummary(DEMO_BUYER_USER_ID, "buyer");
+    return { rows: rows.slice(0, 2), sum };
+  }, []);
 
   const enforcementCounts = useMemo(() => {
     const actions = getUserEnforcementActions(currentBuyerId);
@@ -95,6 +103,14 @@ export function DashboardPageClient({
     }),
     [listings.length, buyerRequests.length],
   );
+
+  if (section === "deals") {
+    return (
+      <div className="space-y-4 sm:space-y-5">
+        <BuyerDealsSection />
+      </div>
+    );
+  }
 
   if (section === "messages") {
     return (
@@ -216,14 +232,41 @@ export function DashboardPageClient({
       </Card>
 
       <Card className="p-4 sm:p-5">
+        <div className="space-y-1">
+          <h2 className="text-sm font-semibold text-slate-900">Репутация покупателя</h2>
+          <p className="text-sm text-slate-600">
+            Средняя оценка от продавцов: <span className="font-semibold text-slate-900">{buyerReputationPreview.sum.avgRating.toFixed(1)}</span> / 5 ·{" "}
+            {buyerReputationPreview.sum.totalCount} отзывов
+          </p>
+        </div>
+        {buyerReputationPreview.rows.length === 0 ? (
+          <p className="mt-2 text-sm text-slate-500">Пока нет опубликованных отзывов о вас как о покупателе.</p>
+        ) : (
+          <ul className="mt-3 space-y-2 text-sm text-slate-700">
+            {buyerReputationPreview.rows.map((r) => (
+              <li key={r.id} className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-2">
+                <span className="font-medium text-amber-600">{r.rating}★</span> — {r.text.slice(0, 120)}
+                {r.text.length > 120 ? "…" : ""}
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+
+      <Card className="p-4 sm:p-5">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="space-y-1">
             <h2 className="text-sm font-semibold text-slate-900">Сообщения</h2>
             <p className="text-sm text-slate-600">Последние диалоги по объявлениям и запросам.</p>
           </div>
-          <Link href="/messages?from=dashboard" className={buttonVariants({ variant: "secondary", size: "md" })}>
-            Все сообщения
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <Link href="/dashboard?section=deals" className={buttonVariants({ variant: "secondary", size: "md" })}>
+              Мои сделки
+            </Link>
+            <Link href="/messages?from=dashboard" className={buttonVariants({ variant: "secondary", size: "md" })}>
+              Все сообщения
+            </Link>
+          </div>
         </div>
         {latestThreads.length === 0 ? (
           <p className="mt-3 text-sm text-slate-500">Диалогов пока нет.</p>

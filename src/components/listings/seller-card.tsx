@@ -124,7 +124,7 @@ export function SellerCard({
                 listingId,
                 storeId: threadTargetSellerId,
               });
-              router.push(`/messages/${encodeURIComponent(thread.id)}`);
+              router.push(`/messages?thread=${encodeURIComponent(thread.id)}`);
             }}
             className={cn(buttonVariants({ variant: "primary", size: "md" }), "w-full text-center")}
           >

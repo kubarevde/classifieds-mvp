@@ -172,11 +172,11 @@ export function RequestDetailsClient({ request, initialResponses }: RequestDetai
                     requestId: currentRequest.id,
                     storeId: currentSellerId ?? undefined,
                   });
-                  router.push(`/messages/${encodeURIComponent(thread.id)}`);
+                  router.push(`/messages?thread=${encodeURIComponent(thread.id)}`);
                 }}
                 className={cn(buttonVariants({ variant: "outline", size: "md" }), "w-full justify-center rounded-xl")}
               >
-                Написать автору
+                Ответить в чате
               </Link>
             </div>
           </div>
@@ -237,6 +237,23 @@ export function RequestDetailsClient({ request, initialResponses }: RequestDetai
                 setResponses((prev) => [created, ...prev]);
               }}
             />
+            <button
+              type="button"
+              className={cn(buttonVariants({ variant: "outline", size: "md" }), "mt-3 w-full justify-center rounded-xl")}
+              onClick={async () => {
+                const starterId = resolvePrimaryActorId(role, currentSellerId);
+                const otherUserId = currentRequest.authorId;
+                const thread = await messagesService.createThread({
+                  starterId,
+                  otherUserId,
+                  requestId: currentRequest.id,
+                  storeId: currentSellerId ?? undefined,
+                });
+                router.push(`/messages?thread=${encodeURIComponent(thread.id)}`);
+              }}
+            >
+              Ответить в чате
+            </button>
           </div>
         ) : null}
         {isAuthor ? (

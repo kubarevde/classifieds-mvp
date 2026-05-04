@@ -8,13 +8,16 @@ import { useDemoRole } from "@/components/demo-role/demo-role";
 import { Navbar } from "@/components/layout/navbar";
 import { MessageBubble } from "@/components/messages/message-bubble";
 import { MessageComposer } from "@/components/messages/message-composer";
+import { MessagingTrustStrip } from "@/components/messages/messaging-trust-strip";
 import { formatPresence } from "@/components/messages/message-presence";
 import { Container } from "@/components/ui/container";
 import { DEMO_BUYER_USER_ID, resolvePrimaryActorId, roleByActorId } from "@/lib/messages-actors";
+import { formatUsualReplyMinutes } from "@/lib/messages-derived";
 import { mockListingsService } from "@/services/listings";
 import { messagesService, type Message, type MessageParticipant, type MessageThread } from "@/services/messages";
 import { getBuyerRequestById } from "@/services/requests";
 import { getStorefrontSellerById } from "@/services/sellers/seller-data";
+import { mockTrustService } from "@/services/trust";
 
 export default function MessageThreadPage() {
   const params = useParams();
@@ -31,11 +34,12 @@ export default function MessageThreadPage() {
   const [listingImage, setListingImage] = useState<string | null>(null);
   const [requestTitle, setRequestTitle] = useState<string | null>(null);
   const [storeName, setStoreName] = useState<string | null>(null);
+  const [buyerTrustHint, setBuyerTrustHint] = useState("");
   const feedRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     let alive = true;
-    void Promise.all([messagesService.getThread(threadId), messagesService.getMessages(threadId)]).then(async ([t, list]) => {
+    void Promise.all([messagesService.getThread(threadId, actorId), messagesService.getMessages(threadId)]).then(async ([t, list]) => {
       if (!alive) return;
       setThread(t);
       setMessages(list);
@@ -62,6 +66,34 @@ export default function MessageThreadPage() {
       alive = false;
     };
   }, [actorId, threadId]);
+
+  const trustStoreId = useMemo(() => {
+    if (!thread || !participant) return null;
+    if (thread.storeId) return thread.storeId;
+    if (participant.userId.startsWith("seller-account:")) {
+      return participant.userId.slice("seller-account:".length);
+    }
+    return null;
+  }, [participant, thread]);
+
+  useEffect(() => {
+    let alive = true;
+    if (roleByActorId(actorId) !== "buyer" || !trustStoreId) {
+      queueMicrotask(() => {
+        if (alive) setBuyerTrustHint("");
+      });
+      return () => {
+        alive = false;
+      };
+    }
+    void mockTrustService.getScore(trustStoreId).then((score) => {
+      if (!alive) return;
+      setBuyerTrustHint(formatUsualReplyMinutes(score?.components.response_time));
+    });
+    return () => {
+      alive = false;
+    };
+  }, [actorId, trustStoreId]);
 
   const contextNode = useMemo(() => {
     if (!thread) return null;
@@ -106,14 +138,46 @@ export default function MessageThreadPage() {
           <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
             <header className="border-b border-slate-100 px-4 py-3">
               <p className="text-base font-semibold text-slate-900">{participant?.name ?? "Собеседник"}</p>
-              <p className="text-xs text-slate-500">{formatPresence(participant ?? {})}</p>
+              <p className="text-xs text-slate-500">
+                {participant?.isOnline ? "Продавец в сети" : formatPresence(participant ?? {})}
+              </p>
+              {roleByActorId(actorId) === "buyer" && !participant?.isOnline && buyerTrustHint ? (
+                <p className="mt-1 text-xs text-slate-500">{buyerTrustHint} — при задержке можно написать позже.</p>
+              ) : null}
               {contextNode ? <div className="mt-2">{contextNode}</div> : null}
+              {thread.listingId || thread.requestId || thread.storeId || trustStoreId ? (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {thread.listingId ? (
+                    <Link href={`/listings/${thread.listingId}`} className="rounded-lg border border-slate-200 px-2 py-1 text-xs text-slate-700">
+                      Открыть объявление
+                    </Link>
+                  ) : null}
+                  {thread.requestId ? (
+                    <Link href={`/requests/${thread.requestId}`} className="rounded-lg border border-slate-200 px-2 py-1 text-xs text-slate-700">
+                      Открыть запрос
+                    </Link>
+                  ) : null}
+                  {(thread.storeId || trustStoreId) ? (
+                    <Link href={`/stores/${thread.storeId ?? trustStoreId}`} className="rounded-lg border border-slate-200 px-2 py-1 text-xs text-slate-700">
+                      Открыть магазин
+                    </Link>
+                  ) : null}
+                  {trustStoreId ? (
+                    <Link href={`/stores/${encodeURIComponent(trustStoreId)}#store-reputation`} className="rounded-lg border border-slate-200 px-2 py-1 text-xs text-slate-700">
+                      Отзывы
+                    </Link>
+                  ) : null}
+                  <span className="rounded-lg border border-dashed border-slate-300 px-2 py-1 text-xs text-slate-500">Предложить цену — скоро</span>
+                  <span className="rounded-lg border border-dashed border-slate-300 px-2 py-1 text-xs text-slate-500">Создать сделку — скоро</span>
+                </div>
+              ) : null}
             </header>
 
             {(thread.listingId || thread.requestId || thread.storeId) ? (
               <div className="border-b border-slate-100 bg-slate-50 px-4 py-2 text-xs text-slate-600">
                 {thread.listingId ? (
                   <div className="flex items-center gap-3">
+                    {/* eslint-disable-next-line @next/next/no-img-element -- mock listing URLs, avoid image optimizer config */}
                     {listingImage ? <img src={listingImage} alt={listingTitle ?? ""} className="h-10 w-10 rounded-md object-cover" /> : null}
                     <div>
                       <p className="font-medium text-slate-800">{listingTitle ?? thread.listingId}</p>
@@ -126,12 +190,18 @@ export default function MessageThreadPage() {
               </div>
             ) : null}
 
+            {roleByActorId(actorId) === "buyer" && trustStoreId ? <MessagingTrustStrip storeId={trustStoreId} /> : null}
+
             <div ref={feedRef} className="max-h-[58vh] space-y-3 overflow-y-auto bg-slate-50/50 p-4">
               {messages.map((message) => <MessageBubble key={message.id} message={message} mine={message.senderId === actorId} />)}
             </div>
             <MessageComposer
               role={roleByActorId(actorId)}
               suggestMode={roleByActorId(actorId) === "buyer" ? "dropdown" : "chips"}
+              suggestedContext={{
+                hasListingContext: Boolean(thread.listingId),
+                hasRequestContext: Boolean(thread.requestId),
+              }}
               onSend={async (input) => {
                 const sent = await messagesService.sendMessage({
                   threadId: thread.id,

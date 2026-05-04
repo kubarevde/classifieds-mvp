@@ -1,7 +1,7 @@
 "use client";
 
-import { Suspense, useMemo } from "react";
-import { useSearchParams } from "next/navigation";
+import { Suspense, useCallback, useMemo } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { useDemoRole } from "@/components/demo-role/demo-role";
 import { Navbar } from "@/components/layout/navbar";
@@ -18,6 +18,7 @@ export default function MessagesInboxPage() {
 }
 
 function MessagesInboxContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const { role, currentSellerId, isHydrated } = useDemoRole();
   const actorIds = useMemo(() => resolveActorIdsForRole(role, currentSellerId), [role, currentSellerId]);
@@ -27,6 +28,17 @@ function MessagesInboxContent() {
   const isStoreActor = actor === "store" || role === "seller";
   const backHref = from === "dashboard" ? "/dashboard?section=messages" : from === "store-dashboard" || isStoreActor ? `/dashboard/store?sellerId=${currentSellerId ?? ""}&section=messages` : undefined;
   const backLabel = from === "dashboard" ? "Вернуться в кабинет" : from === "store-dashboard" || isStoreActor ? "Вернуться в кабинет магазина" : undefined;
+
+  const onSelectedThreadChange = useCallback(
+    (threadId: string | null) => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (threadId) params.set("thread", threadId);
+      else params.delete("thread");
+      const q = params.toString();
+      router.replace(q ? `/messages?${q}` : "/messages", { scroll: false });
+    },
+    [router, searchParams],
+  );
 
   if (isHydrated && role === "guest") {
     return null;
@@ -47,6 +59,7 @@ function MessagesInboxContent() {
             subtitle={isStoreActor ? "Рабочий inbox продавца: лиды и диалоги с покупателями." : "Общайтесь с продавцами по объявлениям, запросам и заказам."}
             fullscreenHref="/messages"
             selectedThreadId={selectedThreadId}
+            onSelectedThreadChange={onSelectedThreadChange}
             backHref={backHref}
             backLabel={backLabel}
             isSellerWorkspace={isStoreActor}

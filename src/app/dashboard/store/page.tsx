@@ -45,9 +45,9 @@ function resolveMarketingScreen(raw: string | string[] | undefined): MarketingMe
   return value && allowed.includes(value as MarketingMenuKey) ? (value as MarketingMenuKey) : undefined;
 }
 
-function resolveSection(raw: string | string[] | undefined): "messages" | "notifications" | undefined {
+function resolveSection(raw: string | string[] | undefined): "messages" | "notifications" | "reviews" | undefined {
   const value = Array.isArray(raw) ? raw[0] : raw;
-  if (value === "messages" || value === "notifications") {
+  if (value === "messages" || value === "notifications" || value === "reviews") {
     return value;
   }
   return undefined;

@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { Bell, MessageCircle } from "lucide-react";
 
+import { UnreadBadge } from "@/components/messages/UnreadBadge";
+
 type HeaderActionsProps = {
   messagesUnreadCount: number;
   notificationsUnreadCount: number;
@@ -11,15 +13,7 @@ type HeaderActionsProps = {
 };
 
 function IndicatorBadge({ value }: { value: number }) {
-  if (value <= 0) {
-    return null;
-  }
-
-  return (
-    <span className="absolute -right-1 -top-1 inline-flex min-w-5 items-center justify-center rounded-full bg-slate-900 px-1.5 py-0.5 text-[11px] font-semibold leading-none text-white">
-      {value > 99 ? "99+" : value}
-    </span>
-  );
+  return <UnreadBadge count={value} />;
 }
 
 function MessagesIcon() {
